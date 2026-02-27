@@ -65,15 +65,23 @@ _ENV_VAR_PATTERN = re.compile(r"\{env:([A-Za-z_][A-Za-z0-9_]*)(?::([^}]*))?\}")
 
 def _substitute_env_vars(data: dict[str, Any]) -> dict[str, Any]:
     """Recursively substitute {env:VAR} and {env:VAR:default} in string values."""
+
+    def _sub_str(s: str) -> str:
+        return _ENV_VAR_PATTERN.sub(
+            lambda m: os.environ.get(
+                m.group(1), m.group(2) if m.group(2) is not None else m.group(0)
+            ),
+            s,
+        )
+
     result: dict[str, Any] = {}
     for key, value in data.items():
         if isinstance(value, dict):
             result[key] = _substitute_env_vars(value)
+        elif isinstance(value, list):
+            result[key] = [_sub_str(item) if isinstance(item, str) else item for item in value]
         elif isinstance(value, str):
-            result[key] = _ENV_VAR_PATTERN.sub(
-                lambda m: os.environ.get(m.group(1), m.group(2) if m.group(2) is not None else m.group(0)),
-                value,
-            )
+            result[key] = _sub_str(value)
         else:
             result[key] = value
     return result
@@ -232,6 +240,39 @@ class PipelineConfig:
 # ---------------------------------------------------------------------------
 
 
+def _detect_base_branch(project: Path) -> str:
+    """Detect the default branch name (main or master)."""
+    for candidate in ("main", "master"):
+        try:
+            subprocess.run(
+                ["git", "rev-parse", "--verify", candidate],
+                cwd=str(project),
+                capture_output=True,
+                check=True,
+                timeout=10,
+            )
+            return candidate
+        except (subprocess.CalledProcessError, subprocess.SubprocessError):
+            continue
+    return "main"
+
+
+_FALLBACK_PROMPTS: dict[str, str] = {
+    "plan.txt": (
+        "Analyze the codebase and create a detailed implementation plan "
+        "for the following task. Output structured JSON."
+    ),
+    "implement.txt": (
+        "Implement the following plan exactly as specified. "
+        "Write complete, production-ready code."
+    ),
+    "review.txt": (
+        "Review this implementation against the original plan. "
+        "List issues by severity. End with VERDICT: APPROVE or REQUEST_CHANGES."
+    ),
+}
+
+
 class PipelineError(Exception):
     """Raised when a pipeline stage fails irrecoverably."""
 
@@ -259,13 +300,36 @@ class Pipeline:
             + uuid.uuid4().hex[:6]
         )
         self.dry_run = dry_run
-        self.base_branch = base_branch
+        self.base_branch = (
+            base_branch
+            if base_branch != "main"
+            else _detect_base_branch(self.project)
+        )
 
         self.run_dir = self.project / RUNS_DIR / self.run_id
         self.results: dict[str, StageResult] = {}
 
         self._prompts_dir = self.project / PROMPTS_DIR
         self._schemas_dir = self.project / SCHEMAS_DIR
+
+    def _check_git_repo(self) -> None:
+        """Warn if project is not a git repository and disable git features."""
+        try:
+            subprocess.run(
+                ["git", "rev-parse", "--git-dir"],
+                cwd=str(self.project),
+                capture_output=True,
+                check=True,
+                timeout=10,
+            )
+        except (subprocess.CalledProcessError, subprocess.SubprocessError):
+            logger.warning(
+                "Project %s is not a git repository. "
+                "Git features (branch, commit, diff, doom loop) will be skipped.",
+                self.project,
+            )
+            self.config.auto_branch = False
+            self.config.auto_commit = False
 
     # -- public API ---------------------------------------------------------
 
@@ -284,6 +348,7 @@ class Pipeline:
             Dict mapping stage name to its result.
         """
         self.run_dir.mkdir(parents=True, exist_ok=True)
+        self._check_git_repo()
         self._save_metadata()
 
         stage_methods = {
@@ -321,6 +386,9 @@ class Pipeline:
                 break
 
             logger.info("Stage %s completed in %.1fs", stage_name, result.duration)
+
+        # Auto-cleanup: keep last 20 runs
+        _cleanup_old_runs(self.project / RUNS_DIR, keep=20)
 
         return self.results
 
@@ -530,11 +598,24 @@ class Pipeline:
         logger.info("Executing: %s", " ".join(cmd))
         logger.info("Timeout: %ds", timeout)
 
+        # If prompt arg is too long, pipe via stdin to avoid OS arg limits
+        stdin_data = None
+        if len(" ".join(cmd)) > _STDIN_PROMPT_THRESHOLD:
+            try:
+                p_idx = cmd.index("-p")
+                prompt_text = cmd[p_idx + 1]
+                cmd = cmd[:p_idx] + ["-p", "-"] + cmd[p_idx + 2:]
+                stdin_data = prompt_text
+                logger.debug("Prompt too long (%d chars), piping via stdin", len(prompt_text))
+            except (ValueError, IndexError):
+                pass
+
         # Strip ANTHROPIC_API_KEY for Claude CLI calls to force OAuth
         env = _claude_env() if cmd[0] == "claude" else None
         try:
             proc = subprocess.run(
                 cmd,
+                input=stdin_data,
                 capture_output=True,
                 text=True,
                 timeout=timeout,
@@ -683,7 +764,7 @@ class Pipeline:
         logger.info("Committing: %s", message)
         try:
             subprocess.run(
-                ["git", "add", "-A"],
+                ["git", "add", "-u"],
                 cwd=str(self.project),
                 capture_output=True,
                 check=True,
@@ -794,9 +875,20 @@ class Pipeline:
             "--model",
             "sonnet",
         ]
+        # Pipe prompt via stdin if too long for command line
+        stdin_data = None
+        if len(compact_prompt) > _STDIN_PROMPT_THRESHOLD:
+            cmd = [
+                "claude",
+                "-p", "-",
+                "--output-format", "text",
+                "--model", "sonnet",
+            ]
+            stdin_data = compact_prompt
         try:
             result = subprocess.run(
                 cmd,
+                input=stdin_data,
                 cwd=str(self.project),
                 capture_output=True,
                 text=True,
@@ -882,9 +974,15 @@ class Pipeline:
             return None
 
     def _load_prompt(self, filename: str) -> str:
-        """Load a prompt template from the prompts directory."""
+        """Load a prompt template, falling back to embedded defaults."""
         path = self._prompts_dir / filename
         if not path.exists():
+            fallback = _FALLBACK_PROMPTS.get(filename, "")
+            if fallback:
+                logger.warning(
+                    "Prompt template not found: %s — using fallback", path
+                )
+                return fallback
             logger.warning("Prompt template not found: %s", path)
             return ""
         return path.read_text(encoding="utf-8").strip()
@@ -902,6 +1000,19 @@ def _find_latest_run(project: Path) -> str | None:
         return None
     runs = sorted(runs_path.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
     return runs[0].name if runs else None
+
+
+def _cleanup_old_runs(runs_dir: Path, keep: int = 20) -> None:
+    """Remove oldest run directories, keeping the N most recent."""
+    if not runs_dir.exists():
+        return
+    runs = sorted(runs_dir.iterdir(), key=lambda p: p.stat().st_mtime)
+    to_remove = runs[:-keep] if len(runs) > keep else []
+    for run_dir in to_remove:
+        logger.info("Cleaning up old run: %s", run_dir.name)
+        shutil.rmtree(run_dir, ignore_errors=True)
+    if to_remove:
+        logger.info("Removed %d old runs, keeping %d", len(to_remove), keep)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -997,18 +1108,31 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+_logging_configured = False
+
+
+def _setup_logging(verbose: bool = False) -> None:
+    """Configure logging once. Subsequent calls update level only."""
+    global _logging_configured  # noqa: PLW0603
+    level = logging.DEBUG if verbose else logging.INFO
+    if not _logging_configured:
+        logging.basicConfig(
+            level=level,
+            format="%(asctime)s [%(levelname)s] %(message)s",
+            datefmt="%H:%M:%S",
+        )
+        _logging_configured = True
+    else:
+        logging.getLogger().setLevel(level)
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point."""
     parser = build_parser()
     args = parser.parse_args(argv)
 
     # Logging setup
-    log_level = logging.DEBUG if args.verbose else logging.INFO
-    logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%H:%M:%S",
-    )
+    _setup_logging(args.verbose)
 
     project = args.project.resolve()
 
@@ -1159,22 +1283,28 @@ def _claude_env() -> dict[str, str]:
     return env
 
 
+_STDIN_PROMPT_THRESHOLD = 20000  # chars — switch to stdin pipe above this
+
+
 def _extract_json(text: str) -> dict[str, Any] | None:
-    """Extract first JSON object from text, ignoring surrounding content."""
-    # Try the whole string first
+    """Extract first JSON object from text, handling nested objects."""
     text = text.strip()
+    decoder = json.JSONDecoder()
+    # Try the whole string first
     if text.startswith("{"):
         try:
             return json.loads(text)
         except json.JSONDecodeError:
             pass
-    # Find JSON object within text (e.g. markdown code block)
-    match = re.search(r"\{[^{}]*\}", text)
-    if match:
-        try:
-            return json.loads(match.group())
-        except json.JSONDecodeError:
-            pass
+    # Scan for first '{' and try to decode from there
+    for i, ch in enumerate(text):
+        if ch == "{":
+            try:
+                obj, _ = decoder.raw_decode(text, i)
+                if isinstance(obj, dict):
+                    return obj
+            except json.JSONDecodeError:
+                continue
     return None
 
 
@@ -1304,11 +1434,16 @@ def run_ask(task: str, config: PipelineConfig, project: Path) -> int:
         "--model",
         model,
     ]
-    # Ask mode: no thinking by default (fast Q&A)
-
     logger.info("[ask] Sending to Claude (%s)", model)
-    result = subprocess.run(cmd, cwd=str(project), text=True, env=_claude_env())
-    return result.returncode
+    try:
+        result = subprocess.run(
+            cmd, cwd=str(project), text=True,
+            env=_claude_env(), timeout=config.review_timeout,
+        )
+        return result.returncode
+    except subprocess.TimeoutExpired:
+        logger.error("[ask] Timeout after %ds", config.review_timeout)
+        return 1
 
 
 def run_chat(project: Path, config: PipelineConfig) -> int:
@@ -1322,9 +1457,8 @@ def run_chat(project: Path, config: PipelineConfig) -> int:
 
 def run_plan(task: str, config: PipelineConfig, project: Path) -> int:
     """Deep planning via Claude Opus with high thinking budget."""
-    model = config.claude_plan_model  # Opus by default
-    thinking = max(config.thinking_budget, 50000)  # At least 50k for planning
-
+    model = config.claude_plan_model
+    thinking = max(config.thinking_budget, 50000)
     cmd = [
         "claude",
         "-p",
@@ -1338,10 +1472,16 @@ def run_plan(task: str, config: PipelineConfig, project: Path) -> int:
         "--allowedTools",
         *_PLAN_ALLOWED_TOOLS,
     ]
-
     logger.info("[plan] Deep planning with Claude (%s, thinking=%d)", model, thinking)
-    result = subprocess.run(cmd, cwd=str(project), text=True, env=_claude_env())
-    return result.returncode
+    try:
+        result = subprocess.run(
+            cmd, cwd=str(project), text=True,
+            env=_claude_env(), timeout=config.plan_timeout,
+        )
+        return result.returncode
+    except subprocess.TimeoutExpired:
+        logger.error("[plan] Timeout after %ds", config.plan_timeout)
+        return 1
 
 
 def run_explore(task: str, project: Path, config: PipelineConfig) -> int:
@@ -1350,8 +1490,12 @@ def run_explore(task: str, project: Path, config: PipelineConfig) -> int:
     if task:
         cmd.append(task)
     logger.info("[explore] Starting Codex suggest mode (%s)", config.codex_model)
-    result = subprocess.run(cmd, cwd=str(project))
-    return result.returncode
+    try:
+        result = subprocess.run(cmd, cwd=str(project), timeout=config.implement_timeout)
+        return result.returncode
+    except subprocess.TimeoutExpired:
+        logger.error("[explore] Timeout after %ds", config.implement_timeout)
+        return 1
 
 
 def _get_project_state_hash(project: Path) -> str:
@@ -1485,6 +1629,12 @@ def build_root_parser() -> argparse.ArgumentParser:
     root.add_argument("--thinking-budget", type=int)
     root.add_argument("--reasoning-effort", choices=["low", "medium", "high"])
     root.add_argument("-v", "--verbose", action="store_true")
+    root.add_argument(
+        "--cleanup",
+        type=int,
+        metavar="N",
+        help="Remove old runs, keeping N most recent",
+    )
 
     return root
 
@@ -1525,12 +1675,7 @@ def entry_point(argv: list[str] | None = None) -> int:
     args = parser.parse_args(raw_args)
 
     # Logging
-    log_level = logging.DEBUG if getattr(args, "verbose", False) else logging.INFO
-    logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%H:%M:%S",
-    )
+    _setup_logging(getattr(args, "verbose", False))
 
     project = getattr(args, "project", Path.cwd())
     if isinstance(project, Path):
@@ -1562,6 +1707,11 @@ def entry_point(argv: list[str] | None = None) -> int:
     mode = args.mode
     task = getattr(args, "task", None) or ""
     dry_run = getattr(args, "dry_run", False)
+    cleanup = getattr(args, "cleanup", None)
+    if cleanup is not None:
+        _cleanup_old_runs(project / RUNS_DIR, keep=cleanup)
+        if not mode and not task:
+            return 0
     active_preset = preset or "balanced"
 
     # No mode and no task → launch interactive REPL
@@ -1627,7 +1777,7 @@ def entry_point(argv: list[str] | None = None) -> int:
         if nlu.mode == "code":
             return run_code(task, project, config)
         # Default: full pipeline
-        return main(argv=None if argv is None else [task])
+        return main([task])
 
     # No subcommand with task -> original pipeline behavior
     return main(argv)

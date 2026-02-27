@@ -14,6 +14,11 @@
 !.pipeline/schemas/
 !.pipeline/schemas/*.json
 
+# ── Docs ──────────────────────────────────────
+!docs/
+!docs/plans/
+!docs/plans/*.md
+
 # ── Pipeline runtime (never track) ────────────
 .pipeline/runs/
 .pipeline/sessions/
