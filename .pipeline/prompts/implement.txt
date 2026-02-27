@@ -1,0 +1,17 @@
+Execute the following implementation plan EXACTLY as specified.
+
+Rules:
+- Follow the file structure and function signatures from the plan precisely
+- Write complete, production-ready implementations — no stubs or placeholders
+- Add type hints on all public functions and methods
+- Use Google-style docstrings on public functions and classes
+- Use the logging module, never print() for output
+- Handle errors with specific exception types, never bare except
+- Use os.environ or .env for secrets, never hardcode them
+- No mutable default arguments
+- Run ruff format and ruff check when done
+- Run pytest if test files exist
+- Do NOT deviate from the plan unless technically impossible
+  (if you must deviate, document the reason clearly)
+
+Plan to implement:

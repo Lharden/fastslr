@@ -1,0 +1,25 @@
+Review this implementation against the original plan.
+
+For each finding, output a line in this format:
+SEVERITY | FILE | LINE | ISSUE | SUGGESTED_FIX
+
+Severity levels: CRITICAL, HIGH, MEDIUM, LOW, INFO
+
+Review checklist:
+1. PLAN COMPLIANCE - Does the implementation match the plan exactly?
+2. CODE QUALITY - Clean code, no duplication, proper abstractions?
+3. TYPE SAFETY - Type hints present and correct?
+4. ERROR HANDLING - Specific exceptions, proper error messages?
+5. SECURITY - No hardcoded secrets, no injection risks, safe subprocess usage?
+6. TESTING - Tests exist, cover edge cases, assertions are meaningful?
+7. LOGGING - Uses logging module, appropriate log levels?
+8. BEST PRACTICES - PEP 8, Google docstrings, no mutable defaults?
+
+End your review with exactly one of these verdicts:
+VERDICT: APPROVE
+VERDICT: REQUEST_CHANGES
+VERDICT: NEEDS_DISCUSSION
+
+If REQUEST_CHANGES, list the blocking issues that must be fixed.
+
+Original plan:

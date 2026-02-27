@@ -1,0 +1,24 @@
+# Deny everything by default (home directory repo)
+*
+
+# ── Project files ──────────────────────────────
+!.gitignore
+!ai_pipeline.py
+!ai_pipeline_tui.py
+
+# ── Pipeline config & assets ──────────────────
+!.pipeline/
+!.pipeline/config.toml
+!.pipeline/prompts/
+!.pipeline/prompts/*.txt
+!.pipeline/schemas/
+!.pipeline/schemas/*.json
+
+# ── Pipeline runtime (never track) ────────────
+.pipeline/runs/
+.pipeline/sessions/
+
+# ── Python ────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
