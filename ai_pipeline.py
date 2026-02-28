@@ -598,30 +598,38 @@ class Pipeline:
         logger.info("Executing: %s", " ".join(cmd))
         logger.info("Timeout: %ds", timeout)
 
-        # If prompt arg is too long, pipe via stdin to avoid OS arg limits
+        # Always pipe prompt via stdin for Claude CLI calls.
+        # This avoids: (a) Windows 32k arg limit, (b) stdin inheritance
+        # from parent Claude Code session, (c) --print stdin detection.
         stdin_data = None
-        if len(" ".join(cmd)) > _STDIN_PROMPT_THRESHOLD:
+        if cmd[0] == "claude":
             try:
                 p_idx = cmd.index("-p")
-                prompt_text = cmd[p_idx + 1]
-                cmd = cmd[:p_idx] + ["-p", "-"] + cmd[p_idx + 2:]
-                stdin_data = prompt_text
-                logger.debug("Prompt too long (%d chars), piping via stdin", len(prompt_text))
+                # Extract prompt text (the arg after -p, if any)
+                next_idx = p_idx + 1
+                if next_idx < len(cmd) and not cmd[next_idx].startswith("-"):
+                    stdin_data = cmd[next_idx]
+                    cmd = cmd[:p_idx] + ["-p"] + cmd[next_idx + 1:]
+                # If no prompt text after -p, stdin_data stays None
+                # and prompt must come from elsewhere (shouldn't happen)
             except (ValueError, IndexError):
                 pass
 
-        # Strip ANTHROPIC_API_KEY for Claude CLI calls to force OAuth
+        # Strip Claude/Anthropic env vars for Claude CLI calls
         env = _claude_env() if cmd[0] == "claude" else None
+        run_kwargs: dict[str, Any] = {
+            "capture_output": True,
+            "text": True,
+            "timeout": timeout,
+            "cwd": str(self.project),
+            "env": env,
+        }
+        if stdin_data is not None:
+            run_kwargs["input"] = stdin_data
+        else:
+            run_kwargs["stdin"] = subprocess.DEVNULL
         try:
-            proc = subprocess.run(
-                cmd,
-                input=stdin_data,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                cwd=str(self.project),
-                env=env,
-            )
+            proc = subprocess.run(cmd, **run_kwargs)
         except subprocess.TimeoutExpired:
             return StageResult(
                 stage=stage_name,
@@ -866,29 +874,17 @@ class Pipeline:
             "Remove verbose explanations and examples.\n\n"
             f"{plan_text}"
         )
+        # Always pipe prompt via stdin
         cmd = [
             "claude",
             "-p",
-            compact_prompt,
-            "--output-format",
-            "text",
-            "--model",
-            "sonnet",
+            "--output-format", "text",
+            "--model", "sonnet",
         ]
-        # Pipe prompt via stdin if too long for command line
-        stdin_data = None
-        if len(compact_prompt) > _STDIN_PROMPT_THRESHOLD:
-            cmd = [
-                "claude",
-                "-p", "-",
-                "--output-format", "text",
-                "--model", "sonnet",
-            ]
-            stdin_data = compact_prompt
         try:
             result = subprocess.run(
                 cmd,
-                input=stdin_data,
+                input=compact_prompt,
                 cwd=str(self.project),
                 capture_output=True,
                 text=True,
@@ -1277,9 +1273,16 @@ class ClassifyResult:
 
 
 def _claude_env() -> dict[str, str]:
-    """Build env for Claude CLI subprocess, stripping API key to force OAuth."""
+    """Build env for Claude CLI subprocess.
+
+    Strips ALL Claude Code / Anthropic env vars so that ``claude -p``
+    can be launched as a fresh subprocess even from within a running
+    Claude Code session (avoids nested-session detection).
+    """
     env = os.environ.copy()
-    env.pop("ANTHROPIC_API_KEY", None)
+    for key in list(env):
+        if key.startswith(("CLAUDE", "ANTHROPIC")):
+            del env[key]
     return env
 
 
@@ -1428,7 +1431,6 @@ def run_ask(task: str, config: PipelineConfig, project: Path) -> int:
     cmd = [
         "claude",
         "-p",
-        task,
         "--output-format",
         "text",
         "--model",
@@ -1439,7 +1441,12 @@ def run_ask(task: str, config: PipelineConfig, project: Path) -> int:
         result = subprocess.run(
             cmd, cwd=str(project), text=True,
             env=_claude_env(), timeout=config.review_timeout,
+            capture_output=True, input=task,
         )
+        if result.stdout:
+            print(result.stdout, end="")
+        if result.stderr:
+            logger.debug("[ask] stderr: %s", result.stderr.strip())
         return result.returncode
     except subprocess.TimeoutExpired:
         logger.error("[ask] Timeout after %ds", config.review_timeout)
@@ -1462,7 +1469,6 @@ def run_plan(task: str, config: PipelineConfig, project: Path) -> int:
     cmd = [
         "claude",
         "-p",
-        task,
         "--output-format",
         "text",
         "--model",
@@ -1477,7 +1483,12 @@ def run_plan(task: str, config: PipelineConfig, project: Path) -> int:
         result = subprocess.run(
             cmd, cwd=str(project), text=True,
             env=_claude_env(), timeout=config.plan_timeout,
+            capture_output=True, input=task,
         )
+        if result.stdout:
+            print(result.stdout, end="")
+        if result.stderr:
+            logger.debug("[plan] stderr: %s", result.stderr.strip())
         return result.returncode
     except subprocess.TimeoutExpired:
         logger.error("[plan] Timeout after %ds", config.plan_timeout)
@@ -1615,7 +1626,8 @@ def build_root_parser() -> argparse.ArgumentParser:
     auto_p.add_argument("--dry-run", action="store_true", dest="auto_dry_run")
 
     # -- pipeline args (on root parser for backwards compat)
-    root.add_argument("task", nargs="?", help="Task for pipeline")
+    # Use dest="pipeline_task" to avoid shadowing subparser "task" attrs
+    root.add_argument("pipeline_task", nargs="?", metavar="task", help="Task for pipeline")
     root.add_argument("--project", type=Path, default=Path.cwd())
     root.add_argument("--stage", choices=STAGES)
     root.add_argument("--resume", metavar="RUN_ID")
@@ -1705,7 +1717,8 @@ def entry_point(argv: list[str] | None = None) -> int:
         config.reasoning_effort = args.reasoning_effort
 
     mode = args.mode
-    task = getattr(args, "task", None) or ""
+    # Subcommands store in "task"; root parser stores in "pipeline_task"
+    task = getattr(args, "task", None) or getattr(args, "pipeline_task", None) or ""
     dry_run = getattr(args, "dry_run", False)
     cleanup = getattr(args, "cleanup", None)
     if cleanup is not None:
