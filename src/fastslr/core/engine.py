@@ -66,9 +66,7 @@ def collect_statistics(df_result: pd.DataFrame) -> dict:
         return stats
 
     if "Final_Decision" in df_result.columns:
-        stats["decision_distribution"] = (
-            df_result["Final_Decision"].value_counts().to_dict()
-        )
+        stats["decision_distribution"] = df_result["Final_Decision"].value_counts().to_dict()
 
     for col in df_result.columns:
         if col.startswith("Status_"):
@@ -172,19 +170,17 @@ def process_articles(
             manual_tags = ""
             if tags_value is not None and not pd.isna(tags_value):
                 if isinstance(tags_value, (list, tuple)):
-                    manual_tags = ", ".join(
-                        str(x) for x in tags_value if not pd.isna(x)
-                    )
+                    manual_tags = ", ".join(str(x) for x in tags_value if not pd.isna(x))
                 else:
                     manual_tags = str(tags_value)
 
-            norm_engine = config.get(domain_blocks[0], {}).get(
-                "normalization_engine"
-            ) if domain_blocks else None
-
-            eval_t0 = evaluate_t0_conditional(
-                title, abstract, manual_tags, config, norm_engine
+            norm_engine = (
+                config.get(domain_blocks[0], {}).get("normalization_engine")
+                if domain_blocks
+                else None
             )
+
+            eval_t0 = evaluate_t0_conditional(title, abstract, manual_tags, config, norm_engine)
 
             t0_prevents_evaluation = eval_t0 and eval_t0.status == "REJECTED"
 
@@ -194,39 +190,32 @@ def process_articles(
                 skip_remaining = False
                 for block_name in domain_blocks:
                     if skip_remaining:
-                        evaluations[block_name] = _create_not_evaluated(
-                            f"Previous block rejected"
-                        )
+                        evaluations[block_name] = _create_not_evaluated("Previous block rejected")
                         continue
 
                     evaluations[block_name] = evaluate_block(
-                        title, abstract, manual_tags,
-                        config[block_name], global_params,
+                        title,
+                        abstract,
+                        manual_tags,
+                        config[block_name],
+                        global_params,
                     )
 
                     if fail_fast and evaluations[block_name].status == "REJECTED":
                         skip_remaining = True
             else:
                 for block_name in domain_blocks:
-                    evaluations[block_name] = _create_not_evaluated(
-                        "Global T0 exclusion"
-                    )
+                    evaluations[block_name] = _create_not_evaluated("Global T0 exclusion")
 
-            final_decision, final_reason = make_final_decision(
-                evaluations, eval_t0, global_params
-            )
+            final_decision, final_reason = make_final_decision(evaluations, eval_t0, global_params)
 
             # Build output row
             id_output = fields.get("id_output", "ID")
             row_output: dict = {
                 id_output: article_id,
                 "Title_Highlighted": highlight_text(title, all_terms, "title"),
-                "Abstract_Highlighted": highlight_text(
-                    abstract, all_terms, "abstract"
-                ),
-                "Tags_Highlighted": highlight_text(
-                    manual_tags, all_terms, "manual_tags"
-                ),
+                "Abstract_Highlighted": highlight_text(abstract, all_terms, "abstract"),
+                "Tags_Highlighted": highlight_text(manual_tags, all_terms, "manual_tags"),
             }
 
             for block_name in domain_blocks:
@@ -238,9 +227,7 @@ def process_articles(
                         f"BestLevel_{block_name}": ev.best_level,
                         f"Status_{block_name}": ev.status,
                         f"Highlights_{block_name}": pack_highlights(ev),
-                        f"AntiHighlights_{block_name}": pack_anti_hits(
-                            ev.anti_exclude
-                        ),
+                        f"AntiHighlights_{block_name}": pack_anti_hits(ev.anti_exclude),
                         f"Flags_{block_name}": pack_anti_hits(ev.anti_flag),
                     }
                 )
@@ -291,17 +278,13 @@ def process_articles(
 
     stats = collect_statistics(result_df)
     stats["processing_time"] = processing_time
-    stats["articles_per_second"] = (
-        len(output_rows) / processing_time if processing_time > 0 else 0
-    )
+    stats["articles_per_second"] = len(output_rows) / processing_time if processing_time > 0 else 0
     stats["error_count"] = error_count
 
     return result_df, stats
 
 
-def sample_articles(
-    df: pd.DataFrame, n: int, seed: int | None = None
-) -> pd.DataFrame:
+def sample_articles(df: pd.DataFrame, n: int, seed: int | None = None) -> pd.DataFrame:
     """Return a random sample of *n* articles from *df*.
 
     If *n* >= len(df) the full DataFrame is returned (copied).

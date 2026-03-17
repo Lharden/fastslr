@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
 
 from .constants import SECTION_NAMES
 from .models import (
@@ -172,9 +171,7 @@ def _compute_section_scores(
             if m.level is not None:
                 found_levels_in_section.add(int(m.level))
 
-        sec_raw = sum(
-            global_params.level_scores.get(lvl, 0) for lvl in found_levels_in_section
-        )
+        sec_raw = sum(global_params.level_scores.get(lvl, 0) for lvl in found_levels_in_section)
         sec_raw = min(sec_raw, global_params.max_section_score)
         weight = global_params.section_weights.get(sec_name, 1.0)
         section_scores[sec_name] = sec_raw * weight
@@ -204,12 +201,8 @@ def evaluate_block(
     )
 
     # Find anti terms
-    anti_exclude = find_anti_terms(
-        title, abstract, manual_tags, anti_exclude_terms, norm_engine
-    )
-    anti_flag = find_anti_terms(
-        title, abstract, manual_tags, anti_flag_terms, norm_engine
-    )
+    anti_exclude = find_anti_terms(title, abstract, manual_tags, anti_exclude_terms, norm_engine)
+    anti_flag = find_anti_terms(title, abstract, manual_tags, anti_flag_terms, norm_engine)
 
     # Compute scores
     section_scores, raw_score = _compute_section_scores(matches, global_params)
@@ -246,7 +239,6 @@ def evaluate_block(
 
     # Apply noise filters
     if global_params.noise_profile != "relaxed" and best_level is not None:
-        total_matches = sum(len(v) for v in matches.values())
         unique_terms = len({m.term for sec in matches.values() for m in sec})
         sections_with_hits = sum(1 for v in matches.values() if v)
 
@@ -304,7 +296,9 @@ def evaluate_block(
             reason = f"Score {final_score:.2f} >= threshold {approval_threshold} (L{best_level})"
         elif final_score >= flagging_threshold:
             status = "FLAGGED"
-            reason = f"Score {final_score:.2f} >= flag threshold {flagging_threshold} (L{best_level})"
+            reason = (
+                f"Score {final_score:.2f} >= flag threshold {flagging_threshold} (L{best_level})"
+            )
         else:
             status = "REJECTED"
             reason = f"Score {final_score:.2f} below thresholds (L{best_level})"
@@ -352,9 +346,7 @@ def evaluate_t0_conditional(
     anti_exclude = find_anti_terms(
         title, abstract, manual_tags, anti_exclude_terms, normalization_engine
     )
-    anti_flag = find_anti_terms(
-        title, abstract, manual_tags, anti_flag_terms, normalization_engine
-    )
+    anti_flag = find_anti_terms(title, abstract, manual_tags, anti_flag_terms, normalization_engine)
 
     if anti_exclude:
         return T0Evaluation(
@@ -424,9 +416,7 @@ def make_final_decision(
         max_flagged = global_params.max_flagged_blocks_for_approval
 
         if len(approved_blocks) >= min_approved and len(flagged_blocks) <= max_flagged:
-            return "APPROVED_FINAL", (
-                f"{len(approved_blocks)}/{total_blocks} approved (k_of_n)"
-            )
+            return "APPROVED_FINAL", (f"{len(approved_blocks)}/{total_blocks} approved (k_of_n)")
         elif flagged_blocks or approved_blocks:
             return "FLAGGED_FINAL", (
                 f"{len(approved_blocks)} approved, {len(flagged_blocks)} flagged"
@@ -445,18 +435,13 @@ def make_final_decision(
         return "FLAGGED_FINAL", f"T0: {eval_t0.reason}"
 
     # 3. Any block has anti-flag hits → FLAGGED_FINAL
-    anti_flagged_blocks = [
-        n for n, ev in evaluations.items() if ev.anti_flag
-    ]
+    anti_flagged_blocks = [n for n, ev in evaluations.items() if ev.anti_flag]
     if anti_flagged_blocks:
-        return "FLAGGED_FINAL", (
-            f"Anti-flag in blocks: {', '.join(anti_flagged_blocks)}"
-        )
+        return "FLAGGED_FINAL", (f"Anti-flag in blocks: {', '.join(anti_flagged_blocks)}")
 
     # 4. Special approval rule: 1 flagged + rest approved, approved scores ≥ threshold
     score_flagged = [
-        n for n, s in block_statuses.items()
-        if s == "FLAGGED" and not evaluations[n].anti_flag
+        n for n, s in block_statuses.items() if s == "FLAGGED" and not evaluations[n].anti_flag
     ]
     if (
         global_params.enable_special_approval_rule
@@ -476,7 +461,7 @@ def make_final_decision(
 
     # 6. All approved → APPROVED_FINAL
     if len(approved_blocks) == total_blocks:
-        return "APPROVED_FINAL", f"All blocks approved"
+        return "APPROVED_FINAL", "All blocks approved"
 
     return "FLAGGED_FINAL", "Inconclusive evaluation"
 

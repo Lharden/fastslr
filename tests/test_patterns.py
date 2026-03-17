@@ -97,9 +97,7 @@ class TestDetectCompoundTerms:
 class TestPrecompilePatterns:
     def test_compiles_positives(self):
         block = {
-            "positives": [
-                {"term": "oil and gas", "level": 1, "scope": "any", "regex": False}
-            ],
+            "positives": [{"term": "oil and gas", "level": 1, "scope": "any", "regex": False}],
             "anti": {"exclude": [], "flag": []},
         }
         compiled = precompile_patterns(block)
@@ -108,9 +106,7 @@ class TestPrecompilePatterns:
 
     def test_generates_proximity_positives(self):
         block = {
-            "positives": [
-                {"term": "oil and gas", "level": 1, "scope": "any", "regex": False}
-            ],
+            "positives": [{"term": "oil and gas", "level": 1, "scope": "any", "regex": False}],
             "anti": {"exclude": [], "flag": []},
         }
         compiled = precompile_patterns(block)
@@ -131,9 +127,7 @@ class TestPrecompilePatterns:
 
     def test_skips_empty_terms(self):
         block = {
-            "positives": [
-                {"term": "", "level": 1, "scope": "any", "regex": False}
-            ],
+            "positives": [{"term": "", "level": 1, "scope": "any", "regex": False}],
             "anti": {"exclude": [], "flag": []},
         }
         compiled = precompile_patterns(block)

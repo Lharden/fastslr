@@ -30,18 +30,20 @@ logger = logging.getLogger(__name__)
 PROTOCOL_VERSION_CURRENT = "2.1"
 PROTOCOL_SCHEMA_ID = "rsl-triage-protocol-v2.1"
 
-_PROTOCOL_ROOT_KEYS = frozenset({
-    "protocol_version",
-    "schema_id",
-    "execution_id",
-    "generated_at",
-    "triage_version",
-    "inputs",
-    "configuration",
-    "processing",
-    "artifacts",
-    "reproducibility",
-})
+_PROTOCOL_ROOT_KEYS = frozenset(
+    {
+        "protocol_version",
+        "schema_id",
+        "execution_id",
+        "generated_at",
+        "triage_version",
+        "inputs",
+        "configuration",
+        "processing",
+        "artifacts",
+        "reproducibility",
+    }
+)
 
 
 # ── hashing ──────────────────────────────────────────────────────────────────
@@ -105,9 +107,7 @@ def load_csv_safe(path: Path) -> pd.DataFrame:
 
     for sep in (";", ",", "\t"):
         try:
-            df = pd.read_csv(
-                path, encoding=encoding, sep=sep, dtype=str, keep_default_na=False
-            )
+            df = pd.read_csv(path, encoding=encoding, sep=sep, dtype=str, keep_default_na=False)
             if not df.empty and len(df.columns) >= 3:
                 return df
         except Exception:
@@ -217,17 +217,13 @@ def pack_highlights(evaluation) -> str:
 
 def pack_anti_hits(hits: list) -> str:
     """Serialize anti-term hits to a compact string."""
-    return "|".join(
-        f"{h.term}:{h.section}:{h.source_row}" for h in hits if h.term and h.section
-    )
+    return "|".join(f"{h.term}:{h.section}:{h.source_row}" for h in hits if h.term and h.section)
 
 
 # ── reports ──────────────────────────────────────────────────────────────────
 
 
-def generate_report(
-    df: pd.DataFrame, stats: dict, config: dict, output_path: Path
-) -> None:
+def generate_report(df: pd.DataFrame, stats: dict, config: dict, output_path: Path) -> None:
     """Write a human-readable triage report to a text file."""
     from .config import get_domain_blocks
 
@@ -298,9 +294,7 @@ def export_raw_subset(
     if "Final_Decision" not in result_df.columns:
         return
 
-    subset_results = result_df[
-        result_df["Final_Decision"].isin(target_decisions)
-    ].copy()
+    subset_results = result_df[result_df["Final_Decision"].isin(target_decisions)].copy()
 
     if subset_results.empty:
         return
@@ -323,15 +317,11 @@ def export_raw_subset(
     cols_existing = [c for c in cols_to_keep if c in df_final.columns]
     df_final = df_final[cols_existing]
 
-    subset_path = output_path.with_stem(output_path.stem + "_filtered_raw").with_suffix(
-        ".xlsx"
-    )
+    subset_path = output_path.with_stem(output_path.stem + "_filtered_raw").with_suffix(".xlsx")
 
     try:
         opts = get_export_opts(config)
-        df_final.to_excel(
-            subset_path, index=False, engine=opts.get("xlsx_engine", "openpyxl")
-        )
+        df_final.to_excel(subset_path, index=False, engine=opts.get("xlsx_engine", "openpyxl"))
     except Exception:
         logger.warning("Failed to export raw subset to %s", subset_path, exc_info=True)
 
@@ -371,13 +361,9 @@ def build_protocol_snapshot(
         },
         "configuration": {
             "decision_policy": global_cfg.get("DECISION_POLICY", "special"),
-            "domain_blocks": [
-                {"id": b, "label": block_labels.get(b, b)} for b in domain_blocks
-            ],
+            "domain_blocks": [{"id": b, "label": block_labels.get(b, b)} for b in domain_blocks],
             "fail_fast": global_cfg.get("FAIL_FAST_GLOBAL", True),
-            "enable_special_approval": global_cfg.get(
-                "ENABLE_SPECIAL_APPROVAL_RULE", True
-            ),
+            "enable_special_approval": global_cfg.get("ENABLE_SPECIAL_APPROVAL_RULE", True),
             "level_scores": global_cfg.get("PONTUACAO_NIVEIS", {}),
             "section_weights": global_cfg.get("WEIGHTS", {}),
             "approval_thresholds": global_cfg.get("LIMITES_APROVADO", {}),
@@ -502,9 +488,7 @@ def export_compliance_manifest(
     manifest = {
         "execution_id": execution_id,
         "generated_at": datetime.now().isoformat(),
-        "artifacts": {
-            name: str(path) for name, path in artifacts.items()
-        },
+        "artifacts": {name: str(path) for name, path in artifacts.items()},
     }
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -512,9 +496,7 @@ def export_compliance_manifest(
         json.dump(manifest, f, indent=2, ensure_ascii=False)
 
 
-def export_appendix_pack(
-    artifacts: dict[str, Path], zip_path: Path, execution_id: str
-) -> None:
+def export_appendix_pack(artifacts: dict[str, Path], zip_path: Path, execution_id: str) -> None:
     """Create a ZIP appendix pack with all available artifacts."""
     zip_path.parent.mkdir(parents=True, exist_ok=True)
 

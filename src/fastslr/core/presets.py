@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 LEVEL_PRESETS: dict[str, dict] = {
     "binary": {
         "description": "Binary: relevant or not relevant (1 level)",

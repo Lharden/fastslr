@@ -83,18 +83,14 @@ def analyze_term_coverage(
     # Dead terms (configured but never matched)
     for term in sorted(all_configured_terms - matched_terms):
         report.dead_terms.append({"term": term})
-        report.suggestions.append(
-            f"Term '{term}' had 0 matches - check spelling or remove"
-        )
+        report.suggestions.append(f"Term '{term}' had 0 matches - check spelling or remove")
 
     # Broad terms (matched >80% of articles)
     broad_threshold = total_articles * 0.8 if total_articles > 0 else 0
     for term, hits in sorted(term_hits.items(), key=lambda x: -x[1]["_total"]):
         if hits["_total"] > broad_threshold:
             pct = hits["_total"] / max(total_articles, 1) * 100
-            report.broad_terms.append(
-                {"term": term, "hit_count": hits["_total"], "pct": pct}
-            )
+            report.broad_terms.append({"term": term, "hit_count": hits["_total"], "pct": pct})
             report.suggestions.append(
                 f"Term '{term}' matched {hits['_total']}/{total_articles}"
                 f" articles ({pct:.0f}%) - may add noise"
@@ -123,8 +119,7 @@ def analyze_term_coverage(
                 }
             )
             report.suggestions.append(
-                f"Block '{block}' has no discrimination"
-                f" - all articles are {only_status}"
+                f"Block '{block}' has no discrimination - all articles are {only_status}"
             )
 
     return report
@@ -149,9 +144,7 @@ def format_coverage_report(report: TermCoverageReport) -> str:
         lines.append("")
 
     if report.broad_terms:
-        lines.append(
-            f"  BROAD TERMS ({len(report.broad_terms)} matching >80% of articles):"
-        )
+        lines.append(f"  BROAD TERMS ({len(report.broad_terms)} matching >80% of articles):")
         for bt in report.broad_terms[:10]:
             lines.append(f"    - {bt['term']} ({bt['hit_count']} hits, {bt['pct']:.0f}%)")
         lines.append("")

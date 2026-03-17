@@ -70,9 +70,7 @@ class NormalizationEngine:
 
         for symbol, replacement in self._symbols.items():
             if re.search(r"[A-Za-z]", symbol):
-                normalized = re.sub(
-                    rf"\b{re.escape(symbol)}\b", replacement, normalized
-                )
+                normalized = re.sub(rf"\b{re.escape(symbol)}\b", replacement, normalized)
             else:
                 normalized = normalized.replace(symbol, replacement)
 

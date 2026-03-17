@@ -17,11 +17,10 @@ Usage:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
 
 from ..core.constants import VERSION
@@ -50,11 +49,11 @@ def _setup_lang(lang: str | None) -> None:
         set_locale(lang)
 
 
-def _rich_progress_callback(progress: Progress, task_id: int):
+def _rich_progress_callback(progress: Progress, task_id: object):
     """Return a callback that updates a rich progress bar."""
 
     def _on_progress(current: int, total: int) -> None:
-        progress.update(task_id, completed=current, total=total)
+        progress.update(task_id, completed=current, total=total)  # type: ignore[arg-type]
 
     return _on_progress
 
@@ -80,11 +79,7 @@ def _print_stats(stats: dict) -> None:
 
     dist = stats.get("decision_distribution", {})
     for decision, count in sorted(dist.items()):
-        style = (
-            "green" if "APPROVED" in decision
-            else "yellow" if "FLAGGED" in decision
-            else "red"
-        )
+        style = "green" if "APPROVED" in decision else "yellow" if "FLAGGED" in decision else "red"
         table.add_row(f"  {decision}", f"[{style}]{count}[/{style}]")
 
     if stats.get("error_count", 0) > 0:
@@ -101,7 +96,7 @@ def _print_stats(stats: dict) -> None:
 
 @app.command()
 def version(
-    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+    lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Show FastSLR version."""
     _setup_lang(lang)
@@ -112,9 +107,9 @@ def version(
 def run(
     input_file: Path = typer.Argument(..., help="Path to articles CSV/XLSX file."),
     config: Path = typer.Option(..., "--config", "-c", help="Path to config.json."),
-    terms: Optional[Path] = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output directory."),
-    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Output directory."),
+    lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Suppress output."),
 ) -> None:
     """Run triage on an articles file."""
@@ -171,9 +166,9 @@ def run(
 def preview(
     input_file: Path = typer.Argument(..., help="Path to articles CSV/XLSX file."),
     config: Path = typer.Option(..., "--config", "-c", help="Path to config.json."),
-    terms: Optional[Path] = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
+    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
     sample: int = typer.Option(50, "--sample", "-s", help="Number of articles to sample."),
-    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+    lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Preview triage results on a sample of articles."""
     _setup_lang(lang)
@@ -198,14 +193,14 @@ def preview(
 def coverage(
     input_file: Path = typer.Argument(..., help="Path to articles CSV/XLSX file."),
     config: Path = typer.Option(..., "--config", "-c", help="Path to config.json."),
-    terms: Optional[Path] = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Export coverage CSV."),
-    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Export coverage CSV."),
+    lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Analyze term coverage across all articles."""
     _setup_lang(lang)
-    from . import controller
     from ..core.coverage import format_coverage_report
+    from . import controller
 
     report = controller.analyze_coverage(
         input_path=input_file,
@@ -221,7 +216,7 @@ def coverage(
 def diff(
     result_a: Path = typer.Argument(..., help="First result file (CSV/XLSX)."),
     result_b: Path = typer.Argument(..., help="Second result file (CSV/XLSX)."),
-    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+    lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Compare two triage result files."""
     _setup_lang(lang)
@@ -255,24 +250,26 @@ def diff(
 def new_project(
     name: str = typer.Argument(..., help="Project name."),
     blocks: str = typer.Option(
-        ..., "--blocks", "-b",
+        ...,
+        "--blocks",
+        "-b",
         help="Comma-separated block names (e.g., 'CTX,TECH,SCM').",
     ),
     preset: str = typer.Option(
-        "standard", "--preset", "-p",
+        "standard",
+        "--preset",
+        "-p",
         help="Level preset: binary, simple, standard.",
     ),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output directory."),
-    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Output directory."),
+    lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Create a new triage project with config and terms template."""
     _setup_lang(lang)
     from . import controller
 
     block_list = [
-        {"name": b.strip().upper(), "label": b.strip()}
-        for b in blocks.split(",")
-        if b.strip()
+        {"name": b.strip().upper(), "label": b.strip()} for b in blocks.split(",") if b.strip()
     ]
 
     if not block_list:
@@ -294,9 +291,9 @@ def new_project(
 @app.command(name="export")
 def export_cmd(
     result_file: Path = typer.Argument(..., help="Path to triage results file."),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output directory."),
-    config: Optional[Path] = typer.Option(None, "--config", "-c", help="Config file to include."),
-    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Output directory."),
+    config: Path | None = typer.Option(None, "--config", "-c", help="Config file to include."),
+    lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Export an academic package (ZIP) from triage results."""
     _setup_lang(lang)
@@ -319,10 +316,10 @@ def export_cmd(
 @app.command(name="terms")
 def terms_cmd(
     config: Path = typer.Option(..., "--config", "-c", help="Path to config.json."),
-    terms: Optional[Path] = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
-    block: Optional[str] = typer.Option(None, "--block", "-b", help="Filter by block name."),
-    kind: Optional[str] = typer.Option(None, "--kind", "-k", help="Filter by kind (pos/anti/flag)."),
-    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
+    block: str | None = typer.Option(None, "--block", "-b", help="Filter by block name."),
+    kind: str | None = typer.Option(None, "--kind", "-k", help="Filter by kind (pos/anti/flag)."),
+    lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Browse configured terms."""
     _setup_lang(lang)
@@ -344,9 +341,7 @@ def terms_cmd(
 
     for entry in view.terms[:200]:
         kind_style = (
-            "green" if entry["kind"] == "pos"
-            else "red" if entry["kind"] == "anti"
-            else "yellow"
+            "green" if entry["kind"] == "pos" else "red" if entry["kind"] == "anti" else "yellow"
         )
         table.add_row(
             entry["block"],
@@ -378,12 +373,12 @@ def profile_save(
     name: str = typer.Argument(..., help="Profile name."),
     config: Path = typer.Option(..., "--config", "-c", help="Config file to save as profile."),
     description: str = typer.Option("", "--desc", "-d", help="Profile description."),
-    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+    lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Save a configuration as a named profile."""
     _setup_lang(lang)
-    from . import profiles
     from ..core.config import load_config
+    from . import profiles
 
     cfg = load_config(config)
     path = profiles.save_profile(name, cfg, description)
@@ -393,15 +388,14 @@ def profile_save(
 @profile_app.command("load")
 def profile_load(
     name: str = typer.Argument(..., help="Profile name."),
-    output: Path = typer.Option(
-        "config.json", "--output", "-o", help="Output config file path."
-    ),
-    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+    output: Path = typer.Option("config.json", "--output", "-o", help="Output config file path."),
+    lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Load a named profile to a config file."""
     _setup_lang(lang)
-    from . import profiles
     import json
+
+    from . import profiles
 
     cfg = profiles.load_profile(name)
     output.write_text(
@@ -413,7 +407,7 @@ def profile_load(
 
 @profile_app.command("list")
 def profile_list(
-    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+    lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """List all saved profiles."""
     _setup_lang(lang)

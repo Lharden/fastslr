@@ -9,11 +9,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from rich.text import Text
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.containers import Container, Horizontal, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import (
     Button,
@@ -21,10 +20,6 @@ from textual.widgets import (
     Footer,
     Header,
     Input,
-    Label,
-    ListItem,
-    ListView,
-    OptionList,
     ProgressBar,
     RadioButton,
     RadioSet,
@@ -35,8 +30,7 @@ from textual.widgets import (
 
 from ..core.constants import VERSION
 from ..i18n import _ as t
-from ..i18n import SUPPORTED_LOCALES, set_locale
-
+from ..i18n import set_locale
 
 # ── Dashboard ────────────────────────────────────────────────────────────────
 
@@ -167,7 +161,9 @@ class RunTriageScreen(Screen):
             yield Static("\n  Terms file (optional, CSV):")
             yield Input(placeholder="Path to terms CSV (leave empty to skip)...", id="terms_file")
             yield Static("\n  Output directory (optional):")
-            yield Input(placeholder="Output directory (leave empty for default)...", id="output_dir")
+            yield Input(
+                placeholder="Output directory (leave empty for default)...", id="output_dir"
+            )
             yield Static("")
             with Horizontal():
                 yield Button("Run Triage", variant="primary", id="btn_run")
@@ -258,9 +254,7 @@ class RunTriageScreen(Screen):
             self.app.call_from_thread(status.update, "  [green]Done.[/green]")
 
         except Exception as e:
-            self.app.call_from_thread(
-                status.update, f"  [red]Error: {e}[/red]"
-            )
+            self.app.call_from_thread(status.update, f"  [red]Error: {e}[/red]")
 
     def action_go_back(self) -> None:
         self.app.pop_screen()
@@ -288,9 +282,7 @@ class NewProjectScreen(Screen):
             )
             yield Static("  Block names (comma-separated):")
             yield Input(placeholder="e.g., AI, HEALTH, METHODS", id="blocks")
-            yield Static(
-                "\n  How strict should the screening be?\n"
-            )
+            yield Static("\n  How strict should the screening be?\n")
             with RadioSet(id="preset"):
                 yield RadioButton("Recommended — Balanced (5 levels)", value=True, id="standard")
                 yield RadioButton("Sensitive — Keeps more articles (3 levels)", id="simple")
@@ -399,8 +391,11 @@ class BrowseTermsScreen(Screen):
             table = self.query_one("#terms_table", DataTable)
             table.clear(columns=True)
             table.add_columns(
-                t("table_block"), t("table_kind"), t("table_term"),
-                t("table_level"), t("table_scope"),
+                t("table_block"),
+                t("table_kind"),
+                t("table_term"),
+                t("table_level"),
+                t("table_scope"),
             )
 
             for entry in view.terms[:500]:
@@ -474,7 +469,12 @@ class ResultsScreen(Screen):
             # Show key columns
             show_cols = []
             for col in df.columns:
-                if col in ("ID", "key", "Key") or col.startswith("Final_") or col.startswith("Status_") or col.startswith("FinalScore_"):
+                if (
+                    col in ("ID", "key", "Key")
+                    or col.startswith("Final_")
+                    or col.startswith("Status_")
+                    or col.startswith("FinalScore_")
+                ):
                     show_cols.append(col)
 
             if not show_cols:
@@ -516,8 +516,8 @@ class CoverageScreen(Screen):
 
     @on(Button.Pressed, "#btn_analyze")
     def analyze(self) -> None:
-        from . import controller
         from ..core.coverage import format_coverage_report
+        from . import controller
 
         input_path = self.query_one("#input_file", Input).value.strip()
         config_path = self.query_one("#config_file", Input).value.strip()
@@ -587,7 +587,9 @@ class DiffScreen(Screen):
             table = self.query_one("#diff_table", DataTable)
             table.clear(columns=True)
             table.add_columns(
-                t("table_article_id"), t("table_old_decision"), t("table_new_decision"),
+                t("table_article_id"),
+                t("table_old_decision"),
+                t("table_new_decision"),
             )
             for entry in report.changed[:200]:
                 table.add_row(entry.article_id, entry.old_decision, entry.new_decision)
@@ -728,7 +730,7 @@ class ProfilesScreen(Screen):
         self._load_profiles()
 
     @on(Button.Pressed, "#btn_refresh")
-    def refresh(self) -> None:
+    def reload_profiles(self) -> None:
         self._load_profiles()
 
     def _load_profiles(self) -> None:

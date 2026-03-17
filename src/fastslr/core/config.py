@@ -9,7 +9,6 @@ from pathlib import Path
 import pandas as pd
 
 from .constants import (
-    CONFIG_RESERVED_KEYS,
     DEFAULT_APPROVAL_THRESHOLDS,
     DEFAULT_FLAGGING_THRESHOLDS,
     DEFAULT_LEVEL_SCORES,
@@ -59,10 +58,18 @@ def get_domain_blocks(config: dict) -> list[str]:
 def load_global_params(global_cfg: dict) -> GlobalParams:
     """Construct a GlobalParams instance from the global configuration dict."""
     raw_levels = global_cfg.get("PONTUACAO_NIVEIS", {})
-    level_scores = {int(k): int(v) for k, v in raw_levels.items()} if raw_levels else dict(DEFAULT_LEVEL_SCORES)
+    level_scores = (
+        {int(k): int(v) for k, v in raw_levels.items()}
+        if raw_levels
+        else dict(DEFAULT_LEVEL_SCORES)
+    )
 
     raw_weights = global_cfg.get("WEIGHTS", {})
-    section_weights = {k: float(v) for k, v in raw_weights.items()} if raw_weights else dict(DEFAULT_SECTION_WEIGHTS)
+    section_weights = (
+        {k: float(v) for k, v in raw_weights.items()}
+        if raw_weights
+        else dict(DEFAULT_SECTION_WEIGHTS)
+    )
 
     raw_approval = global_cfg.get("LIMITES_APROVADO", {})
     if raw_approval:
@@ -97,17 +104,16 @@ def load_global_params(global_cfg: dict) -> GlobalParams:
         approval_thresholds=approval_thresholds,
         flagging_thresholds=flagging_thresholds,
         no_tags_uplift=float(
-            global_cfg.get("NO_TAGS_UPLIFT",
-                           global_cfg.get("UPLIFT_NO_MANUAL_TAGS", 1.17))
+            global_cfg.get("NO_TAGS_UPLIFT", global_cfg.get("UPLIFT_NO_MANUAL_TAGS", 1.17))
         ),
         max_section_score=float(
-            global_cfg.get("MAX_SECTION_SCORE",
-                           global_cfg.get("MAX_SCORE_POR_SECAO", 30))
+            global_cfg.get("MAX_SECTION_SCORE", global_cfg.get("MAX_SCORE_POR_SECAO", 30))
         ),
         fail_fast_enabled=bool(global_cfg.get("FAIL_FAST_GLOBAL", True)),
         special_approval_threshold=float(
-            global_cfg.get("SPECIAL_APPROVAL_THRESHOLD",
-                           global_cfg.get("THRESHOLD_APROVACAO_ESPECIAL", 40.0))
+            global_cfg.get(
+                "SPECIAL_APPROVAL_THRESHOLD", global_cfg.get("THRESHOLD_APROVACAO_ESPECIAL", 40.0)
+            )
         ),
         max_gap_between_terms=int(global_cfg.get("MAX_GAP_BETWEEN_TERMS", 2)),
         token_unit_for_gaps=str(global_cfg.get("TOKEN_UNIT_FOR_GAPS", r"\S+")),
@@ -119,8 +125,12 @@ def load_global_params(global_cfg: dict) -> GlobalParams:
         max_flagged_blocks_for_approval=int(global_cfg.get("MAX_FLAGGED_BLOCKS_FOR_APPROVAL", 0)),
         noise_profile=str(global_cfg.get("NOISE_PROFILE", "relaxed")),
         min_unique_terms_for_approval=int(global_cfg.get("MIN_UNIQUE_TERMS_FOR_APPROVAL", 1)),
-        min_sections_with_hits_for_approval=int(global_cfg.get("MIN_SECTIONS_WITH_HITS_FOR_APPROVAL", 1)),
-        require_non_weak_term_for_approval=bool(global_cfg.get("REQUIRE_NON_WEAK_TERM_FOR_APPROVAL", False)),
+        min_sections_with_hits_for_approval=int(
+            global_cfg.get("MIN_SECTIONS_WITH_HITS_FOR_APPROVAL", 1)
+        ),
+        require_non_weak_term_for_approval=bool(
+            global_cfg.get("REQUIRE_NON_WEAK_TERM_FOR_APPROVAL", False)
+        ),
         weak_levels=weak_levels,
         error_policy=str(global_cfg.get("ERROR_POLICY", "flag")),
         max_error_rate=float(global_cfg.get("MAX_ERROR_RATE", 0.05)),
@@ -146,9 +156,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
 
     required_cols = {"block", "kind", "term"}
     if not required_cols.issubset(set(df.columns)):
-        raise ValueError(
-            f"Terms CSV missing required columns: {required_cols - set(df.columns)}"
-        )
+        raise ValueError(f"Terms CSV missing required columns: {required_cols - set(df.columns)}")
 
     block_terms: dict[str, dict] = {}
     valid_count = 0
@@ -211,9 +219,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
     if block_order:
         ordered = list(block_order)
     else:
-        ordered = sorted(
-            k for k in block_terms if k != GLOBAL_BLOCK_NAME
-        )
+        ordered = sorted(k for k in block_terms if k != GLOBAL_BLOCK_NAME)
 
     for block_name in ordered:
         if block_name == GLOBAL_BLOCK_NAME:

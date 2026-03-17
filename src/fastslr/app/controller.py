@@ -15,7 +15,6 @@ from pathlib import Path
 import pandas as pd
 
 from ..core.config import (
-    auto_detect_input,
     get_domain_blocks,
     load_config,
     load_global_params,
@@ -26,9 +25,8 @@ from ..core.coverage import (
     TermCoverageReport,
     analyze_term_coverage,
     export_coverage_csv,
-    format_coverage_report,
 )
-from ..core.engine import collect_statistics, process_articles, sample_articles
+from ..core.engine import process_articles, sample_articles
 from ..core.io import (
     build_protocol_snapshot,
     compute_config_hash,
@@ -43,7 +41,7 @@ from ..core.io import (
 )
 from ..core.normalization import NormalizationEngine
 from ..core.patterns import precompile_patterns
-from ..core.presets import LEVEL_PRESETS, generate_config
+from ..core.presets import generate_config
 
 logger = logging.getLogger(__name__)
 
@@ -125,30 +123,22 @@ def validate_config(config: dict) -> list[ValidationIssue]:
 
     for block_name in domain_blocks:
         if block_name not in config:
-            issues.append(
-                ValidationIssue("error", f"Block '{block_name}' listed but not defined")
-            )
+            issues.append(ValidationIssue("error", f"Block '{block_name}' listed but not defined"))
             continue
         block = config[block_name]
         positives = block.get("positives", [])
         if not positives:
-            issues.append(
-                ValidationIssue("warning", f"Block '{block_name}' has no positive terms")
-            )
+            issues.append(ValidationIssue("warning", f"Block '{block_name}' has no positive terms"))
 
     global_cfg = config.get("global", {})
     policy = global_cfg.get("DECISION_POLICY", "special")
     if policy not in ("special", "strict", "k_of_n"):
-        issues.append(
-            ValidationIssue("error", f"Unknown decision policy: '{policy}'")
-        )
+        issues.append(ValidationIssue("error", f"Unknown decision policy: '{policy}'"))
 
     return issues
 
 
-def _prepare_config(
-    config_path: Path, terms_path: Path | None = None
-) -> dict:
+def _prepare_config(config_path: Path, terms_path: Path | None = None) -> dict:
     """Load and prepare a full configuration (config + terms + patterns)."""
     config = load_config(config_path)
 
@@ -161,15 +151,11 @@ def _prepare_config(
 
     for block_name in get_domain_blocks(config):
         if block_name in config:
-            config[block_name] = precompile_patterns(
-                config[block_name], norm_engine, global_params
-            )
+            config[block_name] = precompile_patterns(config[block_name], norm_engine, global_params)
             config[block_name]["normalization_engine"] = norm_engine
 
     if "T0" in config:
-        config["T0"] = precompile_patterns(
-            config["T0"], norm_engine, global_params
-        )
+        config["T0"] = precompile_patterns(config["T0"], norm_engine, global_params)
 
     return config
 
@@ -195,7 +181,7 @@ def run_triage(
     result_df, stats = process_articles(df, config, on_progress=on_progress)
 
     # Export results
-    result_path = output_dir / f"triage_results.xlsx"
+    result_path = output_dir / "triage_results.xlsx"
     export_results(result_df, result_path, config)
 
     # Export report
@@ -355,24 +341,28 @@ def create_project(
     terms_rows: list[dict] = []
     for block in blocks:
         block_name = block["name"]
-        terms_rows.append({
-            "block": block_name,
-            "kind": "pos",
-            "term": f"example term for {block_name}",
-            "level": "1",
-            "section_scope": "any",
-            "is_regex": "0",
-        })
+        terms_rows.append(
+            {
+                "block": block_name,
+                "kind": "pos",
+                "term": f"example term for {block_name}",
+                "level": "1",
+                "section_scope": "any",
+                "is_regex": "0",
+            }
+        )
 
     # Add a GLOBAL anti-term example
-    terms_rows.append({
-        "block": "GLOBAL",
-        "kind": "anti",
-        "term": "systematic review",
-        "level": "",
-        "section_scope": "any",
-        "is_regex": "0",
-    })
+    terms_rows.append(
+        {
+            "block": "GLOBAL",
+            "kind": "anti",
+            "term": "systematic review",
+            "level": "",
+            "section_scope": "any",
+            "is_regex": "0",
+        }
+    )
 
     terms_df = pd.DataFrame(terms_rows)
     terms_path = output_dir / "terms.csv"
@@ -455,36 +445,42 @@ def browse_terms(
         for entry in block.get("positives", []):
             if kind_filter and kind_filter != "pos":
                 continue
-            all_terms.append({
-                "block": block_name,
-                "kind": "pos",
-                "term": entry.get("term", ""),
-                "level": entry.get("level"),
-                "scope": entry.get("scope", "any"),
-            })
+            all_terms.append(
+                {
+                    "block": block_name,
+                    "kind": "pos",
+                    "term": entry.get("term", ""),
+                    "level": entry.get("level"),
+                    "scope": entry.get("scope", "any"),
+                }
+            )
 
         anti = block.get("anti", {})
         for entry in anti.get("exclude", []):
             if kind_filter and kind_filter != "anti":
                 continue
-            all_terms.append({
-                "block": block_name,
-                "kind": "anti",
-                "term": entry.get("term", ""),
-                "level": None,
-                "scope": entry.get("scope", "any"),
-            })
+            all_terms.append(
+                {
+                    "block": block_name,
+                    "kind": "anti",
+                    "term": entry.get("term", ""),
+                    "level": None,
+                    "scope": entry.get("scope", "any"),
+                }
+            )
 
         for entry in anti.get("flag", []):
             if kind_filter and kind_filter != "flag":
                 continue
-            all_terms.append({
-                "block": block_name,
-                "kind": "flag",
-                "term": entry.get("term", ""),
-                "level": None,
-                "scope": entry.get("scope", "any"),
-            })
+            all_terms.append(
+                {
+                    "block": block_name,
+                    "kind": "flag",
+                    "term": entry.get("term", ""),
+                    "level": None,
+                    "scope": entry.get("scope", "any"),
+                }
+            )
 
     return TermsView(terms=all_terms, total=len(all_terms), blocks=domain_blocks)
 

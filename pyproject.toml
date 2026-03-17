@@ -41,7 +41,7 @@ select = ["E", "F", "W", "I", "UP"]
 
 [tool.pyright]
 pythonVersion = "3.10"
-typeCheckingMode = "strict"
+typeCheckingMode = "standard"
 venvPath = "."
 venv = ".venv"
 

@@ -20,11 +20,7 @@ from fastslr.core.patterns import precompile_patterns
 def sample_config():
     """Minimal configuration for end-to-end testing."""
     config_path = (
-        Path(__file__).resolve().parent.parent
-        / "src"
-        / "fastslr"
-        / "core"
-        / "default_config.json"
+        Path(__file__).resolve().parent.parent / "src" / "fastslr" / "core" / "default_config.json"
     )
     with open(config_path, encoding="utf-8") as f:
         return json.load(f)
@@ -46,8 +42,7 @@ def sample_articles():
                 "This paper applies artificial intelligence to supply chain "
                 "management in the petroleum industry.",
                 "We review 100 recipes using deep learning classification.",
-                "Deep learning and predictive analytics for offshore operations "
-                "and procurement.",
+                "Deep learning and predictive analytics for offshore operations and procurement.",
                 "Blockchain technology applied to drug manufacturing and distribution.",
             ],
             "manual_tags": ["", "", "SCM, AI, oil", ""],
@@ -110,9 +105,7 @@ def mini_terms_csv(tmp_path):
 
 
 class TestProcessArticles:
-    def test_pipeline_produces_results(
-        self, sample_config, sample_articles, mini_terms_csv
-    ):
+    def test_pipeline_produces_results(self, sample_config, sample_articles, mini_terms_csv):
         config = parse_terms_csv(str(mini_terms_csv), sample_config)
         engine = NormalizationEngine(config.get("normalization_rules", {}))
         gp = load_global_params(config.get("global", {}))
@@ -122,18 +115,14 @@ class TestProcessArticles:
         if "T0" in config:
             config["T0"] = precompile_patterns(config["T0"], engine, gp)
 
-        result_df, stats = process_articles(
-            sample_articles, config, on_progress=None
-        )
+        result_df, stats = process_articles(sample_articles, config, on_progress=None)
 
         assert len(result_df) > 0
         assert "Final_Decision" in result_df.columns
         assert stats["total_articles"] > 0
         assert stats["processing_time"] >= 0
 
-    def test_systematic_review_rejected(
-        self, sample_config, sample_articles, mini_terms_csv
-    ):
+    def test_systematic_review_rejected(self, sample_config, sample_articles, mini_terms_csv):
         config = parse_terms_csv(str(mini_terms_csv), sample_config)
         engine = NormalizationEngine(config.get("normalization_rules", {}))
         gp = load_global_params(config.get("global", {}))
@@ -150,9 +139,7 @@ class TestProcessArticles:
         if not a002.empty:
             assert a002.iloc[0]["Final_Decision"] == "REJECTED_FINAL"
 
-    def test_relevant_article_not_rejected(
-        self, sample_config, sample_articles, mini_terms_csv
-    ):
+    def test_relevant_article_not_rejected(self, sample_config, sample_articles, mini_terms_csv):
         config = parse_terms_csv(str(mini_terms_csv), sample_config)
         engine = NormalizationEngine(config.get("normalization_rules", {}))
         gp = load_global_params(config.get("global", {}))
@@ -169,9 +156,7 @@ class TestProcessArticles:
         if not a001.empty:
             assert a001.iloc[0]["Final_Decision"] != "REJECTED_FINAL"
 
-    def test_error_policy_flag_keeps_article(
-        self, sample_config, mini_terms_csv, monkeypatch
-    ):
+    def test_error_policy_flag_keeps_article(self, sample_config, mini_terms_csv, monkeypatch):
         cfg = parse_terms_csv(str(mini_terms_csv), sample_config)
         cfg["global"]["ERROR_POLICY"] = "flag"
 
