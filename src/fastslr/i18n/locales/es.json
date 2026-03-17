@@ -1,0 +1,53 @@
+{
+  "version_info": "FastSLR v{version}",
+
+  "file_not_found": "Archivo no encontrado: {path}",
+  "config_not_found": "Configuracion no encontrada: {path}",
+  "config_error": "Error de configuracion: {message}",
+  "warning": "Advertencia: {message}",
+
+  "triage_complete": "Resultados guardados en: {path}",
+  "preview_note": "Vista previa basada en {count} articulos muestreados.",
+  "no_profiles": "No hay perfiles guardados.",
+  "profile_saved": "Perfil '{name}' guardado en: {path}",
+  "profile_loaded": "Perfil '{name}' cargado en: {path}",
+  "academic_exported": "Paquete academico exportado: {path}",
+
+  "project_created": "Proyecto creado: {path}",
+  "project_config_hint": "  config.json  — edite umbrales y parametros",
+  "project_terms_hint": "  terms.csv    — agregue sus terminos de busqueda aqui",
+  "blocks_required": "Se requiere al menos un nombre de bloque.",
+
+  "table_triage_results": "Resultados del Triaje",
+  "table_metric": "Metrica",
+  "table_value": "Valor",
+  "table_total_articles": "Total de articulos",
+  "table_processing_time": "Tiempo de procesamiento",
+  "table_speed": "Velocidad",
+  "table_errors": "Errores",
+
+  "table_diff_title": "Comparacion de Triajes",
+  "table_article_id": "ID del Articulo",
+  "table_old_decision": "Decision Anterior",
+  "table_new_decision": "Nueva Decision",
+  "diff_more_changes": "... y {count} cambios mas",
+  "diff_total_changes": "Total de cambios: {count}",
+  "diff_article_counts": "Articulos en A: {a}, en B: {b}",
+  "diff_transitions": "Transiciones:",
+
+  "table_terms_title": "Terminos ({count} en total)",
+  "table_block": "Bloque",
+  "table_kind": "Tipo",
+  "table_term": "Termino",
+  "table_level": "Nivel",
+  "table_scope": "Alcance",
+  "terms_truncated": "Mostrando los primeros {shown} de {total} terminos.",
+
+  "table_profiles_title": "Perfiles Guardados",
+  "table_name": "Nombre",
+  "table_description": "Descripcion",
+  "table_path": "Ruta",
+
+  "speed_unit": "{value:.1f} articulos/s",
+  "time_unit": "{value:.2f}s"
+}

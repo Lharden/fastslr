@@ -1,0 +1,53 @@
+{
+  "version_info": "FastSLR v{version}",
+
+  "file_not_found": "Arquivo nao encontrado: {path}",
+  "config_not_found": "Configuracao nao encontrada: {path}",
+  "config_error": "Erro de configuracao: {message}",
+  "warning": "Aviso: {message}",
+
+  "triage_complete": "Resultados salvos em: {path}",
+  "preview_note": "Pre-visualizacao baseada em {count} artigos amostrados.",
+  "no_profiles": "Nenhum perfil salvo ainda.",
+  "profile_saved": "Perfil '{name}' salvo em: {path}",
+  "profile_loaded": "Perfil '{name}' carregado em: {path}",
+  "academic_exported": "Pacote academico exportado: {path}",
+
+  "project_created": "Projeto criado: {path}",
+  "project_config_hint": "  config.json  — edite limiares e parametros",
+  "project_terms_hint": "  terms.csv    — adicione seus termos de busca aqui",
+  "blocks_required": "Pelo menos um nome de bloco e necessario.",
+
+  "table_triage_results": "Resultados da Triagem",
+  "table_metric": "Metrica",
+  "table_value": "Valor",
+  "table_total_articles": "Total de artigos",
+  "table_processing_time": "Tempo de processamento",
+  "table_speed": "Velocidade",
+  "table_errors": "Erros",
+
+  "table_diff_title": "Comparacao de Triagens",
+  "table_article_id": "ID do Artigo",
+  "table_old_decision": "Decisao Anterior",
+  "table_new_decision": "Nova Decisao",
+  "diff_more_changes": "... e mais {count} mudancas",
+  "diff_total_changes": "Total de mudancas: {count}",
+  "diff_article_counts": "Artigos em A: {a}, em B: {b}",
+  "diff_transitions": "Transicoes:",
+
+  "table_terms_title": "Termos ({count} no total)",
+  "table_block": "Bloco",
+  "table_kind": "Tipo",
+  "table_term": "Termo",
+  "table_level": "Nivel",
+  "table_scope": "Escopo",
+  "terms_truncated": "Exibindo os primeiros {shown} de {total} termos.",
+
+  "table_profiles_title": "Perfis Salvos",
+  "table_name": "Nome",
+  "table_description": "Descricao",
+  "table_path": "Caminho",
+
+  "speed_unit": "{value:.1f} artigos/s",
+  "time_unit": "{value:.2f}s"
+}

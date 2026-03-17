@@ -25,6 +25,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskPr
 from rich.table import Table
 
 from ..core.constants import VERSION
+from ..i18n import _ as t
+from ..i18n import set_locale
 
 app = typer.Typer(
     name="fastslr",
@@ -42,6 +44,12 @@ console = Console()
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 
+def _setup_lang(lang: str | None) -> None:
+    """Configure locale from --lang flag if provided."""
+    if lang:
+        set_locale(lang)
+
+
 def _rich_progress_callback(progress: Progress, task_id: int):
     """Return a callback that updates a rich progress bar."""
 
@@ -53,18 +61,21 @@ def _rich_progress_callback(progress: Progress, task_id: int):
 
 def _print_stats(stats: dict) -> None:
     """Print triage statistics as a rich table."""
-    table = Table(title="Triage Results", show_header=True)
-    table.add_column("Metric", style="cyan")
-    table.add_column("Value", style="bold")
+    table = Table(title=t("table_triage_results"), show_header=True)
+    table.add_column(t("table_metric"), style="cyan")
+    table.add_column(t("table_value"), style="bold")
 
-    table.add_row("Total articles", str(stats.get("total_articles", 0)))
     table.add_row(
-        "Processing time",
-        f"{stats.get('processing_time', 0):.2f}s",
+        t("table_total_articles"),
+        str(stats.get("total_articles", 0)),
     )
     table.add_row(
-        "Speed",
-        f"{stats.get('articles_per_second', 0):.1f} articles/s",
+        t("table_processing_time"),
+        t("time_unit", value=stats.get("processing_time", 0)),
+    )
+    table.add_row(
+        t("table_speed"),
+        t("speed_unit", value=stats.get("articles_per_second", 0)),
     )
 
     dist = stats.get("decision_distribution", {})
@@ -77,7 +88,10 @@ def _print_stats(stats: dict) -> None:
         table.add_row(f"  {decision}", f"[{style}]{count}[/{style}]")
 
     if stats.get("error_count", 0) > 0:
-        table.add_row("Errors", f"[red]{stats['error_count']}[/red]")
+        table.add_row(
+            t("table_errors"),
+            f"[red]{stats['error_count']}[/red]",
+        )
 
     console.print(table)
 
@@ -86,9 +100,12 @@ def _print_stats(stats: dict) -> None:
 
 
 @app.command()
-def version() -> None:
+def version(
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+) -> None:
     """Show FastSLR version."""
-    console.print(f"FastSLR v{VERSION}")
+    _setup_lang(lang)
+    console.print(t("version_info", version=VERSION))
 
 
 @app.command()
@@ -101,14 +118,15 @@ def run(
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Suppress output."),
 ) -> None:
     """Run triage on an articles file."""
+    _setup_lang(lang)
     from . import controller
 
     if not input_file.exists():
-        console.print(f"[red]File not found: {input_file}[/red]")
+        console.print(f"[red]{t('file_not_found', path=input_file)}[/red]")
         raise typer.Exit(1)
 
     if not config.exists():
-        console.print(f"[red]Config not found: {config}[/red]")
+        console.print(f"[red]{t('config_not_found', path=config)}[/red]")
         raise typer.Exit(1)
 
     # Validate config first
@@ -117,13 +135,13 @@ def run(
     errors = [i for i in issues if i.level == "error"]
     if errors:
         for issue in errors:
-            console.print(f"[red]Config error: {issue.message}[/red]")
+            console.print(f"[red]{t('config_error', message=issue.message)}[/red]")
         raise typer.Exit(1)
 
     warnings = [i for i in issues if i.level == "warning"]
     if warnings and not quiet:
         for issue in warnings:
-            console.print(f"[yellow]Warning: {issue.message}[/yellow]")
+            console.print(f"[yellow]{t('warning', message=issue.message)}[/yellow]")
 
     with Progress(
         SpinnerColumn(),
@@ -146,7 +164,7 @@ def run(
 
     if not quiet:
         _print_stats(result.stats)
-        console.print(f"\n[green]Results saved to: {result.output_dir}[/green]")
+        console.print(f"\n[green]{t('triage_complete', path=result.output_dir)}[/green]")
 
 
 @app.command()
@@ -155,12 +173,14 @@ def preview(
     config: Path = typer.Option(..., "--config", "-c", help="Path to config.json."),
     terms: Optional[Path] = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
     sample: int = typer.Option(50, "--sample", "-s", help="Number of articles to sample."),
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Preview triage results on a sample of articles."""
+    _setup_lang(lang)
     from . import controller
 
     if not input_file.exists():
-        console.print(f"[red]File not found: {input_file}[/red]")
+        console.print(f"[red]{t('file_not_found', path=input_file)}[/red]")
         raise typer.Exit(1)
 
     result = controller.preview_triage(
@@ -171,7 +191,7 @@ def preview(
     )
 
     _print_stats(result.stats)
-    console.print(f"\n[dim]Preview based on {result.sample_size} sampled articles.[/dim]")
+    console.print(f"\n[dim]{t('preview_note', count=result.sample_size)}[/dim]")
 
 
 @app.command()
@@ -180,8 +200,10 @@ def coverage(
     config: Path = typer.Option(..., "--config", "-c", help="Path to config.json."),
     terms: Optional[Path] = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Export coverage CSV."),
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Analyze term coverage across all articles."""
+    _setup_lang(lang)
     from . import controller
     from ..core.coverage import format_coverage_report
 
@@ -199,16 +221,18 @@ def coverage(
 def diff(
     result_a: Path = typer.Argument(..., help="First result file (CSV/XLSX)."),
     result_b: Path = typer.Argument(..., help="Second result file (CSV/XLSX)."),
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Compare two triage result files."""
+    _setup_lang(lang)
     from . import controller
 
     report = controller.diff_results(result_a, result_b)
 
-    table = Table(title="Triage Diff", show_header=True)
-    table.add_column("Article ID", style="cyan")
-    table.add_column("Old Decision", style="red")
-    table.add_column("New Decision", style="green")
+    table = Table(title=t("table_diff_title"), show_header=True)
+    table.add_column(t("table_article_id"), style="cyan")
+    table.add_column(t("table_old_decision"), style="red")
+    table.add_column(t("table_new_decision"), style="green")
 
     for entry in report.changed[:50]:
         table.add_row(entry.article_id, entry.old_decision, entry.new_decision)
@@ -216,13 +240,13 @@ def diff(
     console.print(table)
 
     if len(report.changed) > 50:
-        console.print(f"[dim]... and {len(report.changed) - 50} more changes[/dim]")
+        console.print(f"[dim]{t('diff_more_changes', count=len(report.changed) - 50)}[/dim]")
 
-    console.print(f"\nTotal changes: [bold]{len(report.changed)}[/bold]")
-    console.print(f"Articles in A: {report.total_a}, in B: {report.total_b}")
+    console.print(f"\n{t('diff_total_changes', count=len(report.changed))}")
+    console.print(t("diff_article_counts", a=report.total_a, b=report.total_b))
 
     if report.summary:
-        console.print("\nTransitions:")
+        console.print(f"\n{t('diff_transitions')}")
         for transition, count in sorted(report.summary.items()):
             console.print(f"  {transition}: {count}")
 
@@ -239,8 +263,10 @@ def new_project(
         help="Level preset: binary, simple, standard.",
     ),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output directory."),
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Create a new triage project with config and terms template."""
+    _setup_lang(lang)
     from . import controller
 
     block_list = [
@@ -250,7 +276,7 @@ def new_project(
     ]
 
     if not block_list:
-        console.print("[red]At least one block name is required.[/red]")
+        console.print(f"[red]{t('blocks_required')}[/red]")
         raise typer.Exit(1)
 
     project_dir = controller.create_project(
@@ -260,9 +286,9 @@ def new_project(
         output_dir=output,
     )
 
-    console.print(f"[green]Project created: {project_dir}[/green]")
-    console.print(f"  config.json  — edit thresholds and parameters")
-    console.print(f"  terms.csv    — add your search terms here")
+    console.print(f"[green]{t('project_created', path=project_dir)}[/green]")
+    console.print(t("project_config_hint"))
+    console.print(t("project_terms_hint"))
 
 
 @app.command(name="export")
@@ -270,12 +296,14 @@ def export_cmd(
     result_file: Path = typer.Argument(..., help="Path to triage results file."),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output directory."),
     config: Optional[Path] = typer.Option(None, "--config", "-c", help="Config file to include."),
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Export an academic package (ZIP) from triage results."""
+    _setup_lang(lang)
     from . import controller
 
     if not result_file.exists():
-        console.print(f"[red]File not found: {result_file}[/red]")
+        console.print(f"[red]{t('file_not_found', path=result_file)}[/red]")
         raise typer.Exit(1)
 
     out_dir = output or result_file.parent
@@ -285,7 +313,7 @@ def export_cmd(
         config_path=config,
     )
 
-    console.print(f"[green]Academic package exported: {zip_path}[/green]")
+    console.print(f"[green]{t('academic_exported', path=zip_path)}[/green]")
 
 
 @app.command(name="terms")
@@ -294,8 +322,10 @@ def terms_cmd(
     terms: Optional[Path] = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
     block: Optional[str] = typer.Option(None, "--block", "-b", help="Filter by block name."),
     kind: Optional[str] = typer.Option(None, "--kind", "-k", help="Filter by kind (pos/anti/flag)."),
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Browse configured terms."""
+    _setup_lang(lang)
     from . import controller
 
     view = controller.browse_terms(
@@ -305,12 +335,12 @@ def terms_cmd(
         kind_filter=kind,
     )
 
-    table = Table(title=f"Terms ({view.total} total)", show_header=True)
-    table.add_column("Block", style="cyan")
-    table.add_column("Kind", style="magenta")
-    table.add_column("Term")
-    table.add_column("Level", justify="center")
-    table.add_column("Scope")
+    table = Table(title=t("table_terms_title", count=view.total), show_header=True)
+    table.add_column(t("table_block"), style="cyan")
+    table.add_column(t("table_kind"), style="magenta")
+    table.add_column(t("table_term"))
+    table.add_column(t("table_level"), justify="center")
+    table.add_column(t("table_scope"))
 
     for entry in view.terms[:200]:
         kind_style = (
@@ -327,7 +357,7 @@ def terms_cmd(
         )
 
     if view.total > 200:
-        console.print(f"[dim]Showing first 200 of {view.total} terms.[/dim]")
+        console.print(f"[dim]{t('terms_truncated', shown=200, total=view.total)}[/dim]")
 
     console.print(table)
 
@@ -348,14 +378,16 @@ def profile_save(
     name: str = typer.Argument(..., help="Profile name."),
     config: Path = typer.Option(..., "--config", "-c", help="Config file to save as profile."),
     description: str = typer.Option("", "--desc", "-d", help="Profile description."),
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Save a configuration as a named profile."""
+    _setup_lang(lang)
     from . import profiles
     from ..core.config import load_config
 
     cfg = load_config(config)
     path = profiles.save_profile(name, cfg, description)
-    console.print(f"[green]Profile '{name}' saved: {path}[/green]")
+    console.print(f"[green]{t('profile_saved', name=name, path=path)}[/green]")
 
 
 @profile_app.command("load")
@@ -364,8 +396,10 @@ def profile_load(
     output: Path = typer.Option(
         "config.json", "--output", "-o", help="Output config file path."
     ),
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Load a named profile to a config file."""
+    _setup_lang(lang)
     from . import profiles
     import json
 
@@ -374,24 +408,27 @@ def profile_load(
         json.dumps(cfg, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
-    console.print(f"[green]Profile '{name}' loaded to: {output}[/green]")
+    console.print(f"[green]{t('profile_loaded', name=name, path=output)}[/green]")
 
 
 @profile_app.command("list")
-def profile_list() -> None:
+def profile_list(
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Interface language."),
+) -> None:
     """List all saved profiles."""
+    _setup_lang(lang)
     from . import profiles
 
     all_profiles = profiles.list_profiles()
 
     if not all_profiles:
-        console.print("[dim]No profiles saved yet.[/dim]")
+        console.print(f"[dim]{t('no_profiles')}[/dim]")
         return
 
-    table = Table(title="Saved Profiles", show_header=True)
-    table.add_column("Name", style="cyan")
-    table.add_column("Description")
-    table.add_column("Path", style="dim")
+    table = Table(title=t("table_profiles_title"), show_header=True)
+    table.add_column(t("table_name"), style="cyan")
+    table.add_column(t("table_description"))
+    table.add_column(t("table_path"), style="dim")
 
     for p in all_profiles:
         table.add_row(p.name, p.description, str(p.path))

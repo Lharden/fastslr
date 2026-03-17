@@ -1,0 +1,53 @@
+{
+  "version_info": "FastSLR v{version}",
+
+  "file_not_found": "File not found: {path}",
+  "config_not_found": "Config not found: {path}",
+  "config_error": "Config error: {message}",
+  "warning": "Warning: {message}",
+
+  "triage_complete": "Results saved to: {path}",
+  "preview_note": "Preview based on {count} sampled articles.",
+  "no_profiles": "No profiles saved yet.",
+  "profile_saved": "Profile '{name}' saved: {path}",
+  "profile_loaded": "Profile '{name}' loaded to: {path}",
+  "academic_exported": "Academic package exported: {path}",
+
+  "project_created": "Project created: {path}",
+  "project_config_hint": "  config.json  — edit thresholds and parameters",
+  "project_terms_hint": "  terms.csv    — add your search terms here",
+  "blocks_required": "At least one block name is required.",
+
+  "table_triage_results": "Triage Results",
+  "table_metric": "Metric",
+  "table_value": "Value",
+  "table_total_articles": "Total articles",
+  "table_processing_time": "Processing time",
+  "table_speed": "Speed",
+  "table_errors": "Errors",
+
+  "table_diff_title": "Triage Diff",
+  "table_article_id": "Article ID",
+  "table_old_decision": "Old Decision",
+  "table_new_decision": "New Decision",
+  "diff_more_changes": "... and {count} more changes",
+  "diff_total_changes": "Total changes: {count}",
+  "diff_article_counts": "Articles in A: {a}, in B: {b}",
+  "diff_transitions": "Transitions:",
+
+  "table_terms_title": "Terms ({count} total)",
+  "table_block": "Block",
+  "table_kind": "Kind",
+  "table_term": "Term",
+  "table_level": "Level",
+  "table_scope": "Scope",
+  "terms_truncated": "Showing first {shown} of {total} terms.",
+
+  "table_profiles_title": "Saved Profiles",
+  "table_name": "Name",
+  "table_description": "Description",
+  "table_path": "Path",
+
+  "speed_unit": "{value:.1f} articles/s",
+  "time_unit": "{value:.2f}s"
+}
