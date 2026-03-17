@@ -1,0 +1,43 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Output
+output/
+*.xlsx
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Byte-compiled
+*.pyc
+*.pyo
+
+# Cache
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Legacy backup (large files)
+legacy/
+
+# Temporary
+*.tmp

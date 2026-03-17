@@ -1,0 +1,582 @@
+"""I/O operations: CSV/XLSX loading, export, report generation, and audit."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+import re
+import uuid
+import zipfile
+from copy import deepcopy
+from datetime import datetime
+from pathlib import Path
+from types import ModuleType
+
+import pandas as pd
+
+from .constants import SECTION_NAMES, VERSION
+
+chardet: ModuleType | None
+try:
+    import chardet as _chardet
+except ModuleNotFoundError:
+    chardet = None
+else:
+    chardet = _chardet
+
+logger = logging.getLogger(__name__)
+
+PROTOCOL_VERSION_CURRENT = "2.1"
+PROTOCOL_SCHEMA_ID = "rsl-triage-protocol-v2.1"
+
+_PROTOCOL_ROOT_KEYS = frozenset({
+    "protocol_version",
+    "schema_id",
+    "execution_id",
+    "generated_at",
+    "triage_version",
+    "inputs",
+    "configuration",
+    "processing",
+    "artifacts",
+    "reproducibility",
+})
+
+
+# ── hashing ──────────────────────────────────────────────────────────────────
+
+
+def _sanitize_config_for_serialization(config: dict) -> dict:
+    """Remove non-serializable elements from the configuration."""
+    config_clean = deepcopy(config)
+
+    for key in list(config_clean.keys()):
+        if isinstance(config_clean.get(key), dict):
+            block = config_clean[key]
+            if isinstance(block, dict):
+                block.pop("normalization_engine", None)
+                for term_list_key in (
+                    "positives",
+                    "proximity_positives",
+                    "anti_exclude",
+                    "anti_flag",
+                ):
+                    term_list = block.get(term_list_key)
+                    if isinstance(term_list, list):
+                        for term in term_list:
+                            if isinstance(term, dict):
+                                term.pop("pattern", None)
+
+    return config_clean
+
+
+def compute_config_hash(config: dict) -> str:
+    """Generate a SHA-256 hash (truncated to 16 hex chars) of the configuration."""
+    config_clean = _sanitize_config_for_serialization(config)
+    config_str = json.dumps(config_clean, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(config_str.encode("utf-8")).hexdigest()[:16]
+
+
+def compute_file_hash(file_path: str) -> str:
+    """Compute a SHA-256 hash (truncated to 16 hex chars) of a file."""
+    hasher = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()[:16]
+
+
+# ── CSV loading ──────────────────────────────────────────────────────────────
+
+
+def load_csv_safe(path: Path) -> pd.DataFrame:
+    """Load a CSV file with automatic encoding and separator detection."""
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+
+    with open(path, "rb") as f:
+        raw_data = f.read(10000)
+        if chardet is None:
+            encoding = "utf-8"
+        else:
+            encoding = chardet.detect(raw_data).get("encoding", "utf-8")
+
+    for sep in (";", ",", "\t"):
+        try:
+            df = pd.read_csv(
+                path, encoding=encoding, sep=sep, dtype=str, keep_default_na=False
+            )
+            if not df.empty and len(df.columns) >= 3:
+                return df
+        except Exception:
+            continue
+
+    raise ValueError(f"Unable to load CSV: {path}")
+
+
+# ── export helpers ───────────────────────────────────────────────────────────
+
+
+def get_export_opts(cfg: dict) -> dict:
+    """Extract export options from the configuration dict."""
+    root = cfg or {}
+    out = root.get("output") or {}
+    return {
+        "export_csv": bool(out.get("csv", True)),
+        "export_xlsx": bool(out.get("xlsx", False)),
+        "csv_sep": out.get("csv_sep", root.get("sep", ";")),
+        "csv_decimal": out.get("csv_decimal", root.get("decimal", ",")),
+        "csv_float_fmt": out.get("csv_float_format", "%.2f"),
+        "xlsx_engine": out.get("xlsx_engine", "openpyxl"),
+        "xlsx_sheet": out.get("xlsx_sheet_name", "resultados"),
+        "encoding": root.get("encoding", "utf-8-sig"),
+        "academic_package": bool(out.get("academic_package", True)),
+    }
+
+
+def export_results(df: pd.DataFrame, output_path: Path, cfg: dict) -> None:
+    """Export the result DataFrame to CSV and/or XLSX."""
+    opts = get_export_opts(cfg)
+
+    if opts["export_csv"]:
+        df.to_csv(
+            output_path,
+            index=False,
+            encoding=opts["encoding"],
+            sep=opts["csv_sep"],
+            float_format=opts["csv_float_fmt"],
+            decimal=opts["csv_decimal"],
+        )
+
+    if opts["export_xlsx"]:
+        xlsx_path = output_path.with_suffix(".xlsx")
+        df.to_excel(
+            xlsx_path,
+            index=False,
+            engine=opts["xlsx_engine"],
+            sheet_name=opts["xlsx_sheet"],
+        )
+
+
+# ── highlighting ─────────────────────────────────────────────────────────────
+
+
+def highlight_text(original_text: str, all_terms: list[dict], section_name: str) -> str:
+    """Mark matched terms in the original text with ***TERM*** markers."""
+    if not original_text or not all_terms:
+        return original_text
+
+    spans: list[tuple[int, int]] = []
+
+    for term in all_terms:
+        if term.get("scope", "any") not in ("any", section_name):
+            continue
+
+        pattern = term.get("pattern")
+        if not pattern:
+            continue
+
+        try:
+            for match in pattern.finditer(original_text):
+                spans.append(match.span())
+        except re.error:
+            continue
+
+    if not spans:
+        return original_text
+
+    spans = sorted(set(spans))
+    merged: list[tuple[int, int]] = []
+    for start, end in spans:
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+
+    result = original_text
+    for start, end in reversed(merged):
+        result = f"{result[:start]}***{result[start:end].upper()}***{result[end:]}"
+
+    return result
+
+
+def pack_highlights(evaluation) -> str:
+    """Serialize all positive matches of a block evaluation to a compact string."""
+    items: list[str] = []
+    for sec_name in SECTION_NAMES:
+        for m in evaluation.matches.get(sec_name, []):
+            comp_str = f" comps={'+'.join(m.components)}" if m.components else ""
+            items.append(
+                f'term="{m.term}" sec={sec_name} L={m.level} '
+                f"row={m.source_row} type={m.match_type}{comp_str}"
+            )
+    return " | ".join(items)
+
+
+def pack_anti_hits(hits: list) -> str:
+    """Serialize anti-term hits to a compact string."""
+    return "|".join(
+        f"{h.term}:{h.section}:{h.source_row}" for h in hits if h.term and h.section
+    )
+
+
+# ── reports ──────────────────────────────────────────────────────────────────
+
+
+def generate_report(
+    df: pd.DataFrame, stats: dict, config: dict, output_path: Path
+) -> None:
+    """Write a human-readable triage report to a text file."""
+    from .config import get_domain_blocks
+
+    total = len(df)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write("=== TRIAGE REPORT ===\n")
+        f.write(f"VERSION: {VERSION}\n")
+        f.write(f"DATE: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"TOTAL ARTICLES: {total}\n")
+        f.write(f"PROCESSING TIME: {stats.get('processing_time', 0):.2f}s\n")
+        f.write(f"RATE: {stats.get('articles_per_second', 0):.1f} articles/s\n\n")
+
+        f.write(f"CONFIG HASH: {compute_config_hash(config)}\n\n")
+
+        if "Final_Decision" in df.columns:
+            f.write("== FINAL DECISIONS ==\n")
+            for decision, count in df["Final_Decision"].value_counts().items():
+                f.write(f"{decision}: {count} ({(count / total) * 100:.1f}%)\n")
+            f.write("\n")
+
+        f.write("== BLOCK PERFORMANCE ==\n")
+
+        blocks_to_report = ["T0"] if "Status_T0" in df.columns else []
+        blocks_to_report.extend(get_domain_blocks(config))
+
+        for block in blocks_to_report:
+            f.write(f"\n{block}:\n")
+            block_stats = stats.get("block_performance", {}).get(block, {})
+
+            for status, count in block_stats.get("status_distribution", {}).items():
+                f.write(f"  {status}: {count} ({(count / total) * 100:.1f}%)\n")
+
+            if block != "T0":
+                f.write(f"  Avg score: {block_stats.get('avg_score', 0):.2f}\n")
+                f.write(f"  Max score: {block_stats.get('max_score', 0):.2f}\n")
+
+
+def export_config_audit(config: dict, output_path: Path) -> None:
+    """Export sanitized configuration for audit trail."""
+    config_clean = _sanitize_config_for_serialization(config)
+
+    config_clean["_metadata"] = {
+        "export_timestamp": datetime.now().isoformat(),
+        "version": VERSION,
+        "config_hash": compute_config_hash(config),
+    }
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(config_clean, f, indent=2, ensure_ascii=False, default=str)
+
+
+def export_raw_subset(
+    original_df: pd.DataFrame,
+    result_df: pd.DataFrame,
+    config: dict,
+    output_path: Path,
+) -> None:
+    """Export a subset with approved/flagged articles (original text)."""
+    fields = config.get("fields", {})
+    col_id_input = fields.get("id", "key")
+    col_title_input = fields.get("title", "title")
+    col_abs_input = fields.get("abstract", "abstract")
+    col_id_output = fields.get("id_output", "ID")
+
+    target_decisions = {"APPROVED_FINAL", "FLAGGED_FINAL"}
+
+    if "Final_Decision" not in result_df.columns:
+        return
+
+    subset_results = result_df[
+        result_df["Final_Decision"].isin(target_decisions)
+    ].copy()
+
+    if subset_results.empty:
+        return
+
+    decision_map = dict(
+        zip(
+            subset_results[col_id_output].astype(str),
+            subset_results["Final_Decision"],
+            strict=True,
+        )
+    )
+    valid_ids = set(subset_results[col_id_output].astype(str))
+
+    df_export = original_df.copy()
+    df_export["_temp_id_str"] = df_export[col_id_input].astype(str)
+    df_final = df_export[df_export["_temp_id_str"].isin(valid_ids)].copy()
+    df_final["Final_Decision"] = df_final["_temp_id_str"].map(decision_map)
+
+    cols_to_keep = [col_id_input, col_title_input, col_abs_input, "Final_Decision"]
+    cols_existing = [c for c in cols_to_keep if c in df_final.columns]
+    df_final = df_final[cols_existing]
+
+    subset_path = output_path.with_stem(output_path.stem + "_filtered_raw").with_suffix(
+        ".xlsx"
+    )
+
+    try:
+        opts = get_export_opts(config)
+        df_final.to_excel(
+            subset_path, index=False, engine=opts.get("xlsx_engine", "openpyxl")
+        )
+    except Exception:
+        logger.warning("Failed to export raw subset to %s", subset_path, exc_info=True)
+
+
+# ── protocol snapshot ────────────────────────────────────────────────────────
+
+
+def build_protocol_snapshot(
+    config: dict,
+    stats: dict,
+    input_path: Path,
+    terms_path: Path,
+    result_path: Path,
+    input_hash: str,
+    terms_hash: str,
+    config_hash: str,
+) -> dict:
+    """Build a protocol snapshot dict for reproducibility."""
+    from .config import get_domain_blocks
+
+    domain_blocks = get_domain_blocks(config)
+    block_labels = config.get("_block_labels", {})
+    global_cfg = config.get("global", {})
+
+    snapshot = {
+        "protocol_version": PROTOCOL_VERSION_CURRENT,
+        "schema_id": PROTOCOL_SCHEMA_ID,
+        "execution_id": f"run_{uuid.uuid4().hex[:12]}",
+        "generated_at": datetime.now().isoformat(),
+        "triage_version": VERSION,
+        "inputs": {
+            "input_file": str(input_path),
+            "input_hash": input_hash,
+            "terms_file": str(terms_path),
+            "terms_hash": terms_hash,
+            "config_hash": config_hash,
+        },
+        "configuration": {
+            "decision_policy": global_cfg.get("DECISION_POLICY", "special"),
+            "domain_blocks": [
+                {"id": b, "label": block_labels.get(b, b)} for b in domain_blocks
+            ],
+            "fail_fast": global_cfg.get("FAIL_FAST_GLOBAL", True),
+            "enable_special_approval": global_cfg.get(
+                "ENABLE_SPECIAL_APPROVAL_RULE", True
+            ),
+            "level_scores": global_cfg.get("PONTUACAO_NIVEIS", {}),
+            "section_weights": global_cfg.get("WEIGHTS", {}),
+            "approval_thresholds": global_cfg.get("LIMITES_APROVADO", {}),
+            "flagging_thresholds": global_cfg.get("LIMITES_SINALIZADO", {}),
+        },
+        "processing": {
+            "total_articles": stats.get("total_articles", 0),
+            "processing_time_seconds": stats.get("processing_time", 0),
+            "articles_per_second": stats.get("articles_per_second", 0),
+        },
+        "artifacts": {
+            "results_path": str(result_path),
+        },
+        "reproducibility": {
+            "deterministic_engine": True,
+        },
+        "methodology": {
+            "scoring": "weighted section scores with level-based thresholds",
+            "normalization": "rule-based with LRU cache",
+        },
+    }
+
+    # Sampling metadata
+    if stats.get("sample_mode"):
+        snapshot["processing"]["sample_mode"] = True
+        snapshot["processing"]["sample_size"] = stats.get("sample_size")
+        snapshot["processing"]["population_size"] = stats.get("population_size")
+        snapshot["processing"]["sample_seed"] = stats.get("sample_seed")
+
+    return snapshot
+
+
+def validate_protocol_snapshot(snapshot: dict) -> list[str]:
+    """Validate a protocol snapshot, returning a list of error strings."""
+    errors: list[str] = []
+
+    for key in _PROTOCOL_ROOT_KEYS:
+        if key not in snapshot:
+            errors.append(f"Missing root key: '{key}'")
+
+    if snapshot.get("protocol_version") != PROTOCOL_VERSION_CURRENT:
+        errors.append(
+            f"Version mismatch: expected {PROTOCOL_VERSION_CURRENT}, "
+            f"got {snapshot.get('protocol_version')}"
+        )
+
+    return errors
+
+
+def migrate_protocol_snapshot(old_snapshot: dict) -> dict:
+    """Migrate a protocol snapshot from an older version to the current one."""
+    migrated = deepcopy(old_snapshot)
+    migrated["protocol_version"] = PROTOCOL_VERSION_CURRENT
+    migrated["schema_id"] = PROTOCOL_SCHEMA_ID
+
+    if "methodology" not in migrated:
+        migrated["methodology"] = {
+            "scoring": "weighted section scores with level-based thresholds",
+            "normalization": "rule-based with LRU cache",
+        }
+
+    return migrated
+
+
+def export_protocol_snapshot(snapshot: dict, output_path: Path) -> None:
+    """Write a protocol snapshot to a JSON file."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(snapshot, f, indent=2, ensure_ascii=False, default=str)
+
+
+def generate_academic_report(snapshot: dict, output_path: Path) -> None:
+    """Generate an academic compliance report in Markdown format."""
+    config = snapshot.get("configuration", {})
+    processing = snapshot.get("processing", {})
+    inputs = snapshot.get("inputs", {})
+
+    lines = [
+        "# Academic Compliance Report",
+        "",
+        f"**Triage version:** {snapshot.get('triage_version', 'N/A')}",
+        f"**Generated at:** {snapshot.get('generated_at', 'N/A')}",
+        f"**Execution ID:** {snapshot.get('execution_id', 'N/A')}",
+        "",
+        "## Configuration",
+        "",
+        f"- Decision policy: {config.get('decision_policy', 'N/A')}",
+        f"- Domain blocks: {len(config.get('domain_blocks', []))}",
+        f"- Fail-fast: {config.get('fail_fast', 'N/A')}",
+        "",
+        "## Scoring Criteria",
+        "",
+        f"- Level scores: {config.get('level_scores', {})}",
+        f"- Section weights: {config.get('section_weights', {})}",
+        f"- Approval thresholds: {config.get('approval_thresholds', {})}",
+        f"- Flagging thresholds: {config.get('flagging_thresholds', {})}",
+        "",
+        "## Processing",
+        "",
+        f"- Total articles: {processing.get('total_articles', 0)}",
+        f"- Processing time: {processing.get('processing_time_seconds', 0):.2f}s",
+        f"- Rate: {processing.get('articles_per_second', 0):.1f} articles/s",
+        "",
+        "## Inputs",
+        "",
+        f"- Input file: {inputs.get('input_file', 'N/A')}",
+        f"- Input hash: {inputs.get('input_hash', 'N/A')}",
+        f"- Terms file: {inputs.get('terms_file', 'N/A')}",
+        f"- Terms hash: {inputs.get('terms_hash', 'N/A')}",
+        f"- Config hash: {inputs.get('config_hash', 'N/A')}",
+        "",
+    ]
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def export_compliance_manifest(
+    artifacts: dict[str, Path], output_path: Path, execution_id: str
+) -> None:
+    """Export a compliance manifest linking all run artifacts."""
+    manifest = {
+        "execution_id": execution_id,
+        "generated_at": datetime.now().isoformat(),
+        "artifacts": {
+            name: str(path) for name, path in artifacts.items()
+        },
+    }
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2, ensure_ascii=False)
+
+
+def export_appendix_pack(
+    artifacts: dict[str, Path], zip_path: Path, execution_id: str
+) -> None:
+    """Create a ZIP appendix pack with all available artifacts."""
+    zip_path.parent.mkdir(parents=True, exist_ok=True)
+
+    seen_paths: set[str] = set()
+    entries: list[tuple[str, Path]] = []
+
+    for _label, path in artifacts.items():
+        if not path.exists():
+            continue
+        resolved = str(path.resolve())
+        if resolved in seen_paths:
+            continue
+        seen_paths.add(resolved)
+        entries.append((path.name, path))
+
+    index_lines = [
+        f"# Appendix Pack: {execution_id}",
+        "",
+        f"Generated at: {datetime.now().isoformat()}",
+        "",
+        "## Contents",
+        "",
+    ]
+
+    manifest_items: dict[str, str] = {}
+
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name, path in entries:
+            zf.write(path, name)
+            index_lines.append(f"- {name}")
+            manifest_items[name] = str(path)
+
+        index_text = "\n".join(index_lines) + "\n"
+        zf.writestr("APPENDIX_INDEX.md", index_text)
+
+        manifest = {
+            "execution_id": execution_id,
+            "generated_at": datetime.now().isoformat(),
+            "files": manifest_items,
+        }
+        zf.writestr("appendix_manifest.json", json.dumps(manifest, indent=2))
+
+
+__all__ = [
+    "PROTOCOL_SCHEMA_ID",
+    "PROTOCOL_VERSION_CURRENT",
+    "compute_config_hash",
+    "compute_file_hash",
+    "load_csv_safe",
+    "get_export_opts",
+    "export_results",
+    "highlight_text",
+    "pack_highlights",
+    "pack_anti_hits",
+    "generate_report",
+    "export_config_audit",
+    "export_raw_subset",
+    "build_protocol_snapshot",
+    "validate_protocol_snapshot",
+    "migrate_protocol_snapshot",
+    "export_protocol_snapshot",
+    "generate_academic_report",
+    "export_compliance_manifest",
+    "export_appendix_pack",
+]
