@@ -397,7 +397,12 @@ def profile_load(
 
     from . import profiles
 
-    cfg = profiles.load_profile(name)
+    try:
+        cfg = profiles.load_profile(name)
+    except FileNotFoundError:
+        console.print(f"[red]{t('file_not_found', path=name)}[/red]")
+        raise typer.Exit(1)
+
     output.write_text(
         json.dumps(cfg, indent=2, ensure_ascii=False),
         encoding="utf-8",

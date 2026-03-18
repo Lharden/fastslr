@@ -135,6 +135,18 @@ def validate_config(config: dict) -> list[ValidationIssue]:
     if policy not in ("special", "strict", "k_of_n"):
         issues.append(ValidationIssue("error", f"Unknown decision policy: '{policy}'"))
 
+    # Warn about nonsensical threshold values
+    for key in ("LIMITES_APROVADO", "LIMITES_SINALIZADO"):
+        thresholds = global_cfg.get(key, {})
+        for level, value in thresholds.items():
+            if value is not None and isinstance(value, (int, float)) and value < 0:
+                issues.append(
+                    ValidationIssue(
+                        "warning",
+                        f"Negative threshold in {key}[{level}]: {value}",
+                    )
+                )
+
     return issues
 
 
@@ -271,6 +283,12 @@ def diff_results(path_a: Path, path_b: Path) -> DiffReport:
     """Compare two triage result files and find changed decisions."""
     df_a = pd.read_excel(path_a) if path_a.suffix == ".xlsx" else pd.read_csv(path_a)
     df_b = pd.read_excel(path_b) if path_b.suffix == ".xlsx" else pd.read_csv(path_b)
+
+    # Validate that both files have Final_Decision
+    if "Final_Decision" not in df_a.columns:
+        raise ValueError(f"File A is missing 'Final_Decision' column: {path_a}")
+    if "Final_Decision" not in df_b.columns:
+        raise ValueError(f"File B is missing 'Final_Decision' column: {path_b}")
 
     # Find the ID column
     id_col = None

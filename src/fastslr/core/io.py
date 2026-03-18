@@ -108,7 +108,7 @@ def load_csv_safe(path: Path) -> pd.DataFrame:
     for sep in (";", ",", "\t"):
         try:
             df = pd.read_csv(path, encoding=encoding, sep=sep, dtype=str, keep_default_na=False)
-            if not df.empty and len(df.columns) >= 3:
+            if len(df.columns) >= 3:
                 return df
         except Exception:
             continue
