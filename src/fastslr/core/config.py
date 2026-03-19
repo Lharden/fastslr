@@ -22,6 +22,38 @@ from .normalization import extract_normalization_rules
 
 logger = logging.getLogger(__name__)
 
+_SCHEMA_DIR = Path(__file__).resolve().parent
+
+
+def _validate_config_schema(config: dict) -> None:
+    """Validate *config* against the bundled JSON Schema.
+
+    Raises :class:`ValueError` with a user-friendly message on validation
+    failure.  If the schema file is missing or ``jsonschema`` is not installed
+    the function logs a warning and returns silently (graceful degradation).
+    """
+    schema_path = _SCHEMA_DIR / "config_schema.json"
+    if not schema_path.exists():
+        logger.warning("Config schema file not found at %s — skipping validation.", schema_path)
+        return
+
+    try:
+        import jsonschema  # noqa: WPS433 (local import for optional dep)
+    except ImportError:  # pragma: no cover
+        logger.warning("jsonschema package not installed — skipping config validation.")
+        return
+
+    with open(schema_path, encoding="utf-8") as fh:
+        schema = json.load(fh)
+
+    try:
+        jsonschema.validate(instance=config, schema=schema)
+    except jsonschema.ValidationError as exc:
+        field_path = ".".join(str(p) for p in exc.absolute_path) if exc.absolute_path else "(root)"
+        raise ValueError(
+            f"Config schema validation error at '{field_path}': {exc.message}"
+        ) from exc
+
 
 def load_config(path: str | Path) -> dict:
     """Load a JSON configuration file."""
@@ -30,7 +62,10 @@ def load_config(path: str | Path) -> dict:
         raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
     with open(config_path, encoding="utf-8") as f:
-        return json.load(f)
+        config: dict = json.load(f)
+
+    _validate_config_schema(config)
+    return config
 
 
 def auto_detect_input(input_dir: Path) -> Path | None:

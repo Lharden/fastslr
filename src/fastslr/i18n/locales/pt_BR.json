@@ -49,5 +49,10 @@
   "table_path": "Caminho",
 
   "speed_unit": "{value:.1f} artigos/s",
-  "time_unit": "{value:.2f}s"
+  "time_unit": "{value:.2f}s",
+
+  "schema_error_title": "Falha na validacao do esquema de configuracao",
+  "schema_error_field": "Campo: {field}",
+  "schema_error_expected": "Esperado: {expected}",
+  "schema_error_type": "Erro: {message}"
 }
