@@ -15,7 +15,15 @@ def compile_pattern(term: str, is_regex: bool = False) -> re.Pattern | None:
     """Compile a search term into a case-insensitive regex pattern.
 
     Supports wildcard expansion (``*`` -> ``\\w*``) for non-regex terms.
-    Returns ``None`` for empty or invalid patterns.
+    Non-regex terms are word-boundary-wrapped after escaping.
+
+    Args:
+        term: The raw search term string.
+        is_regex: If ``True``, *term* is compiled as-is without escaping.
+
+    Returns:
+        A compiled :class:`re.Pattern`, or ``None`` for empty or invalid
+        patterns.
     """
     if not term or not term.strip():
         return None
@@ -51,6 +59,16 @@ def compile_proximity_pattern(
 
     Matches ``term_a ... term_b`` or ``term_b ... term_a`` with at most
     *max_gap* intervening tokens.
+
+    Args:
+        term_a: First term of the proximity pair.
+        term_b: Second term of the proximity pair.
+        max_gap: Maximum number of intervening tokens allowed.
+        token_unit: Regex defining one token (default ``\\S+``).
+
+    Returns:
+        A compiled :class:`re.Pattern`, or ``None`` if either term is empty
+        or the resulting pattern is invalid.
     """
     if not term_a or not term_a.strip() or not term_b or not term_b.strip():
         return None
@@ -77,7 +95,12 @@ _COMPOUND_RE = re.compile(
 def detect_compound_terms(term: str) -> list[tuple[str, str]]:
     """Detect compound terms connected by 'and', '&', 'or', or '/'.
 
-    Returns a list of ``(part_a, part_b)`` tuples.
+    Args:
+        term: The term string to analyse for compound connectors.
+
+    Returns:
+        A list of ``(part_a, part_b)`` tuples. Empty if no compound
+        structure is detected.
     """
     results: list[tuple[str, str]] = []
     m = _COMPOUND_RE.match(term.strip())
@@ -131,8 +154,21 @@ def precompile_patterns(
 ) -> dict:
     """Compile all patterns in a block configuration.
 
-    Returns a new dict with compiled 'positives', 'anti_exclude',
-    'anti_flag', and 'proximity_positives' lists.
+    Iterates over positives, anti-exclude, and anti-flag entries,
+    compiles their regex patterns, and generates proximity patterns
+    for any detected compound terms.
+
+    Args:
+        block: Raw block configuration dict with ``positives`` and ``anti``
+            sub-keys.
+        normalization_engine: Optional normalization engine (reserved for
+            future per-term normalization).
+        global_params: Optional global parameters supplying proximity
+            detection settings.
+
+    Returns:
+        A new dict with compiled ``positives``, ``anti_exclude``,
+        ``anti_flag``, and ``proximity_positives`` lists.
     """
     compiled_block = dict(block)
 
