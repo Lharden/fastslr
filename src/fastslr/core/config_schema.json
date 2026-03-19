@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fastslr.dev/config-schema.json",
+  "title": "FastSLR Configuration",
+  "description": "JSON Schema for FastSLR triage configuration files (v3.0).",
+  "type": "object",
+  "required": ["global"],
+  "additionalProperties": true,
+  "properties": {
+    "global": {
+      "type": "object",
+      "description": "Global parameters for the triage engine.",
+      "required": [
+        "DECISION_POLICY",
+        "NOISE_PROFILE",
+        "ERROR_POLICY"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "DECISION_POLICY": {
+          "type": "string",
+          "enum": ["special", "strict", "k_of_n"],
+          "description": "How the final article decision is derived from block statuses."
+        },
+        "NOISE_PROFILE": {
+          "type": "string",
+          "enum": ["relaxed", "balanced", "strict"],
+          "description": "Noise-tolerance profile for matching."
+        },
+        "ERROR_POLICY": {
+          "type": "string",
+          "enum": ["flag", "fail"],
+          "description": "How processing errors are handled: flag (mark and continue) or fail (raise)."
+        },
+        "ENABLE_SPECIAL_APPROVAL_RULE": {
+          "type": "boolean",
+          "description": "Whether the special high-score approval rule is active."
+        },
+        "SPECIAL_APPROVAL_THRESHOLD": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Score threshold for special (unconditional) approval."
+        },
+        "FAIL_FAST_GLOBAL": {
+          "type": "boolean",
+          "description": "Stop evaluating blocks after the first exclusion."
+        },
+        "NO_TAGS_UPLIFT": {
+          "type": "number",
+          "minimum": 1.0,
+          "description": "Multiplier applied when manual_tags column is empty (>=1.0)."
+        },
+        "MAX_SECTION_SCORE": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Cap on the raw score a single section can contribute."
+        },
+        "MAX_GAP_BETWEEN_TERMS": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum token gap for proximity detection."
+        },
+        "TOKEN_UNIT_FOR_GAPS": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Regex pattern defining a token unit for gap measurement."
+        },
+        "ENABLE_PROXIMITY_DETECTION": {
+          "type": "boolean",
+          "description": "Whether multi-word proximity matching is enabled."
+        },
+        "MIN_UNIQUE_TERMS_FOR_APPROVAL": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum distinct terms matched for a block to be approved."
+        },
+        "MIN_SECTIONS_WITH_HITS_FOR_APPROVAL": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum sections with at least one hit for approval."
+        },
+        "REQUIRE_NON_WEAK_TERM_FOR_APPROVAL": {
+          "type": "boolean",
+          "description": "Require at least one non-weak-level term for approval."
+        },
+        "MAX_ERROR_RATE": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Maximum acceptable error rate (0-1) before halting."
+        },
+        "MIN_APPROVED_BLOCKS": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "For k_of_n policy: minimum blocks that must be approved."
+        },
+        "MAX_FLAGGED_BLOCKS_FOR_APPROVAL": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum flagged blocks still allowing article approval."
+        },
+        "LEVEL_ORDER": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 1,
+          "description": "Explicit ordering of priority levels."
+        },
+        "WEAK_LEVELS": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "description": "Levels considered weak (low-priority)."
+        },
+        "BLOCK_ORDER": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Explicit ordering of domain block evaluation."
+        },
+        "PONTUACAO_NIVEIS": {
+          "$ref": "#/$defs/level_scores_object",
+          "description": "Score per priority level (legacy PT key)."
+        },
+        "level_scores": {
+          "$ref": "#/$defs/level_scores_object",
+          "description": "Score per priority level (English key)."
+        },
+        "LIMITES_APROVADO": {
+          "$ref": "#/$defs/approval_thresholds_object",
+          "description": "Approval threshold per level (legacy PT key)."
+        },
+        "approval_thresholds": {
+          "$ref": "#/$defs/approval_thresholds_object",
+          "description": "Approval threshold per level (English key)."
+        },
+        "LIMITES_SINALIZADO": {
+          "$ref": "#/$defs/flagging_thresholds_object",
+          "description": "Flagging threshold per level (legacy PT key)."
+        },
+        "flagging_thresholds": {
+          "$ref": "#/$defs/flagging_thresholds_object",
+          "description": "Flagging threshold per level (English key)."
+        },
+        "WEIGHTS": {
+          "$ref": "#/$defs/section_weights_object",
+          "description": "Section weights (legacy PT key)."
+        },
+        "section_weights": {
+          "$ref": "#/$defs/section_weights_object",
+          "description": "Section weights (English key)."
+        }
+      }
+    },
+    "fields": {
+      "type": "object",
+      "description": "Column name mappings for the input CSV.",
+      "additionalProperties": { "type": "string" },
+      "properties": {
+        "id": { "type": "string" },
+        "id_output": { "type": "string" },
+        "title": { "type": "string" },
+        "abstract": { "type": "string" },
+        "manual_tags": { "type": "string" }
+      }
+    },
+    "output": {
+      "type": "object",
+      "description": "Output format settings.",
+      "additionalProperties": true,
+      "properties": {
+        "csv": { "type": "boolean" },
+        "xlsx": { "type": "boolean" },
+        "csv_sep": { "type": "string", "maxLength": 5 },
+        "csv_decimal": { "type": "string", "maxLength": 5 },
+        "csv_float_format": { "type": "string" },
+        "xlsx_engine": { "type": "string" },
+        "xlsx_sheet_name": { "type": "string" },
+        "academic_package": { "type": "boolean" }
+      }
+    },
+    "encoding": {
+      "type": "string",
+      "description": "Character encoding for CSV I/O.",
+      "minLength": 1
+    },
+    "sep": {
+      "type": "string",
+      "description": "CSV field separator.",
+      "minLength": 1,
+      "maxLength": 5
+    },
+    "t0": {
+      "type": "object",
+      "description": "Optional pre-screening (T0) anti-term lists.",
+      "properties": {
+        "anti_exclude": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "anti_flag": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "_domain_blocks": {
+      "type": "array",
+      "description": "Ordered list of domain block names (may come from terms CSV).",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "normalization": {
+      "type": "object",
+      "description": "Optional text normalization rules.",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "level_scores_object": {
+      "type": "object",
+      "description": "Mapping of level number (as string key) to integer score.",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[1-9][0-9]*$": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "approval_thresholds_object": {
+      "type": "object",
+      "description": "Mapping of level number to approval threshold (number or null).",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[1-9][0-9]*$": {
+          "type": ["number", "null"],
+          "minimum": 0
+        }
+      }
+    },
+    "flagging_thresholds_object": {
+      "type": "object",
+      "description": "Mapping of level number to flagging threshold.",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[1-9][0-9]*$": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "section_weights_object": {
+      "type": "object",
+      "description": "Mapping of section name to weight multiplier.",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z_]+$": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  }
+}
