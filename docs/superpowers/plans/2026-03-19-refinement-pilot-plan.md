@@ -57,7 +57,7 @@
 
 - [ ] **Step 1: Add dependencies**
 
-In `pyproject.toml`, add `jsonschema>=4.20` to `[project.dependencies]` and `pytest-cov>=4.0` to `[project.optional-dependencies] dev`.
+In `pyproject.toml`, add `jsonschema>=4.20` to `[project.dependencies]` and `pytest-cov>=4.0` to `[project.optional-dependencies] dev`. Note: `coverage>=7.0` is already in dev deps; `pytest-cov` provides the `--cov` pytest plugin that wraps it.
 
 - [ ] **Step 2: Install**
 
@@ -178,7 +178,7 @@ In `load_config()`, add `_validate_config_schema(config)` after `json.load()` an
 - [ ] **Step 3: Run existing tests to verify no regression**
 
 Run: `pytest tests/ -v`
-Expected: All 51 existing tests pass.
+Expected: All 48 existing tests pass.
 
 - [ ] **Step 4: Commit**
 
@@ -274,9 +274,19 @@ Uses `minimal_block_config` fixture. Must call `precompile_patterns(block)` befo
 - k_of_n policy with min_approved_blocks
 - k_of_n with too many flagged -> FLAGGED_FINAL
 
-Uses helper `_make_eval(status, score, best_level, anti_flag)` to create BlockEvaluation instances.
+First, create a module-level helper `_make_eval(status, score, best_level, anti_flag=None)` that returns a BlockEvaluation with the given values and sensible defaults for other fields. Then write the 9 tests using this helper.
 
-- [ ] **Step 5: Write TestEvaluateT0 class**
+- [ ] **Step 5: Write TestNoiseFiltering class**
+
+4 tests covering noise filtering parameters:
+- Article rejected when unique terms < `min_unique_terms_for_approval`
+- Article rejected when sections_with_hits < `min_sections_with_hits_for_approval`
+- Article downgraded when `require_non_weak_term_for_approval=True` and only weak-level (level 5) terms matched
+- Noise filtering passes when all thresholds met
+
+Uses `evaluate_block` with custom GlobalParams overriding noise filtering fields. Set `noise_profile` to "balanced" or "strict" to activate filtering.
+
+- [ ] **Step 6: Write TestEvaluateT0 class**
 
 4 tests covering:
 - Returns None when no T0 config
@@ -284,16 +294,16 @@ Uses helper `_make_eval(status, score, best_level, anti_flag)` to create BlockEv
 - FLAGGED on anti-flag match
 - Passes when no anti terms match
 
-- [ ] **Step 6: Run all scoring tests**
+- [ ] **Step 7: Run all scoring tests**
 
 Run: `pytest tests/test_scoring.py -v`
 Expected: All tests pass.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add tests/test_scoring.py
-git commit -m "test: add comprehensive scoring module tests (29 tests)"
+git commit -m "test: add comprehensive scoring module tests (33 tests including noise filtering)"
 ```
 
 ---
@@ -342,7 +352,7 @@ git commit -m "test: add config loading and schema validation tests"
 
 - [ ] **Step 1: Write tests**
 
-TestGetPreset: returns binary (level_count=1), simple (3), standard (5), raises on unknown, all presets have required keys.
+TestGetPreset: returns binary (level_count=1), simple (3), standard (5), raises on unknown. Verify all expected presets (binary, simple, standard) exist in LEVEL_PRESETS and each has required keys (level_count, level_scores, approval_thresholds, flagging_thresholds).
 TestBuildCustomPreset: valid custom preset, raises on zero levels.
 TestGenerateConfig: generates config with blocks and standard preset.
 
@@ -368,7 +378,7 @@ git commit -m "test: add presets module tests"
 
 - [ ] **Step 1: Write TestLoadCsvSafe class**
 
-3 tests: loads valid CSV, loads semicolon-separated, handles empty CSV with headers (0 rows).
+4 tests: loads valid CSV, loads semicolon-separated, handles empty CSV with headers (0 rows), detects encoding (loads a UTF-8-BOM or Latin-1 encoded CSV and verifies correct reading).
 
 - [ ] **Step 2: Write TestDetectFormat class**
 
@@ -383,16 +393,20 @@ git commit -m "test: add presets module tests"
 Hash: deterministic (same config twice = same hash), different configs = different hashes.
 Snapshot: validates valid snapshot returns 0 issues.
 
-- [ ] **Step 5: Run tests**
+- [ ] **Step 5: Write TestExportResults class**
+
+2 tests: `test_export_results_creates_xlsx` (tmp_path, verify file exists and has expected columns), `test_export_results_creates_csv` (verify CSV output when csv=True in export opts).
+
+- [ ] **Step 6: Run tests**
 
 Run: `pytest tests/test_io.py -v`
 Expected: All tests pass.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add tests/test_io.py
-git commit -m "test: add I/O, adapter, and protocol snapshot tests"
+git commit -m "test: add I/O, adapter, export, and protocol snapshot tests"
 ```
 
 ---
@@ -405,7 +419,7 @@ git commit -m "test: add I/O, adapter, and protocol snapshot tests"
 
 - [ ] **Step 1: Write tests**
 
-TestAnalyzeTermCoverage: detects dead terms (term with 0 matches), report has required fields.
+TestAnalyzeTermCoverage: detects dead terms (term with 0 matches), detects broad terms (term matching >80% of articles), verifies section distribution is populated (hit counts per section), report has required fields.
 TestFormatCoverageReport: produces non-empty string output.
 
 - [ ] **Step 2: Run tests**
@@ -422,43 +436,85 @@ git commit -m "test: add term coverage analysis tests"
 
 ---
 
-### Task 10: Integration test fixtures
+### Task 10a: Scenario A fixtures (3 blocks, standard, special policy)
 
 **Files:**
-- Create: `tests/fixtures/scenario_a_config.json` (3 blocks, standard, special policy)
-- Create: `tests/fixtures/scenario_a_articles.csv` (12 synthetic articles)
-- Create: `tests/fixtures/scenario_b_config.json` (2 blocks, strict policy)
-- Create: `tests/fixtures/scenario_b_articles.csv` (8 articles)
-- Create: `tests/fixtures/scenario_c_config.json` (3 blocks, k_of_n, T0)
-- Create: `tests/fixtures/scenario_c_articles.csv` (10 articles)
-- Create: `tests/fixtures/scenario_d_config.json` (O&G regression subset from v12)
-- Create: `tests/fixtures/scenario_d_articles.csv` (10 articles)
+- Create: `tests/fixtures/scenario_a_config.json`
+- Create: `tests/fixtures/scenario_a_articles.csv`
 
-- [ ] **Step 1: Create Scenario A fixtures**
+- [ ] **Step 1: Create config JSON**
 
-Config: 3 blocks (TOPIC, METHOD, DOMAIN), standard preset, special policy. Each block: 3-5 positives across levels 1-3, 1-2 anti-terms.
-Articles: 12 synthetic — 3 APPROVED_FINAL, 3 REJECTED_FINAL, 3 FLAGGED_FINAL, 2 anti-exclude rejection, 1 fail-fast test.
+3 blocks (TOPIC, METHOD, DOMAIN), standard preset, special policy. Each block: 3-5 positives across levels 1-3, 1-2 anti-terms.
 
-- [ ] **Step 2: Create Scenario B fixtures**
+- [ ] **Step 2: Create articles CSV**
 
-Config: 2 blocks, strict policy, fail-fast enabled.
-Articles: 8 testing strict policy behavior.
+12 synthetic articles: 3 APPROVED_FINAL, 3 REJECTED_FINAL, 3 FLAGGED_FINAL, 2 anti-exclude rejection, 1 fail-fast test.
 
-- [ ] **Step 3: Create Scenario C fixtures**
+- [ ] **Step 3: Verify with pipeline run**
 
-Config: 3 blocks, k_of_n (min_approved=2, max_flagged=1), T0 with anti-terms.
-Articles: 10 testing k_of_n and T0 interactions.
+Run process_articles() once, inspect output, confirm each decision makes sense given terms and thresholds. These verified results become assertions in test_integration.py.
 
-- [ ] **Step 4: Create Scenario D fixtures**
+---
 
-Config: 3 blocks (CTX, AI, SCM) with 5-8 terms per block extracted and simplified from validated v12 pilot protocol.
-Articles: 10 synthetic O&G domain articles with known expected results.
+### Task 10b: Scenario B fixtures (2 blocks, strict policy)
 
-- [ ] **Step 5: Run pipeline manually on each scenario to generate and verify gold-standard results**
+**Files:**
+- Create: `tests/fixtures/scenario_b_config.json`
+- Create: `tests/fixtures/scenario_b_articles.csv`
 
-For each scenario, run process_articles() once, inspect outputs, confirm decisions make sense given terms and thresholds. These verified results become the assertions in test_integration.py.
+- [ ] **Step 1: Create config JSON**
 
-- [ ] **Step 6: Commit**
+2 blocks, strict policy, fail-fast enabled.
+
+- [ ] **Step 2: Create articles CSV**
+
+8 articles testing strict policy behavior.
+
+- [ ] **Step 3: Verify with pipeline run**
+
+Run process_articles(), confirm strict policy decisions.
+
+---
+
+### Task 10c: Scenario C fixtures (3 blocks, k_of_n, T0)
+
+**Files:**
+- Create: `tests/fixtures/scenario_c_config.json`
+- Create: `tests/fixtures/scenario_c_articles.csv`
+
+- [ ] **Step 1: Create config JSON**
+
+3 blocks, k_of_n (min_approved=2, max_flagged=1), T0 with anti-terms.
+
+- [ ] **Step 2: Create articles CSV**
+
+10 articles testing k_of_n and T0 interactions.
+
+- [ ] **Step 3: Verify with pipeline run**
+
+Run process_articles(), confirm k_of_n and T0 decisions.
+
+---
+
+### Task 10d: Scenario D fixtures (O&G regression subset)
+
+**Files:**
+- Create: `tests/fixtures/scenario_d_config.json`
+- Create: `tests/fixtures/scenario_d_articles.csv`
+
+- [ ] **Step 1: Create config JSON**
+
+3 blocks (CTX, AI, SCM) with 5-8 terms per block extracted and simplified from validated v12 pilot protocol.
+
+- [ ] **Step 2: Create articles CSV**
+
+10 synthetic O&G domain articles with known expected results.
+
+- [ ] **Step 3: Verify with pipeline run**
+
+Run process_articles(), confirm O&G regression decisions.
+
+- [ ] **Step 4: Commit all fixtures**
 
 ```bash
 git add tests/fixtures/
@@ -519,7 +575,7 @@ git commit -m "test: add E2E integration tests for 4 scenarios with determinism 
 - Modify: `src/fastslr/core/scoring.py`
 - Modify: `src/fastslr/core/models.py`
 
-- [ ] **Step 1: Add docstrings to scoring.py public functions**
+- [ ] **Step 1: Add or expand docstrings to Google-style format in scoring.py**
 
 Google-style docstrings with Args, Returns, and algorithm context for:
 - `find_positive_terms` (line 40)
@@ -528,7 +584,7 @@ Google-style docstrings with Args, Returns, and algorithm context for:
 - `evaluate_t0_conditional` (line 331)
 - `make_final_decision` (line 381)
 
-- [ ] **Step 2: Add docstrings to models.py dataclasses**
+- [ ] **Step 2: Add or expand docstrings in models.py dataclasses**
 
 Class-level docstrings explaining purpose and fields for:
 - `TermMatch` (line 11)
@@ -558,13 +614,13 @@ git commit -m "docs: add Google-style docstrings to scoring.py and models.py"
 - Modify: `src/fastslr/core/config.py`
 - Modify: `src/fastslr/core/patterns.py`
 
-- [ ] **Step 1: Add docstrings to engine.py**
+- [ ] **Step 1: Add or expand docstrings in engine.py**
 
 - `process_articles` (line 104) — main pipeline loop, fail-fast, error policies
 - `collect_statistics` (line 53) — aggregation of results
 - `sample_articles` (line 287) — sampling for preview
 
-- [ ] **Step 2: Add docstrings to config.py**
+- [ ] **Step 2: Add or expand docstrings in config.py**
 
 - `load_config` (line 26)
 - `parse_terms_csv` (line 140)
@@ -572,7 +628,7 @@ git commit -m "docs: add Google-style docstrings to scoring.py and models.py"
 - `get_domain_blocks` (line 53)
 - `_validate_config_schema` (new)
 
-- [ ] **Step 3: Add docstrings to patterns.py**
+- [ ] **Step 3: Add or expand docstrings in patterns.py**
 
 - `compile_pattern` — regex with word boundaries and wildcards
 - `compile_proximity_pattern` — bidirectional proximity
@@ -602,25 +658,25 @@ git commit -m "docs: add docstrings to engine, config, and patterns modules"
 - Modify: `src/fastslr/core/coverage.py`
 - Modify: `src/fastslr/app/controller.py`
 
-- [ ] **Step 1: Docstrings for io.py**
+- [ ] **Step 1: Add or expand docstrings in io.py**
 
-Key functions: `load_csv_safe`, `export_results`, `build_protocol_snapshot`, `validate_protocol_snapshot`, `export_protocol_snapshot`, `generate_report`, `compute_config_hash`, `compute_file_hash`, `export_academic_report`, `export_appendix_pack`.
+All public functions: `load_csv_safe`, `get_export_opts`, `export_results`, `highlight_text`, `pack_highlights`, `pack_anti_hits`, `generate_report`, `export_config_audit`, `export_raw_subset`, `build_protocol_snapshot`, `validate_protocol_snapshot`, `migrate_protocol_snapshot`, `export_protocol_snapshot`, `generate_academic_report`, `export_compliance_manifest`, `export_appendix_pack`, `compute_config_hash`, `compute_file_hash`.
 
-- [ ] **Step 2: Docstrings for adapters.py**
+- [ ] **Step 2: Add or expand docstrings in adapters.py**
 
 `detect_format`, `apply_mapping`, `normalize_import`, `ColumnMapping` dataclass.
 
-- [ ] **Step 3: Docstrings for presets.py**
+- [ ] **Step 3: Add or expand docstrings in presets.py**
 
 `get_preset`, `build_custom_preset`, `generate_config`.
 
-- [ ] **Step 4: Docstrings for coverage.py**
+- [ ] **Step 4: Add or expand docstrings in coverage.py**
 
 `analyze_term_coverage`, `format_coverage_report`, `export_coverage_csv`, `TermCoverageReport`.
 
-- [ ] **Step 5: Docstrings for controller.py**
+- [ ] **Step 5: Add or expand docstrings in controller.py**
 
-All public functions + dataclasses: `validate_config`, `run_triage`, `preview_triage`, `analyze_coverage`, `diff_results`, `create_project`, `export_academic_package`, `browse_terms`, `ValidationIssue`, `TriageResult`, `PreviewResult`, `DiffEntry`, `DiffReport`, `TermsView`.
+All public functions + dataclasses: `validate_config`, `run_triage`, `preview_triage`, `analyze_coverage`, `diff_results`, `create_project`, `export_academic_package`, `browse_terms`, `ValidationIssue`, `TriageResult`, `PreviewResult`, `DiffEntry`, `DiffReport`, `ProfileInfo`, `TermsView`.
 
 - [ ] **Step 6: Run pyright on all modified files**
 
