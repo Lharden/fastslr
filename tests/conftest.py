@@ -72,7 +72,12 @@ def minimal_block_config():
     return {
         "name": "TEST_BLOCK",
         "positives": [
-            {"term": "artificial intelligence", "level": 1, "section_scope": "any", "is_regex": False},
+            {
+                "term": "artificial intelligence",
+                "level": 1,
+                "section_scope": "any",
+                "is_regex": False,
+            },
             {"term": "machine learning", "level": 1, "section_scope": "any", "is_regex": False},
             {"term": "data mining", "level": 3, "section_scope": "any", "is_regex": False},
         ],
@@ -90,7 +95,10 @@ def minimal_block_config():
 def sample_article_relevant():
     return {
         "title": "Artificial Intelligence for Supply Chain Optimization",
-        "abstract": "This study applies machine learning and data mining to improve supply chain decisions.",
+        "abstract": (
+            "This study applies machine learning and data mining"
+            " to improve supply chain decisions."
+        ),
         "manual_tags": "",
     }
 

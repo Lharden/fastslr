@@ -5,11 +5,9 @@ from __future__ import annotations
 import pandas as pd
 
 from fastslr.core.coverage import (
-    TermCoverageReport,
     analyze_term_coverage,
     format_coverage_report,
 )
-
 
 # ── TestAnalyzeTermCoverage ──────────────────────────────────────────────────
 

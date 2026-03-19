@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
-import pytest
 
 from fastslr.core.adapters import detect_format, normalize_import
 from fastslr.core.io import (
@@ -14,7 +13,6 @@ from fastslr.core.io import (
     load_csv_safe,
     validate_protocol_snapshot,
 )
-
 
 # ── TestLoadCsvSafe ──────────────────────────────────────────────────────────
 
