@@ -37,13 +37,18 @@ Schema is the foundation — defines the formal contract of configuration. Once 
 JSON Schema Draft 2020-12, validated via `jsonschema` Python library.
 
 ### What it covers
+
+The schema validates the **raw user-facing JSON config file** (before term merging from CSV). Structure:
+
 - `global` — all global parameters (thresholds, weights, policies, noise profile, fail-fast, uplift factor, error policy, etc.)
 - `t0` — global anti-terms (anti_exclude and anti_flag arrays of strings)
-- `_domain_blocks[]` — array of blocks, each with: name, positives (with level, section_scope, is_regex), anti_exclude, anti_flag
+- `_domain_blocks[]` — **optional** array of blocks, each with: name, positives (with level, section_scope, is_regex), anti_exclude, anti_flag. Optional because blocks may come from a terms CSV instead of the JSON config.
 - `normalization` — optional rules (abbreviations, compounds, symbols)
 
+**Note:** `_domain_blocks` is optional in the schema because `parse_terms_csv()` can supply blocks at runtime. The schema validates the static JSON file, not the merged runtime config.
+
 ### Integration point
-`config.py::load_config()` calls `jsonschema.validate()` before any processing. Validation errors produce friendly, translated (i18n) messages indicating the exact field, the error, and the expected value.
+`config.py::load_config()` calls `jsonschema.validate()` before any processing. Validation errors produce friendly, translated (i18n) messages indicating the exact field, the error, and the expected value. Required i18n keys to add to all locale files (en, pt_BR, es): `schema_error_title`, `schema_error_field`, `schema_error_expected`, `schema_error_type`.
 
 ### Dependency
 Add `jsonschema>=4.20` to `[project.dependencies]` in pyproject.toml.
@@ -58,8 +63,9 @@ Add `jsonschema>=4.20` to `[project.dependencies]` in pyproject.toml.
 |---|---|---|
 | `tests/test_scoring.py` | `scoring.py` (~475 lines) | `evaluate_block`, `make_final_decision`, `find_positive_terms`, `evaluate_t0_conditional`, threshold edge cases, uplift, anti-terms, noise filtering, all 3 decision policies (special/strict/k_of_n), special approval rule |
 | `tests/test_config.py` | `config.py` + schema | Validation via jsonschema, invalid configs (wrong types, missing fields, negative ranges), terms CSV parsing, legacy PT field names |
-| `tests/test_io.py` | `io.py` + `adapters.py` | Format detection (Zotero/Scopus/WOS), encoding detection, XLSX/CSV export, protocol snapshot generation, varied separators |
+| `tests/test_io.py` | `io.py` + `adapters.py` | Format auto-detection for Zotero/Scopus/WOS signatures, unknown format fallback, column mapping via `apply_mapping`, encoding detection, XLSX/CSV export, protocol snapshot generation (`build_protocol_snapshot`), varied separators |
 | `tests/test_coverage_analysis.py` | `coverage.py` | Dead term detection, broad term detection, section distribution |
+| `tests/test_presets.py` | `presets.py` | `get_preset` (valid + unknown names), `build_custom_preset` (valid + edge cases like n_levels < 1), `generate_config` output structure, `LEVEL_PRESETS` completeness |
 | `tests/test_integration.py` | Full pipeline E2E | Multiple synthetic configs simulating different research areas, determinism verification |
 
 ### Existing test files (preserved as-is)
@@ -82,7 +88,7 @@ Each E2E scenario consists of 3 artifacts in `tests/fixtures/`:
 - Scenario A: 3 blocks, standard thresholds, mix of approved/rejected/flagged articles
 - Scenario B: 2 blocks, strict policy, fail-fast verification
 - Scenario C: 3 blocks with T0 anti-terms, k_of_n policy
-- Scenario D: Subset of real O&G protocol terms (from v12) for regression
+- Scenario D: Subset of real O&G protocol terms (extracted and simplified from the validated v12 pilot protocol, committed as test fixtures) for regression
 
 **Determinism test:** Each scenario runs twice and asserts identical output (same input + same config = same result, always).
 
@@ -131,8 +137,10 @@ def evaluate_block(article_text: dict, block: dict, global_params: GlobalParams)
 3. `config.py` — load_config, parse_terms_csv, load_global_params
 4. `models.py` — all dataclasses (BlockEvaluation, TermMatch, GlobalParams, etc.)
 5. `patterns.py` — compile_pattern, compile_proximity_pattern, precompile_patterns
-6. `io.py` — load_csv_safe, export_results, generate_protocol_snapshot
+6. `io.py` — load_csv_safe, export_results, build_protocol_snapshot
 7. `controller.py` — all public orchestration functions
+8. `adapters.py` — detect_format, apply_mapping, normalize_import, ColumnMapping
+9. `presets.py` — get_preset, build_custom_preset, generate_config
 
 ---
 
@@ -140,6 +148,12 @@ def evaluate_block(article_text: dict, block: dict, global_params: GlobalParams)
 
 ### Mission
 A researcher must be able to install, configure, run and interpret results reading ONLY the README.
+
+### Validation checklist
+1. Fresh `pip install` from PyPI succeeds following README instructions
+2. `new-project` → edit config → `run` workflow produces expected output
+3. All 10 CLI commands documented with usage examples
+4. Configuration guide covers all global parameters with annotated examples
 
 ### Language
 English (international audience, PyPI standard).
@@ -353,6 +367,7 @@ Complete technical-executive reference describing the system internally — arch
 - `tests/test_scoring.py` — Scoring module test suite
 - `tests/test_config.py` — Config + schema validation tests
 - `tests/test_io.py` — I/O and adapter tests
+- `tests/test_presets.py` — Presets module tests
 - `tests/test_coverage_analysis.py` — Coverage analysis tests
 - `tests/test_integration.py` — E2E pipeline tests
 - `tests/fixtures/scenario_a_config.json` — Test fixture
