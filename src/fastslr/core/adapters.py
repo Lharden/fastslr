@@ -12,7 +12,20 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ColumnMapping:
-    """Maps bibliographic format columns to internal standard names."""
+    """Maps bibliographic format columns to internal standard names.
+
+    Each attribute corresponds to one of the four expected input fields.
+    The mapping is used by :func:`apply_mapping` to rename DataFrame
+    columns from a specific bibliographic format to the engine's
+    internal naming convention.
+
+    Attributes:
+        id: Source column name for the article identifier.
+        title: Source column name for the article title.
+        abstract: Source column name for the article abstract.
+        manual_tags: Source column name for manual tags/keywords
+            (``None`` if the format lacks this field).
+    """
 
     id: str
     title: str
@@ -56,7 +69,19 @@ _FORMAT_SIGNATURES: dict[str, set[str]] = {
 
 
 def detect_format(df: pd.DataFrame) -> str | None:
-    """Auto-detect bibliographic format from DataFrame column names."""
+    """Auto-detect bibliographic format from DataFrame column names.
+
+    Compares the DataFrame columns against known signature sets for
+    Zotero, Scopus, and Web of Science.  The format with the most
+    overlapping signature columns wins, provided at least two match.
+
+    Args:
+        df: Input DataFrame whose columns will be inspected.
+
+    Returns:
+        Format identifier string (e.g. ``"zotero"``, ``"scopus"``,
+        ``"wos"``), or ``None`` if no format matches.
+    """
     columns = set(df.columns)
     best_match = None
     best_score = 0
@@ -87,6 +112,15 @@ def apply_mapping(
 
     *target_fields* maps internal names to desired output column names.
     Defaults to lowercase: id, title, abstract, manual_tags.
+
+    Args:
+        df: Input DataFrame with source-format column names.
+        mapping: A :class:`ColumnMapping` defining the source columns.
+        target_fields: Optional mapping of internal names to desired output
+            column names.  Defaults to lowercase names.
+
+    Returns:
+        A new DataFrame with columns renamed according to the mapping.
     """
     if target_fields is None:
         target_fields = {
@@ -110,7 +144,21 @@ def normalize_import(
     format_hint: str | None = None,
     target_fields: dict[str, str] | None = None,
 ) -> pd.DataFrame:
-    """Detect format and normalize column names for the triage engine."""
+    """Detect format and normalize column names for the triage engine.
+
+    Combines :func:`detect_format` and :func:`apply_mapping` into a
+    single convenience call.  If the format cannot be determined, the
+    DataFrame is returned unchanged.
+
+    Args:
+        df: Input DataFrame with bibliographic-format column names.
+        format_hint: Explicit format name to use instead of auto-detection.
+        target_fields: Optional column name mapping passed through to
+            :func:`apply_mapping`.
+
+    Returns:
+        DataFrame with normalised column names ready for the engine.
+    """
     fmt = format_hint or detect_format(df)
     if fmt is None:
         logger.info("Could not detect format; returning DataFrame as-is")

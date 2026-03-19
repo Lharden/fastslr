@@ -11,7 +11,21 @@ import pandas as pd
 
 @dataclass
 class TermCoverageReport:
-    """Results of a term coverage analysis."""
+    """Results of a term coverage analysis.
+
+    Collects dead terms (never matched), broad terms (matched too many
+    articles), blocks with low discrimination, and section-level hit
+    distributions, along with actionable suggestions.
+
+    Attributes:
+        dead_terms: Terms configured but never matched in any article.
+        broad_terms: Terms that matched more than 80 % of articles.
+        block_discrimination: Blocks where all articles have the same status.
+        section_distribution: Total hit counts per section.
+        suggestions: Human-readable improvement suggestions.
+        total_articles: Number of articles analysed.
+        total_terms: Number of distinct configured terms.
+    """
 
     dead_terms: list[dict] = field(default_factory=list)
     broad_terms: list[dict] = field(default_factory=list)
@@ -58,7 +72,20 @@ def analyze_term_coverage(
     config: dict,
     domain_blocks: list[str] | None = None,
 ) -> TermCoverageReport:
-    """Analyze term coverage after a triage run."""
+    """Analyze term coverage after a triage run.
+
+    Parses highlight columns to identify dead terms, overly broad terms,
+    blocks with no discrimination, and per-section hit distributions.
+
+    Args:
+        result_df: Triage result DataFrame with highlight columns.
+        config: Full triage configuration dictionary.
+        domain_blocks: Optional explicit list of block names; defaults to
+            ``config["_domain_blocks"]``.
+
+    Returns:
+        A :class:`TermCoverageReport` with findings and suggestions.
+    """
     if domain_blocks is None:
         domain_blocks = config.get("_domain_blocks", [])
 
@@ -126,7 +153,15 @@ def analyze_term_coverage(
 
 
 def format_coverage_report(report: TermCoverageReport) -> str:
-    """Format a TermCoverageReport as a human-readable string."""
+    """Format a TermCoverageReport as a human-readable string.
+
+    Args:
+        report: The coverage report to format.
+
+    Returns:
+        Multi-line string with sections for dead terms, broad terms,
+        low-discrimination blocks, section distribution, and suggestions.
+    """
     lines: list[str] = []
     lines.append("=" * 60)
     lines.append("  TERM COVERAGE REPORT")
@@ -172,7 +207,16 @@ def format_coverage_report(report: TermCoverageReport) -> str:
 
 
 def export_coverage_csv(report: TermCoverageReport, output_path: Path) -> None:
-    """Export term coverage data to CSV."""
+    """Export term coverage data to CSV.
+
+    Writes dead and broad terms to a CSV with columns ``term``,
+    ``status``, ``hits``, and ``pct``.  No file is created if the
+    report contains neither dead nor broad terms.
+
+    Args:
+        report: The coverage report to export.
+        output_path: Destination CSV file path.
+    """
     rows: list[dict] = []
     for dt in report.dead_terms:
         rows.append({"term": dt["term"], "status": "dead", "hits": 0, "pct": 0})

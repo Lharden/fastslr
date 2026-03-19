@@ -28,7 +28,19 @@ LEVEL_PRESETS: dict[str, dict] = {
 
 
 def get_preset(name: str) -> dict:
-    """Return a preset by name, or raise ValueError if not found."""
+    """Return a level preset by name.
+
+    Args:
+        name: Preset identifier (``"binary"``, ``"simple"``, or
+            ``"standard"``).
+
+    Returns:
+        A copy of the preset dictionary with ``level_scores``,
+        ``approval_thresholds``, and ``flagging_thresholds``.
+
+    Raises:
+        ValueError: If *name* is not a known preset.
+    """
     if name not in LEVEL_PRESETS:
         available = ", ".join(sorted(LEVEL_PRESETS))
         raise ValueError(f"Unknown preset '{name}'. Available: {available}")
@@ -41,7 +53,20 @@ def build_custom_preset(
     approval: dict[int, float | None],
     flagging: dict[int, float],
 ) -> dict:
-    """Build a custom level preset from user-provided values."""
+    """Build a custom level preset from user-provided values.
+
+    Args:
+        n_levels: Number of relevance levels (must be >= 1).
+        scores: Points awarded per level.
+        approval: Minimum score for approval per level (``None`` to disable).
+        flagging: Minimum score for flagging per level.
+
+    Returns:
+        A preset dictionary in the same format as built-in presets.
+
+    Raises:
+        ValueError: If *n_levels* is less than 1.
+    """
     if n_levels < 1:
         raise ValueError("Must have at least 1 level")
     return {
@@ -61,7 +86,19 @@ def generate_config(
 ) -> dict:
     """Generate a complete config dict from a preset and block definitions.
 
-    *blocks* is a list of dicts like: [{"name": "CTX", "label": "Context"}]
+    Assembles the ``global``, ``fields``, and ``output`` sections using
+    the chosen preset's thresholds and the supplied block list.
+
+    Args:
+        preset_name: Name of a built-in preset or ``"custom"``.
+        blocks: List of block definition dicts, each with at least a
+            ``"name"`` key (e.g. ``[{"name": "CTX", "label": "Context"}]``).
+        fields: Optional field mapping override for the ``fields`` section.
+        custom_preset: Required when *preset_name* is ``"custom"``; a dict
+            produced by :func:`build_custom_preset`.
+
+    Returns:
+        A complete configuration dictionary ready for serialization.
     """
     if preset_name == "custom" and custom_preset:
         preset = custom_preset

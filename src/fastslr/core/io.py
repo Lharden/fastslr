@@ -74,14 +74,34 @@ def _sanitize_config_for_serialization(config: dict) -> dict:
 
 
 def compute_config_hash(config: dict) -> str:
-    """Generate a SHA-256 hash (truncated to 16 hex chars) of the configuration."""
+    """Generate a SHA-256 hash (truncated to 16 hex chars) of the configuration.
+
+    Non-serializable elements (compiled patterns, normalization engines)
+    are stripped before hashing.
+
+    Args:
+        config: Triage configuration dictionary.
+
+    Returns:
+        A 16-character hexadecimal hash string.
+    """
     config_clean = _sanitize_config_for_serialization(config)
     config_str = json.dumps(config_clean, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(config_str.encode("utf-8")).hexdigest()[:16]
 
 
 def compute_file_hash(file_path: str) -> str:
-    """Compute a SHA-256 hash (truncated to 16 hex chars) of a file."""
+    """Compute a SHA-256 hash (truncated to 16 hex chars) of a file.
+
+    Reads the file in 8 KiB chunks to support large files without
+    excessive memory usage.
+
+    Args:
+        file_path: Filesystem path to the file.
+
+    Returns:
+        A 16-character hexadecimal hash string.
+    """
     hasher = hashlib.sha256()
     with open(file_path, "rb") as f:
         for chunk in iter(lambda: f.read(8192), b""):
@@ -93,7 +113,22 @@ def compute_file_hash(file_path: str) -> str:
 
 
 def load_csv_safe(path: Path) -> pd.DataFrame:
-    """Load a CSV file with automatic encoding and separator detection."""
+    """Load a CSV file with automatic encoding and separator detection.
+
+    Tries semicolon, comma, and tab separators in order and returns the
+    first result with at least three columns.  Uses ``chardet`` for
+    encoding detection when available.
+
+    Args:
+        path: Filesystem path to the CSV file.
+
+    Returns:
+        A DataFrame with all columns read as strings.
+
+    Raises:
+        FileNotFoundError: If *path* does not exist.
+        ValueError: If none of the attempted separators produce a valid table.
+    """
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
@@ -120,7 +155,19 @@ def load_csv_safe(path: Path) -> pd.DataFrame:
 
 
 def get_export_opts(cfg: dict) -> dict:
-    """Extract export options from the configuration dict."""
+    """Extract export options from the configuration dict.
+
+    Reads the ``output`` sub-section and top-level keys for CSV/XLSX
+    export settings, applying sensible defaults for missing keys.
+
+    Args:
+        cfg: Full triage configuration dictionary.
+
+    Returns:
+        Dictionary with keys ``export_csv``, ``export_xlsx``, ``csv_sep``,
+        ``csv_decimal``, ``csv_float_fmt``, ``xlsx_engine``, ``xlsx_sheet``,
+        ``encoding``, and ``academic_package``.
+    """
     root = cfg or {}
     out = root.get("output") or {}
     return {
@@ -137,7 +184,18 @@ def get_export_opts(cfg: dict) -> dict:
 
 
 def export_results(df: pd.DataFrame, output_path: Path, cfg: dict) -> None:
-    """Export the result DataFrame to CSV and/or XLSX."""
+    """Export the result DataFrame to CSV and/or XLSX.
+
+    The output format(s) are determined by the ``output`` section in
+    the configuration.  XLSX is written to the same stem with ``.xlsx``
+    suffix.
+
+    Args:
+        df: Triage result DataFrame.
+        output_path: Destination file path (used for CSV; XLSX derives its
+            path from this).
+        cfg: Full triage configuration dictionary.
+    """
     opts = get_export_opts(cfg)
 
     if opts["export_csv"]:
@@ -164,7 +222,20 @@ def export_results(df: pd.DataFrame, output_path: Path, cfg: dict) -> None:
 
 
 def highlight_text(original_text: str, all_terms: list[dict], section_name: str) -> str:
-    """Mark matched terms in the original text with ***TERM*** markers."""
+    """Mark matched terms in the original text with ``***TERM***`` markers.
+
+    Overlapping spans are merged before insertion so that markers never
+    nest.
+
+    Args:
+        original_text: Raw text to highlight.
+        all_terms: List of compiled term dicts (must have ``pattern`` and
+            ``scope`` keys).
+        section_name: Current section name used to filter scoped terms.
+
+    Returns:
+        The text with matched substrings uppercased and wrapped in ``***``.
+    """
     if not original_text or not all_terms:
         return original_text
 
@@ -202,8 +273,16 @@ def highlight_text(original_text: str, all_terms: list[dict], section_name: str)
     return result
 
 
-def pack_highlights(evaluation) -> str:
-    """Serialize all positive matches of a block evaluation to a compact string."""
+def pack_highlights(evaluation) -> str:  # noqa: ANN001
+    """Serialize all positive matches of a block evaluation to a compact string.
+
+    Args:
+        evaluation: A :class:`BlockEvaluation` instance.
+
+    Returns:
+        Pipe-delimited string with one entry per match containing term,
+        section, level, source row, and match type.
+    """
     items: list[str] = []
     for sec_name in SECTION_NAMES:
         for m in evaluation.matches.get(sec_name, []):
@@ -216,7 +295,14 @@ def pack_highlights(evaluation) -> str:
 
 
 def pack_anti_hits(hits: list) -> str:
-    """Serialize anti-term hits to a compact string."""
+    """Serialize anti-term hits to a compact string.
+
+    Args:
+        hits: List of :class:`AntiHit` objects.
+
+    Returns:
+        Pipe-delimited string of ``term:section:source_row`` entries.
+    """
     return "|".join(f"{h.term}:{h.section}:{h.source_row}" for h in hits if h.term and h.section)
 
 
@@ -224,7 +310,17 @@ def pack_anti_hits(hits: list) -> str:
 
 
 def generate_report(df: pd.DataFrame, stats: dict, config: dict, output_path: Path) -> None:
-    """Write a human-readable triage report to a text file."""
+    """Write a human-readable triage report to a text file.
+
+    Includes version info, decision distribution, and per-block
+    performance summaries.
+
+    Args:
+        df: Triage result DataFrame.
+        stats: Statistics dictionary from :func:`~fastslr.core.engine.collect_statistics`.
+        config: Full triage configuration dictionary.
+        output_path: Destination path for the text report.
+    """
     from .config import get_domain_blocks
 
     total = len(df)
@@ -263,7 +359,15 @@ def generate_report(df: pd.DataFrame, stats: dict, config: dict, output_path: Pa
 
 
 def export_config_audit(config: dict, output_path: Path) -> None:
-    """Export sanitized configuration for audit trail."""
+    """Export sanitized configuration for audit trail.
+
+    Strips compiled patterns and normalization engines, adds metadata,
+    and writes the result as indented JSON.
+
+    Args:
+        config: Full triage configuration dictionary.
+        output_path: Destination JSON file path.
+    """
     config_clean = _sanitize_config_for_serialization(config)
 
     config_clean["_metadata"] = {
@@ -282,7 +386,18 @@ def export_raw_subset(
     config: dict,
     output_path: Path,
 ) -> None:
-    """Export a subset with approved/flagged articles (original text)."""
+    """Export a subset with approved/flagged articles (original text).
+
+    Joins the triage decisions back to the original DataFrame and writes
+    only ``APPROVED_FINAL`` and ``FLAGGED_FINAL`` rows to an XLSX file.
+
+    Args:
+        original_df: The original input DataFrame (unmodified text).
+        result_df: Triage result DataFrame with ``Final_Decision`` column.
+        config: Full triage configuration dictionary.
+        output_path: Base output path; the actual file is suffixed with
+            ``_filtered_raw.xlsx``.
+    """
     fields = config.get("fields", {})
     col_id_input = fields.get("id", "key")
     col_title_input = fields.get("title", "title")
@@ -339,7 +454,24 @@ def build_protocol_snapshot(
     terms_hash: str,
     config_hash: str,
 ) -> dict:
-    """Build a protocol snapshot dict for reproducibility."""
+    """Build a protocol snapshot dict for reproducibility.
+
+    Captures all inputs, configuration settings, processing metrics,
+    and artifact paths so that a triage run can be audited or reproduced.
+
+    Args:
+        config: Full triage configuration dictionary.
+        stats: Statistics dictionary from the triage run.
+        input_path: Path to the input articles file.
+        terms_path: Path to the terms CSV file.
+        result_path: Path to the exported results file.
+        input_hash: SHA-256 hash of the input file.
+        terms_hash: SHA-256 hash of the terms file.
+        config_hash: SHA-256 hash of the configuration.
+
+    Returns:
+        A dictionary conforming to the protocol snapshot schema.
+    """
     from .config import get_domain_blocks
 
     domain_blocks = get_domain_blocks(config)
@@ -397,7 +529,16 @@ def build_protocol_snapshot(
 
 
 def validate_protocol_snapshot(snapshot: dict) -> list[str]:
-    """Validate a protocol snapshot, returning a list of error strings."""
+    """Validate a protocol snapshot, returning a list of error strings.
+
+    Checks for required root keys and version compatibility.
+
+    Args:
+        snapshot: Protocol snapshot dictionary to validate.
+
+    Returns:
+        List of human-readable error strings; empty if valid.
+    """
     errors: list[str] = []
 
     for key in _PROTOCOL_ROOT_KEYS:
@@ -414,7 +555,17 @@ def validate_protocol_snapshot(snapshot: dict) -> list[str]:
 
 
 def migrate_protocol_snapshot(old_snapshot: dict) -> dict:
-    """Migrate a protocol snapshot from an older version to the current one."""
+    """Migrate a protocol snapshot from an older version to the current one.
+
+    Updates the version and schema identifiers and adds any keys
+    introduced in newer schema versions.
+
+    Args:
+        old_snapshot: Protocol snapshot from a previous schema version.
+
+    Returns:
+        A deep copy of the snapshot upgraded to the current schema.
+    """
     migrated = deepcopy(old_snapshot)
     migrated["protocol_version"] = PROTOCOL_VERSION_CURRENT
     migrated["schema_id"] = PROTOCOL_SCHEMA_ID
@@ -429,14 +580,29 @@ def migrate_protocol_snapshot(old_snapshot: dict) -> dict:
 
 
 def export_protocol_snapshot(snapshot: dict, output_path: Path) -> None:
-    """Write a protocol snapshot to a JSON file."""
+    """Write a protocol snapshot to a JSON file.
+
+    Creates parent directories if they do not exist.
+
+    Args:
+        snapshot: Protocol snapshot dictionary.
+        output_path: Destination JSON file path.
+    """
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(snapshot, f, indent=2, ensure_ascii=False, default=str)
 
 
 def generate_academic_report(snapshot: dict, output_path: Path) -> None:
-    """Generate an academic compliance report in Markdown format."""
+    """Generate an academic compliance report in Markdown format.
+
+    Summarises configuration, scoring criteria, processing metrics, and
+    input hashes in a format suitable for inclusion in research appendices.
+
+    Args:
+        snapshot: Protocol snapshot dictionary.
+        output_path: Destination Markdown file path.
+    """
     config = snapshot.get("configuration", {})
     processing = snapshot.get("processing", {})
     inputs = snapshot.get("inputs", {})
@@ -484,7 +650,13 @@ def generate_academic_report(snapshot: dict, output_path: Path) -> None:
 def export_compliance_manifest(
     artifacts: dict[str, Path], output_path: Path, execution_id: str
 ) -> None:
-    """Export a compliance manifest linking all run artifacts."""
+    """Export a compliance manifest linking all run artifacts.
+
+    Args:
+        artifacts: Mapping of artifact label to filesystem path.
+        output_path: Destination JSON file path.
+        execution_id: Unique identifier for the triage execution.
+    """
     manifest = {
         "execution_id": execution_id,
         "generated_at": datetime.now().isoformat(),
@@ -497,7 +669,17 @@ def export_compliance_manifest(
 
 
 def export_appendix_pack(artifacts: dict[str, Path], zip_path: Path, execution_id: str) -> None:
-    """Create a ZIP appendix pack with all available artifacts."""
+    """Create a ZIP appendix pack with all available artifacts.
+
+    Includes an ``APPENDIX_INDEX.md`` table of contents and a JSON
+    manifest inside the archive.  Missing artifact paths are silently
+    skipped.
+
+    Args:
+        artifacts: Mapping of artifact label to filesystem path.
+        zip_path: Destination ZIP file path.
+        execution_id: Unique identifier for the triage execution.
+    """
     zip_path.parent.mkdir(parents=True, exist_ok=True)
 
     seen_paths: set[str] = set()
