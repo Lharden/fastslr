@@ -1,0 +1,9 @@
+ID,Title,Abstract,Manual_Tags
+B01,Deep learning for image classification using neural network architectures,This paper applies deep learning and neural network models to image classification tasks with state of the art results.,deep learning; image classification
+B02,Neural network object detection with convolutional network layers,A convolutional network approach to object detection using neural network architectures for real time processing.,neural network; object detection
+B03,Transfer learning for semantic segmentation in medical imaging,We apply transfer learning techniques to semantic segmentation of medical images using pretrained features.,transfer learning; semantic segmentation
+B04,Deep learning image classification with a toy dataset evaluation,This study evaluates deep learning for image classification but uses only a toy dataset for benchmarking.,deep learning; image classification; toy dataset
+B05,Neural network for natural language processing tasks,This paper proposes a neural network model for text summarization and sentiment analysis applications.,neural network; NLP
+B06,Feature extraction visual inspection for quality control systems,A feature extraction pipeline for visual inspection in manufacturing quality control processes.,feature extraction; visual inspection
+B07,Deep learning face recognition with preliminary experiment results,A preliminary experiment using deep learning for face recognition on surveillance camera footage.,deep learning; face recognition; preliminary experiment
+B08,Optical microscopy techniques for material surface analysis,This study examines optical microscopy methods to evaluate material surface roughness and defects.,microscopy; surface analysis

@@ -1,0 +1,77 @@
+{
+  "global": {
+    "DECISION_POLICY": "special",
+    "ENABLE_SPECIAL_APPROVAL_RULE": true,
+    "SPECIAL_APPROVAL_THRESHOLD": 40.0,
+    "FAIL_FAST_GLOBAL": true,
+    "NO_TAGS_UPLIFT": 1.17,
+    "MAX_SECTION_SCORE": 30,
+    "MAX_GAP_BETWEEN_TERMS": 2,
+    "TOKEN_UNIT_FOR_GAPS": "\\S+",
+    "ENABLE_PROXIMITY_DETECTION": true,
+    "NOISE_PROFILE": "relaxed",
+    "ERROR_POLICY": "flag",
+    "MAX_ERROR_RATE": 0.05,
+    "PONTUACAO_NIVEIS": {"1": 10, "2": 8, "3": 6},
+    "LIMITES_APROVADO": {"1": 10, "2": 12, "3": 18},
+    "LIMITES_SINALIZADO": {"1": 6, "2": 6, "3": 6},
+    "WEIGHTS": {"title": 2.0, "abstract": 1.0, "manual_tags": 1.5},
+    "BLOCK_ORDER": ["CTX", "AI", "SCM"]
+  },
+  "fields": {
+    "id": "ID",
+    "id_output": "ID",
+    "title": "Title",
+    "abstract": "Abstract",
+    "manual_tags": "Manual_Tags"
+  },
+  "_domain_blocks": ["CTX", "AI", "SCM"],
+  "CTX": {
+    "positives": [
+      {"term": "oil and gas", "level": 1, "scope": "any", "regex": false},
+      {"term": "petroleum", "level": 1, "scope": "any", "regex": false},
+      {"term": "offshore", "level": 2, "scope": "any", "regex": false},
+      {"term": "upstream", "level": 3, "scope": "any", "regex": false}
+    ],
+    "anti": {
+      "exclude": [
+        {"term": "cooking oil", "scope": "any"}
+      ],
+      "flag": [
+        {"term": "opinion piece", "scope": "any"}
+      ]
+    }
+  },
+  "AI": {
+    "positives": [
+      {"term": "artificial intelligence", "level": 1, "scope": "any", "regex": false},
+      {"term": "machine learning", "level": 1, "scope": "any", "regex": false},
+      {"term": "deep learning", "level": 2, "scope": "any", "regex": false},
+      {"term": "predictive analytics", "level": 3, "scope": "any", "regex": false}
+    ],
+    "anti": {
+      "exclude": [
+        {"term": "human-only decision", "scope": "any"}
+      ],
+      "flag": [
+        {"term": "black box", "scope": "any"}
+      ]
+    }
+  },
+  "SCM": {
+    "positives": [
+      {"term": "supply chain", "level": 1, "scope": "any", "regex": false},
+      {"term": "procurement", "level": 2, "scope": "any", "regex": false},
+      {"term": "logistics", "level": 2, "scope": "any", "regex": false},
+      {"term": "inventory management", "level": 3, "scope": "any", "regex": false}
+    ],
+    "anti": {
+      "exclude": [
+        {"term": "retail consumer", "scope": "any"}
+      ],
+      "flag": [
+        {"term": "single vendor", "scope": "any"}
+      ]
+    }
+  }
+}
