@@ -47,7 +47,22 @@ def find_positive_terms(
 ) -> tuple[set, dict[str, list[TermMatch]]]:
     """Search for positive terms across all article sections.
 
-    Returns a tuple of ``(found_levels, matches_by_section)``.
+    Iterates over the combined list of exact and proximity terms, checks
+    each term's compiled regex against the normalized section text, and
+    records every match with its level, section, and match type.
+
+    Args:
+        title: Article title text.
+        abstract: Article abstract text.
+        manual_tags: Manual tags/keywords string.
+        terms: List of term dicts with ``pattern``, ``level``, ``scope`` keys.
+        proximity_terms: Optional additional proximity-based term dicts.
+        normalization_engine: Optional engine for text normalization.
+
+    Returns:
+        A tuple ``(found_levels, matches_by_section)`` where *found_levels*
+        is a set of matched relevance levels and *matches_by_section* maps
+        each section name to its list of :class:`TermMatch` objects.
     """
     sections = {
         "title": title or "",
@@ -109,7 +124,22 @@ def find_anti_terms(
     anti_terms: list[dict],
     normalization_engine: NormalizationEngine | None = None,
 ) -> list[AntiHit]:
-    """Search for anti-terms (exclusion or flagging) across article sections."""
+    """Search for anti-terms (exclusion or flagging) across article sections.
+
+    Scans each section for matches against the provided anti-term patterns.
+    A hit indicates that the article should be excluded or flagged depending
+    on the anti-term category.
+
+    Args:
+        title: Article title text.
+        abstract: Article abstract text.
+        manual_tags: Manual tags/keywords string.
+        anti_terms: List of anti-term dicts with ``pattern`` and ``scope`` keys.
+        normalization_engine: Optional engine for text normalization.
+
+    Returns:
+        List of :class:`AntiHit` objects for every matched anti-term.
+    """
     sections = {
         "title": title or "",
         "abstract": abstract or "",
@@ -187,7 +217,22 @@ def evaluate_block(
     block_config: dict,
     global_params: GlobalParams,
 ) -> BlockEvaluation:
-    """Evaluate an article against a single thematic block."""
+    """Evaluate a single domain block against an article.
+
+    Searches for positive and anti terms in title, abstract and manual_tags,
+    computes weighted scores per section, and applies threshold-based
+    decision logic including noise filters and no-tags uplift.
+
+    Args:
+        title: Article title text.
+        abstract: Article abstract text.
+        manual_tags: Manual tags/keywords string.
+        block_config: Domain block dict with positives, anti_exclude, anti_flag.
+        global_params: Global parameters (thresholds, weights, noise profile).
+
+    Returns:
+        BlockEvaluation with status, scores, matched terms and reason.
+    """
     norm_engine = block_config.get("normalization_engine")
 
     positives = block_config.get("positives", [])
@@ -335,7 +380,24 @@ def evaluate_t0_conditional(
     config: dict,
     normalization_engine: NormalizationEngine | None = None,
 ) -> T0Evaluation | None:
-    """Evaluate the global T0 pre-screening block, if configured."""
+    """Evaluate the global T0 pre-screening block, if configured.
+
+    T0 acts as a global gate: if anti-exclude terms match, the article is
+    rejected before any domain block evaluation; if anti-flag terms match,
+    the article is flagged globally.
+
+    Args:
+        title: Article title text.
+        abstract: Article abstract text.
+        manual_tags: Manual tags/keywords string.
+        config: Full triage configuration dict (must contain a ``T0`` key
+            to activate pre-screening).
+        normalization_engine: Optional engine for text normalization.
+
+    Returns:
+        A :class:`T0Evaluation` with the screening result, or ``None`` if
+        no T0 block is configured.
+    """
     t0_config = config.get("T0")
     if not t0_config:
         return None
@@ -385,8 +447,19 @@ def make_final_decision(
 ) -> tuple[str, str]:
     """Combine block evaluations and T0 into a final triage decision.
 
-    Returns ``(decision, reason)`` where decision is one of
-    ``APPROVED_FINAL``, ``FLAGGED_FINAL``, ``REJECTED_FINAL``.
+    Applies the configured decision policy (``special``, ``strict``, or
+    ``k_of_n``) to merge individual block statuses into one overall
+    outcome. T0 rejection always overrides block results.
+
+    Args:
+        evaluations: Mapping of block name to its :class:`BlockEvaluation`.
+        eval_t0: Optional T0 pre-screening result.
+        global_params: Global parameters containing the decision policy and
+            special approval settings.
+
+    Returns:
+        A tuple ``(decision, reason)`` where *decision* is one of
+        ``APPROVED_FINAL``, ``FLAGGED_FINAL``, or ``REJECTED_FINAL``.
     """
     # T0 rejection overrides everything
     if eval_t0 and eval_t0.status == "REJECTED":

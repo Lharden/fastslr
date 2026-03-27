@@ -49,5 +49,10 @@
   "table_path": "Path",
 
   "speed_unit": "{value:.1f} articles/s",
-  "time_unit": "{value:.2f}s"
+  "time_unit": "{value:.2f}s",
+
+  "schema_error_title": "Configuration schema validation failed",
+  "schema_error_field": "Field: {field}",
+  "schema_error_expected": "Expected: {expected}",
+  "schema_error_type": "Error: {message}"
 }

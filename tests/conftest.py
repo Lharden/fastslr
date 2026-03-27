@@ -64,3 +64,63 @@ def normalization_engine_enabled() -> NormalizationEngine:
             "symbol_replacements": {"&": "and"},
         }
     )
+
+
+@pytest.fixture
+def minimal_block_config():
+    """A minimal domain block with 3 positive terms across 2 levels."""
+    return {
+        "name": "TEST_BLOCK",
+        "positives": [
+            {
+                "term": "artificial intelligence",
+                "level": 1,
+                "section_scope": "any",
+                "is_regex": False,
+            },
+            {"term": "machine learning", "level": 1, "section_scope": "any", "is_regex": False},
+            {"term": "data mining", "level": 3, "section_scope": "any", "is_regex": False},
+        ],
+        "anti_exclude": [
+            {"term": "cooking oil", "section_scope": "any"},
+        ],
+        "anti_flag": [
+            {"term": "preliminary results", "section_scope": "any"},
+        ],
+        "proximity_positives": [],
+    }
+
+
+@pytest.fixture
+def sample_article_relevant():
+    return {
+        "title": "Artificial Intelligence for Supply Chain Optimization",
+        "abstract": (
+            "This study applies machine learning and data mining"
+            " to improve supply chain decisions."
+        ),
+        "manual_tags": "",
+    }
+
+
+@pytest.fixture
+def sample_article_irrelevant():
+    return {
+        "title": "Cooking Recipes for Modern Kitchens",
+        "abstract": "A guide to contemporary cooking methods and kitchen tools.",
+        "manual_tags": "",
+    }
+
+
+@pytest.fixture
+def sample_article_anti_exclude():
+    return {
+        "title": "Analysis of Cooking Oil Production",
+        "abstract": "This study examines cooking oil extraction and processing.",
+        "manual_tags": "",
+    }
+
+
+@pytest.fixture
+def fixtures_dir():
+    return Path(__file__).parent / "fixtures"

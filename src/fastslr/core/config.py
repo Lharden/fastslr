@@ -22,15 +22,67 @@ from .normalization import extract_normalization_rules
 
 logger = logging.getLogger(__name__)
 
+_SCHEMA_DIR = Path(__file__).resolve().parent
+
+
+def _validate_config_schema(config: dict) -> None:
+    """Validate *config* against the bundled JSON Schema.
+
+    Raises :class:`ValueError` with a user-friendly message on validation
+    failure.  If the schema file is missing or ``jsonschema`` is not installed
+    the function logs a warning and returns silently (graceful degradation).
+
+    Args:
+        config: Configuration dictionary to validate.
+
+    Raises:
+        ValueError: If the configuration violates the JSON Schema.
+    """
+    schema_path = _SCHEMA_DIR / "config_schema.json"
+    if not schema_path.exists():
+        logger.warning("Config schema file not found at %s — skipping validation.", schema_path)
+        return
+
+    try:
+        import jsonschema  # noqa: WPS433 (local import for optional dep)
+    except ImportError:  # pragma: no cover
+        logger.warning("jsonschema package not installed — skipping config validation.")
+        return
+
+    with open(schema_path, encoding="utf-8") as fh:
+        schema = json.load(fh)
+
+    try:
+        jsonschema.validate(instance=config, schema=schema)
+    except jsonschema.ValidationError as exc:
+        field_path = ".".join(str(p) for p in exc.absolute_path) if exc.absolute_path else "(root)"
+        raise ValueError(
+            f"Config schema validation error at '{field_path}': {exc.message}"
+        ) from exc
+
 
 def load_config(path: str | Path) -> dict:
-    """Load a JSON configuration file."""
+    """Load a JSON configuration file and validate its schema.
+
+    Args:
+        path: Filesystem path to the JSON configuration file.
+
+    Returns:
+        Parsed configuration dictionary.
+
+    Raises:
+        FileNotFoundError: If the configuration file does not exist.
+        ValueError: If the file fails JSON-schema validation.
+    """
     config_path = Path(path)
     if not config_path.exists():
         raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
     with open(config_path, encoding="utf-8") as f:
-        return json.load(f)
+        config: dict = json.load(f)
+
+    _validate_config_schema(config)
+    return config
 
 
 def auto_detect_input(input_dir: Path) -> Path | None:
@@ -51,12 +103,30 @@ def auto_detect_input(input_dir: Path) -> Path | None:
 
 
 def get_domain_blocks(config: dict) -> list[str]:
-    """Return the list of domain block names from the configuration."""
+    """Return the list of domain block names from the configuration.
+
+    Args:
+        config: Loaded triage configuration dict.
+
+    Returns:
+        Ordered list of domain block name strings (excludes T0/GLOBAL).
+    """
     return list(config.get("_domain_blocks", []))
 
 
 def load_global_params(global_cfg: dict) -> GlobalParams:
-    """Construct a GlobalParams instance from the global configuration dict."""
+    """Construct a :class:`GlobalParams` instance from the global configuration dict.
+
+    Reads scoring weights, thresholds, policy flags, and noise-filter
+    settings from the ``global`` section, falling back to built-in defaults
+    for any missing key.
+
+    Args:
+        global_cfg: The ``config["global"]`` sub-dictionary.
+
+    Returns:
+        A fully populated :class:`GlobalParams` dataclass.
+    """
     raw_levels = global_cfg.get("PONTUACAO_NIVEIS", {})
     level_scores = (
         {int(k): int(v) for k, v in raw_levels.items()}
@@ -140,9 +210,21 @@ def load_global_params(global_cfg: dict) -> GlobalParams:
 def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
     """Parse a terms CSV and merge term definitions into the base configuration.
 
-    The terms CSV must have columns: block, kind, term, level, section_scope, is_regex.
-    The 'block' column determines which thematic block a term belongs to.
-    'GLOBAL' block terms become T0 anti-terms.
+    The terms CSV must have columns: ``block``, ``kind``, ``term``, ``level``,
+    ``section_scope``, ``is_regex``.  The ``block`` column determines which
+    thematic block a term belongs to.  ``GLOBAL`` block terms become T0
+    anti-terms.
+
+    Args:
+        terms_path: Path to the terms CSV file.
+        base_config: Base configuration dict (typically from :func:`load_config`).
+
+    Returns:
+        A new configuration dict with term entries merged under their
+        respective block keys and ``_domain_blocks`` populated.
+
+    Raises:
+        ValueError: If required columns are missing from the CSV.
     """
     from .io import load_csv_safe
 

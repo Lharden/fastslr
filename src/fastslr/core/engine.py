@@ -51,7 +51,19 @@ def _auto_map_column(df: pd.DataFrame, col_name: str) -> str:
 
 
 def collect_statistics(df_result: pd.DataFrame) -> dict:
-    """Compute summary statistics from the result DataFrame."""
+    """Compute summary statistics from the result DataFrame.
+
+    Aggregates decision distribution, per-block status counts, and score
+    descriptive statistics (mean, std, min, max) from the triage output.
+
+    Args:
+        df_result: DataFrame produced by :func:`process_articles`.
+
+    Returns:
+        Dictionary with keys ``total_articles``, ``decision_distribution``,
+        ``block_performance``, ``score_distribution``, and placeholders for
+        ``processing_time`` and ``articles_per_second``.
+    """
     stats: dict = {
         "total_articles": len(df_result),
         "processing_time": 0,
@@ -108,13 +120,20 @@ def process_articles(
 ) -> tuple[pd.DataFrame, dict]:
     """Process the article DataFrame through the full triage pipeline.
 
+    For each article row, runs T0 pre-screening, evaluates every domain
+    block, computes the final decision, and builds an output row with
+    highlighted text, per-block scores, and the overall verdict.
+
     Args:
-        df: Input articles DataFrame.
-        config: Loaded triage configuration dict.
+        df: Input articles DataFrame with at least title and abstract columns.
+        config: Fully prepared triage configuration dict (terms compiled).
         on_progress: Optional callback ``(current, total)`` invoked after
             each article is processed.
 
-    Returns ``(result_df, stats)``.
+    Returns:
+        A tuple ``(result_df, stats)`` where *result_df* contains one row
+        per article with scores, statuses, and highlights, and *stats* is
+        a summary dictionary from :func:`collect_statistics`.
     """
     start_time = time.time()
 
@@ -288,6 +307,14 @@ def sample_articles(df: pd.DataFrame, n: int, seed: int | None = None) -> pd.Dat
     """Return a random sample of *n* articles from *df*.
 
     If *n* >= len(df) the full DataFrame is returned (copied).
+
+    Args:
+        df: Source articles DataFrame.
+        n: Desired sample size.
+        seed: Random seed for reproducibility.
+
+    Returns:
+        A DataFrame with at most *n* rows, index reset.
     """
     if n >= len(df):
         return df.copy()

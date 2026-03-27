@@ -51,7 +51,12 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ValidationIssue:
-    """A configuration validation issue."""
+    """A configuration validation issue.
+
+    Attributes:
+        level: Severity, either ``"error"`` or ``"warning"``.
+        message: Human-readable description of the issue.
+    """
 
     level: str  # "error", "warning"
     message: str
@@ -59,7 +64,16 @@ class ValidationIssue:
 
 @dataclass
 class TriageResult:
-    """Result of a triage run."""
+    """Result of a triage run.
+
+    Attributes:
+        result_df: DataFrame with one row per article containing scores,
+            statuses, and highlights.
+        stats: Summary statistics dictionary.
+        config: The fully prepared configuration used for the run.
+        output_dir: Directory where all output artifacts were written.
+        result_path: Path to the main results file (CSV or XLSX).
+    """
 
     result_df: pd.DataFrame
     stats: dict
@@ -70,7 +84,13 @@ class TriageResult:
 
 @dataclass
 class PreviewResult:
-    """Result of a preview/dry-run."""
+    """Result of a preview/dry-run.
+
+    Attributes:
+        result_df: Triage result DataFrame for the sampled articles.
+        stats: Summary statistics dictionary.
+        sample_size: Number of articles in the sample.
+    """
 
     result_df: pd.DataFrame
     stats: dict
@@ -79,7 +99,15 @@ class PreviewResult:
 
 @dataclass
 class DiffEntry:
-    """A single article that changed between two runs."""
+    """A single article that changed between two runs.
+
+    Attributes:
+        article_id: Identifier of the article whose decision changed.
+        old_decision: Decision in run A.
+        new_decision: Decision in run B.
+        old_score: Final score in run A (if available).
+        new_score: Final score in run B (if available).
+    """
 
     article_id: str
     old_decision: str
@@ -90,7 +118,14 @@ class DiffEntry:
 
 @dataclass
 class DiffReport:
-    """Comparison between two triage runs."""
+    """Comparison between two triage runs.
+
+    Attributes:
+        changed: List of articles whose decision differs between runs.
+        total_a: Total articles in run A.
+        total_b: Total articles in run B.
+        summary: Transition counts keyed by ``"OLD -> NEW"`` strings.
+    """
 
     changed: list[DiffEntry] = field(default_factory=list)
     total_a: int = 0
@@ -100,7 +135,13 @@ class DiffReport:
 
 @dataclass
 class ProfileInfo:
-    """Metadata about a saved profile."""
+    """Metadata about a saved profile.
+
+    Attributes:
+        name: Profile display name.
+        path: Filesystem path to the profile directory.
+        description: Optional human-readable description.
+    """
 
     name: str
     path: Path
@@ -111,7 +152,17 @@ class ProfileInfo:
 
 
 def validate_config(config: dict) -> list[ValidationIssue]:
-    """Check configuration for common issues."""
+    """Check configuration for common issues.
+
+    Inspects the ``global`` section, domain block definitions, decision
+    policy, and threshold values for errors and warnings.
+
+    Args:
+        config: Loaded triage configuration dictionary.
+
+    Returns:
+        List of :class:`ValidationIssue` objects; empty if no issues found.
+    """
     issues: list[ValidationIssue] = []
 
     if "global" not in config:
@@ -182,7 +233,24 @@ def run_triage(
     output_dir: Path | None = None,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> TriageResult:
-    """Execute a full triage run."""
+    """Execute a full triage run.
+
+    Loads configuration, processes all articles, exports results,
+    generates reports, and builds a protocol snapshot.
+
+    Args:
+        input_path: Path to the input articles CSV file.
+        config_path: Path to the JSON configuration file.
+        terms_path: Optional path to the terms CSV file.
+        output_dir: Directory for output artifacts; defaults to
+            ``input_path.parent / "output"``.
+        on_progress: Optional callback ``(current, total)`` for progress
+            tracking.
+
+    Returns:
+        A :class:`TriageResult` with the result DataFrame, statistics,
+        configuration, and output paths.
+    """
     config = _prepare_config(config_path, terms_path)
     df = load_csv_safe(input_path)
 
@@ -243,7 +311,19 @@ def preview_triage(
     sample_size: int = 50,
     seed: int | None = 42,
 ) -> PreviewResult:
-    """Run triage on a sample for validation."""
+    """Run triage on a random sample for quick validation.
+
+    Args:
+        input_path: Path to the input articles CSV file.
+        config_path: Path to the JSON configuration file.
+        terms_path: Optional path to the terms CSV file.
+        sample_size: Number of articles to sample.
+        seed: Random seed for reproducibility.
+
+    Returns:
+        A :class:`PreviewResult` with the sampled result DataFrame and
+        statistics.
+    """
     config = _prepare_config(config_path, terms_path)
     df = load_csv_safe(input_path)
     sample_df = sample_articles(df, sample_size, seed=seed)
@@ -264,7 +344,20 @@ def analyze_coverage(
     terms_path: Path | None = None,
     output_path: Path | None = None,
 ) -> TermCoverageReport:
-    """Run triage and analyze term coverage."""
+    """Run triage and analyze term coverage.
+
+    Executes the full pipeline, then inspects highlights to identify
+    dead terms, broad terms, and low-discrimination blocks.
+
+    Args:
+        input_path: Path to the input articles CSV file.
+        config_path: Path to the JSON configuration file.
+        terms_path: Optional path to the terms CSV file.
+        output_path: Optional CSV path to export coverage data.
+
+    Returns:
+        A :class:`TermCoverageReport` with findings and suggestions.
+    """
     config = _prepare_config(config_path, terms_path)
     df = load_csv_safe(input_path)
     result_df, _ = process_articles(df, config)
@@ -280,7 +373,22 @@ def analyze_coverage(
 
 
 def diff_results(path_a: Path, path_b: Path) -> DiffReport:
-    """Compare two triage result files and find changed decisions."""
+    """Compare two triage result files and find changed decisions.
+
+    Loads both files (CSV or XLSX), merges on the article ID column,
+    and reports every article whose ``Final_Decision`` differs.
+
+    Args:
+        path_a: Path to the first (baseline) result file.
+        path_b: Path to the second (comparison) result file.
+
+    Returns:
+        A :class:`DiffReport` listing changed articles and transition
+        summaries.
+
+    Raises:
+        ValueError: If either file is missing the ``Final_Decision`` column.
+    """
     df_a = pd.read_excel(path_a) if path_a.suffix == ".xlsx" else pd.read_csv(path_a)
     df_b = pd.read_excel(path_b) if path_b.suffix == ".xlsx" else pd.read_csv(path_b)
 
@@ -341,7 +449,22 @@ def create_project(
     preset: str = "standard",
     output_dir: Path | None = None,
 ) -> Path:
-    """Create a new project with config.json and terms template."""
+    """Create a new project with config.json and terms template.
+
+    Generates a configuration file from the chosen preset and a starter
+    terms CSV with one example term per block and a GLOBAL anti-term.
+
+    Args:
+        name: Project name (used as directory name when *output_dir* is
+            ``None``).
+        blocks: List of block definition dicts (e.g.
+            ``[{"name": "CTX"}]``).
+        preset: Level preset name (default ``"standard"``).
+        output_dir: Destination directory; defaults to ``cwd / name``.
+
+    Returns:
+        Path to the created project directory.
+    """
     if output_dir is None:
         output_dir = Path.cwd() / name
 
@@ -397,7 +520,20 @@ def export_academic_package(
     output_dir: Path,
     config_path: Path | None = None,
 ) -> Path:
-    """Create an academic package ZIP from existing results."""
+    """Create an academic package ZIP from existing results.
+
+    Collects the result file, protocol snapshot, report, academic report,
+    and config audit from the result directory and bundles them into a
+    ZIP archive.
+
+    Args:
+        result_path: Path to the main triage result file.
+        output_dir: Directory where the ZIP will be written.
+        config_path: Optional path to the configuration file to include.
+
+    Returns:
+        Path to the created ``academic_package.zip``.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
 
     artifacts: dict[str, Path] = {"results": result_path}
@@ -430,7 +566,14 @@ def export_academic_package(
 
 @dataclass
 class TermsView:
-    """Structured view of all configured terms."""
+    """Structured view of all configured terms.
+
+    Attributes:
+        terms: List of term dicts with ``block``, ``kind``, ``term``,
+            ``level``, and ``scope`` keys.
+        total: Total number of terms in the view.
+        blocks: Domain block names present in the configuration.
+    """
 
     terms: list[dict] = field(default_factory=list)
     total: int = 0
@@ -443,7 +586,21 @@ def browse_terms(
     block_filter: str | None = None,
     kind_filter: str | None = None,
 ) -> TermsView:
-    """Load and return a structured view of all configured terms."""
+    """Load and return a structured view of all configured terms.
+
+    Reads the configuration and optional terms CSV, then collects
+    positives, anti-exclude, and anti-flag entries across all blocks.
+
+    Args:
+        config_path: Path to the JSON configuration file.
+        terms_path: Optional path to the terms CSV file.
+        block_filter: If set, only include terms from this block.
+        kind_filter: If set, only include terms of this kind
+            (``"pos"``, ``"anti"``, or ``"flag"``).
+
+    Returns:
+        A :class:`TermsView` with the filtered term list and metadata.
+    """
     config = load_config(config_path)
     if terms_path:
         config = parse_terms_csv(terms_path, config)
