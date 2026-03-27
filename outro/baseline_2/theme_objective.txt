@@ -1,0 +1,25 @@
+1. DEFINIÇÃO DO TEMA
+1.1 Temas
+Indústria de Óleo e Gás
+Inteligência Artificial
+Gestão da Cadeia de Suprimentos (SCM) e/ou Gestão de Riscos da Cadeia de Suprimentos (SCRM)
+1.2 Justificativa
+A cadeia de suprimentos (SCM) na indústria de Óleo & Gás é complexa e de alto risco, enfrentando desafios constantes de previsibilidade e custos, especialmente em projetos offshore. A Inteligência Artificial (IA) surge como uma ferramenta promissora para otimizar a tomada de decisão neste cenário, porém há uma lacuna no conhecimento consolidado sobre suas aplicações práticas e resultados.
+Esta Revisão Sistemática da Literatura (RSL) justifica-se, portanto, pela necessidade de mapear e sintetizar as evidências existentes sobre como a IA é de fato utilizada para aumentar a previsibilidade, mitigar disrupções (dentre outras métricas de eficiência associadas) e melhorar a performance da SCM no setor, fornecendo um panorama claro para a academia e a indústria.
+
+2. FORMULAÇÃO DA PERGUNTA
+2.1 Definição do Framework – 16/07/25
+Framework selecionado: CIMO (Context – Intervention – Mechanism – Outcome)
+Projetado para áreas como gestão e sistemas de informação. Sua grande força é o Mecanismo (M), que busca entender como e por que uma intervenção gera um resultado em um determinado contexto. Ele vai além do "o quê" e explora o "como".
+Justificativa: em tecnologia e gestão, o maior valor não está em saber se algo funciona, mas porque e como funciona. O componente Mecanismo força uma análise mais profunda e gera insights muito mais ricos para a academia e para a indústria. Ele move a pesquisa de uma simples observação de resultados para uma explicação do processo de transformação.
+2.2 Definição da Pergunta – 22/07/25
+Aplicação no Framework
+	
+Componente	Descrição
+Contexto (C)	Gestão de projetos na indústria de óleo & gás.
+Intervenção (I)	Ferramentas de Inteligência Artificial que integram dados dispersos da cadeia de suprimentos (performance de fornecedores, prazos etc.). Implícito: O processo de integração e análise desses dados para gerar insights acionáveis para a tomada de decisão.
+Mecanismo (M)	Processo de integração e análise de dados para gerar insights acionáveis.
+Outcome (O)	Auxílio na tomada de decisões em SCM (Supply Chain Management) / SCRM (Supply Chain Risk Management).
+Lógica: A IA (I) → através da análise de dados (M) → causa uma melhoria na SCM (O) → tudo isso acontecendo no ambiente de projetos de O&G (C).
+Formulação Semântica da Pergunta
+No contexto da gestão de projetos na indústria de óleo & gás, como ferramentas de Inteligência Artificial que integram dados dispersos da cadeia de suprimentos (performance de fornecedores, prazos, ciclos de fabricação, inspeções, riscos logísticos, entre outros fatores associados) auxiliam a tomada de decisões na gestão da cadeia de suprimentos (SCM) e/ou gestão de riscos na cadeia de suprimentos (SCRM)?

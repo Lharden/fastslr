@@ -1,0 +1,506 @@
+ID,Titulo,DOI,Decisao,Motivacao
+ART_1,Performance evaluation of boosting machine learning algorithms for lithofacies classification in heterogeneous carbonate reservoirs,10.1016/j.marpetgeo.2022.105886,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=8, IA=5"
+ART_2,Optimization-based integrated decision model for smart resource management in the petrochemical industry,10.1016/j.jiec.2022.05.051,Aprovado,O&G(2) + IA(3) + SCM_core(3) + Score(24.0)
+ART_3,Digital-twin assisted: Fault diagnosis using deep transfer learning for machining tool condition,10.1002/int.22493,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=15.5; verificar profundidade SCM"
+ART_4,Probability Prediction Approach of Fatigue Failure for the Subsea Wellhead Using Bayesian Regularization Artificial Neural Network,10.3390/jmse10111627,Reprovado,"Apenas SCM contextual(1), sem core; O&G=4, IA=4"
+ART_5,Electronic Prognostics Innovations for Applications to Aerospace Systems,10.1109/AERO55745.2023.10115812,Reprovado,"Score insuficiente (13.0); O&G=0, IA=8, SCM_core=1"
+ART_6,Machine Learning and Synthetic Minority Oversampling Techniques for Imbalanced Data: Improving Machine Failure Prediction,10.32604/cmc.2023.034470,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=17.0; verificar profundidade SCM"
+ART_7,Predicting Solar Power and Energy Production Over the Course of a Full Day,10.1117/12.2663000,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=4"
+ART_8,NEMO: A MULTI-DRAFT MOORING LINE FAILURE DETECTION SYSTEM BASED ON FPSO PREDICTED MOTION,10.1115/OMAE2023-104351,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=4"
+ART_9,An Inferable Machine Learning Approach for Reservoir Lithology Characterization Using Drilling Data,10.2118/217485-STU,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=32.0; verificar profundidade SCM"
+ART_10,"Future Proofing Subsurface Skills During the Energy Transition, 2030-2050",10.2118/215075-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=15.0; verificar profundidade SCM"
+ART_11,"Decline Curve Analysis using Machine Learning Algorithms: RNN, LSTM, and GRU",10.56952/ARMA-2023-0287,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=6"
+ART_12,IA Applied to IIoT Intrusion Detection: An Overview,10.1109/WINCOM59760.2023.10323032,Aprovado,O&G(3) + IA(4) + SCM_core(2) + Score(21.0)
+ART_13,Real-Time Lithology Prediction While Drilling Using Machine Learning Algorithms: A Web Application Based Solution,10.2118/217479-STU,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=5, IA=6"
+ART_14,Best Practices for Building a Modern and Resilient Supply Chain Framework in the Oil and Gas Industry,10.2118/215114-MS,Aprovado,SCM no titulo + O&G(4) + IA(2) + Score(21.5)
+ART_15,Use of AI tools to understand and model surface-interaction based EOR processes,10.1016/j.acags.2022.100111,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=3"
+ART_16,Machine learning analysis of adrenal lesions: preliminary study evaluating texture analysis in the differentiation of adrenal lesions,10.5152/dir.2022.21266,Reprovado,Tipo excluido: preliminary study
+ART_17,Machine-Learning-Based Classification for Pipeline Corrosion with Monte Carlo Probabilistic Analysis,10.3390/en16083589,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=5"
+ART_18,Applying Machine Learning to the Fuel Theft Problem on Pipelines,10.1061/JPSEA2.PSENG-1374,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=20.0; verificar profundidade SCM"
+ART_19,A stochastic optimization algorithm for the supply vessel planning problem under uncertain demand and uncertain weather conditions,10.1016/j.oceaneng.2023.114428,Aprovado,O&G(4) + IA(2) + SCM_core(2) + Score(23.0)
+ART_20,Application of machine learning algorithms in classification the flow units of the Kazhdumi reservoir in one of the oil fields in southwest of Iran,10.1007/s13202-023-01618-1,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=8"
+ART_21,"Establishing a Robust Model Using Stacked Generalization for Gas Identification of Coal-Bearing Strata in Block A, Northeastern Ordos Basin, China",10.2118/212869-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=8"
+ART_22,Prediction of geopolymer pumpability and setting time for well zonal isolation - Using machine learning and statistical based models,10.1016/j.heliyon.2023.e17925,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=6"
+ART_23,Holistic Approach Promotes Failure Prevention of Smart Mining Machines Based on Bayesian Networks,10.3390/machines11100940,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=15.0; verificar profundidade SCM"
+ART_24,Using artificial intelligence to find design errors in the engineering drawings,10.1002/smr.2543,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=18.5; verificar profundidade SCM"
+ART_25,An ensemble-based machine learning solution for imbalanced multiclass dataset during lithology log generation,10.1038/s41598-023-49080-7,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=10"
+ART_26,Generalization and Stability of Interpolating Neural Networks with Minimal Width,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=1"
+ART_27,Screening of Enhanced Oil Recovery Methods Using Supervised Machine Learning Predicated on Range Data,10.1007/978-3-031-68639-9_28,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=23.0; verificar profundidade SCM"
+ART_28,Carbon intensity of global crude oil trading and market policy implications,10.1038/s41467-023-41701-z,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=16.5; verificar profundidade SCM"
+ART_29,A Real-Time Secure-Based Oil and Gas Supply Chain Management using Blockchain,10.1109/NIGERCON62786.2024.10927207,Aprovado,SCM no titulo + O&G(3) + IA(2) + Score(23.5)
+ART_30,Exploratory Analysis of Machine Learning Methods for Total Organic Carbon Prediction Using Well-Log Data of Kolmani Field,10.1109/ICPRS62101.2024.10677822,Reprovado,"Apenas SCM contextual(1), sem core; O&G=4, IA=7"
+ART_31,OPERATIONS OPTIMISATION OF A GAS-LIFT COMPRESSION SYSTEM USING A DIGITAL-TWIN APPROACH,10.1115/GT2024-125917,Reprovado,"Score insuficiente (13.0); O&G=3, IA=0, SCM_core=1"
+ART_32,Leveraging Large Language Models for Cost Management and Supply Chain Optimization,10.2118/221022-MS,Aprovado,SCM no titulo + O&G(7) + IA(5) + Score(27.5)
+ART_33,Reliable deep learning framework for the ground penetrating radar data to locate the horizontal variation in levee soil compaction,10.1016/j.engappai.2023.107627,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=5"
+ART_34,An approximated dynamic programming model for the supply vessel fleet sizing problem,10.1016/j.cor.2023.106510,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=15.5; verificar profundidade SCM"
+ART_35,A Transformer and LSTM-Based Approach for Blind Well Lithology Prediction,10.3390/sym16050616,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=8"
+ART_36,A Novel Multiagent Collaborative Learning Architecture for Automatic Recognition of Mudstone Rock Facies,10.1109/ACCESS.2024.3507569,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=6"
+ART_37,Missing log prediction using machine learning perspectives: A case study from upper Assam basin,10.1007/s12145-024-01323-5,Reprovado,Tipo excluido: case study
+ART_38,Machine Learning Techniques in Enhanced Oil Recovery Screening Using Semisupervised Label Propagation,10.2118/221475-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=7"
+ART_39,Spatial classification model of port facilities and energy reserve prediction based on deep learning for port management―A case study of Ningbo,10.1016/j.ocecoaman.2024.107413,Reprovado,Tipo excluido: case study
+ART_40,The use of machine and deep learning to model the relationship between discomfort temperature and labor productivity loss among petrochemical workers,10.1186/s12889-024-20713-4,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=10"
+ART_41,Novel Adaptive Hidden Markov Model Utilizing Expectation–Maximization Algorithm for Advanced Pipeline Leak Detection,10.3390/modelling5040069,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=3"
+ART_42,Predicting the Rate of Penetration while Horizontal Drilling through Unconventional Reservoirs Using Artificial Intelligence,10.1021/acsomega.4c08006,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=19.0; verificar profundidade SCM"
+ART_43,Assessing Sustainability Efforts and Greenwashing in Global Oil and Gas Supply Chain- Natural Language Processing Approach,10.1109/RAIT65068.2025.11089303,Aprovado,SCM no titulo + O&G(2) + IA(1) + Score(16.0)
+ART_44,Estimating Import Lead Times Using Business Intelligence and Machine Learning Within the CRISP-DM Framework: A Case Study in Oil and Gas Services Industry,10.1109/ACCESS.2025.3584886,Reprovado,Tipo excluido: case study
+ART_45,An Efficiency-Uncertainty-Based Consensus Optimization Framework With Dual-Perspective Clustering Analysis for Blockchain Adoption in Supply Chains,10.1109/TEM.2025.3626659,Aprovado,O&G(2) + IA(3) + SCM_core(2) + Score(19.5)
+ART_46,Trends and Frontiers of Emerging Technologies in Oil and Gas: A Scientometric Perspective,10.1109/JIOT.2025.3631090,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=26.5; verificar profundidade SCM"
+ART_47,An Ensemble-Based Automated Workflow for Decline Curve Analysis and Probabilistic Estimated Ultimate Recovery Estimation in Shale Gas Wells,10.2118/230302-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=5"
+ART_48,Machine Learning Model for Identifying Drilling Dysfunctions from Surface Data and Bit Failure Forensics,10.2118/228303-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=2"
+ART_49,From Archives to Abandonment: Applying Generative AI to Optimize Plug and Abandon Processes in Old Oil Wells,10.30632/PJV66N4-2025a1,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=4"
+ART_50,An Artificial Intelligence–Driven Methodology for Predicting Proppant Bed Morphology in Hydraulic Fractures,10.2118/231404-PA,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=5"
+ART_51,KA-GAN: Kolmogorov-Arnold Generative Adversarial Networks for Reconstruction of 3D Porous Media,10.2118/230280-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=2"
+ART_52,Comparative Analysis of TOC Logging Evaluation Methods Using Machine Learning – A Case Study of the Ordos Basin-Yanchang Formation,10.30632/PJV66N3-2025a4,Reprovado,Tipo excluido: case study
+ART_53,A Data-Driven Approach for Stylolite Detection,10.2118/214831-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=6"
+ART_54,LiOBIA: Object-Based Cuttings Image Analysis for Automated Lithology Evaluation,10.30632/PJV65N4-2024a14,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=3"
+ART_55,Reservoir Fluid Data Acquisition Using Advanced Mud-Logging Gas in Shale Reservoirs,10.30632/PJV65N4-2024a2,Reprovado,"Apenas SCM contextual(1), sem core; O&G=4, IA=0"
+ART_56,Novel Machine Learning Modeling Approach for Fatigue Failure of Hydrogen-Transporting Pipelines,10.2118/220931-PA,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=13.5; verificar profundidade SCM"
+ART_57,A General Framework to Describe Drilling Process States,10.2118/212537-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=2"
+ART_58,Development of Oilwell Fault Classifiers Using a Wavelet-Based Multivariable Approach in a Modular Architecture,10.2118/221463-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=1"
+ART_59,Reservoir Fluid Typing From Standard Mud Gas – A Machine-Learning Approach,10.30632/PJV65N4-2024a5,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=1"
+ART_60,Optimization of Supercritical CO2 Fracturing Based on Random Forest-Particle Swarm Optimization Model and Pre-existing Fracture Network,10.2118/223585-PA,Reprovado,"Apenas SCM contextual(1), sem core; O&G=4, IA=5"
+ART_61,Real-Time Fluid Identification From Integrating Advanced Mud Gas and Petrophysical Logs,10.30632/PJV65N4-2024a3,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=1"
+ART_62,A Machine-Learning Approach to Predict Gas-Oil Ratio Based on Advanced Mud Gas Data,10.30632/PJV65N4-2024a1,Reprovado,"Apenas SCM contextual(1), sem core; O&G=5, IA=3"
+ART_63,Multisource Modeling Method for Petroleum Production Prediction Models: A Case Study of CO2-Flooding Performance,10.2118/223588-PA,Reprovado,Tipo excluido: case study
+ART_64,Field Validation of a Universally Applicable Condition-Based Maintenance System for Mud Pumps,10.2118/212564-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=2"
+ART_65,Deep Learning Method for Improving Rate of Penetration Prediction in Drilling,10.2118/219746-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=5"
+ART_66,Machine learning based approach for transient well test interpretation (Russian),10.24887/0028-2448-2024-4-54-59,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=2"
+ART_67,Application of Machine Learning and Optimization of Oil Recovery and CO2 Sequestration in the Tight Oil Reservoir,10.2118/219731-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=5"
+ART_68,The unified information system of geological and geophysical data is the basis of a multidisciplinary approach to the exploration and production of hydrocarbons (Russian),10.24887/0028-2448-2024-2-8-13,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=1"
+ART_69,A Hybrid Data-Physics Framework for Reservoir Performance Prediction with Application to H2S Production,10.2118/218000-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=5, IA=4"
+ART_70,"Synthetic Graphic Well Log Generation Using an Enhanced Deep Learning Workflow: Imbalanced Multiclass Data, Sample Size, and Scalability Challenges",10.2118/217466-PA,Reprovado,"Apenas SCM contextual(1), sem core; O&G=4, IA=5"
+ART_71,Rapid Inference of Reservoir Permeability from Inversion of Traveltime Data Under a Fast Marching Method-Based Deep Learning Framework,10.2118/214385-PA,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=4"
+ART_72,Heterogeneous Domain Adaptation Framework for Logging Lithofacies Identification,10.2118/218419-PA,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=4"
+ART_73,Multiparameter Inversion of Reservoirs Based on Deep Learning,10.2118/217437-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=2"
+ART_74,Transfer Learning with Prior Data-Driven Models from Multiple Unconventional Fields,10.2118/214312-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=4"
+ART_75,Application of Computer Vision in Machine Learning-Based Diagnosis of Water Production Mechanisms in Oil Wells,10.2118/211804-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=6"
+ART_76,CFD Simulations of Two Wind Turbines Operating in Line,10.17736/ijope.2023.jc908,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=6, IA=1"
+ART_77,An Insight into the Prediction of Scale Precipitation in Harsh Conditions Using Different Machine Learning Algorithms,10.2118/212846-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=9"
+ART_78,On the Artificial Intelligence for the Sea State Forecast Along the Northern Sea Route,10.17736/ijope.2022.jc870,Reprovado,"Score insuficiente (14.0); O&G=0, IA=11, SCM_core=1"
+ART_79,Assisted Cement Log Interpretation Using Machine Learning,10.2118/209529-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=3"
+ART_80,The software system of geotechnical control for solving tasks of geotechnical monitoring in Rosneft Company (Russian),10.24887/0028-2448-2022-12-139-143,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=1"
+ART_81,A Machine Learning Ship’s Speed Over Ground Prediction Model and Sailing Time Control Strategy,10.17736/ijope.2022.jc876,Sinalizado,SCM core forte(3) + score alto(23.0); falta: O&G
+ART_82,MARS: scenarios monitoring and analysis system (Russian),10.24887/0028-2448-2022-11-42-46,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=18.0; verificar profundidade SCM"
+ART_83,Determining Severity of Lateral and Torsional Downhole Vibrations While Drilling Surface Holes Using Three Machine Learning Techniques,10.2118/209575-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=3"
+ART_84,Digital reality of oil refining (Russian),10.24887/0028-2448-2021-11-67-71,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=2"
+ART_85,GeoDIN - Geoscience-Based Deep Interaction Networks for Predicting Flow Dynamics in Reservoir Simulation Models,10.2118/203952-PA,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=3"
+ART_86,Methodological foundations for the implementation of robotic systems in order to improve the efficiency of repairing tubing (Russian),10.24887/0028-2448-2021-9-108-111,Reprovado,"Score insuficiente (9.0); O&G=0, IA=2, SCM_core=1"
+ART_87,Fluid Flow and Particle Motion Behaviors During Seabed Nodule Pickup: An Experimental Study,10.17736/ijope.2021.jc803,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=1"
+ART_88,Explainable and Interpretable Anomaly Detection Models for Production Data,10.2118/208586-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=6"
+ART_89,Optimization of Recovery by Huff ‘n’ Puff Gas Injection in Shale-Oil Reservoirs Using the Climbing-Swarm Derivative-Free Algorithm,10.2118/199028-PA,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=0"
+ART_90,Data quality analysis of the station of geological and technological researches in recognizing losses and kicks to improve the prediction accuracy of neural network algorithms (Russian),10.24887/0028-2448-2020-8-63-67,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=7"
+ART_91,Using Machine Learning Methods To Identify Coal Pay Zones from Drilling and Logging-While-Drilling (LWD) Data,10.2118/198288-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=9"
+ART_92,"Multivariate Statistical Appraisal of Regional Susceptibility to Induced Seismicity: Application to the Permian Basin, SW United States",10.1029/2021JB022768,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=2"
+ART_93,Replacing sedentary time or light physical activity with moderate physical activity is associated with a lower prevalence of back pain: a cross-sectional study using isotemporal analysis Isotemporal substitution and LBP prevalence,10.1016/j.bjpt.2024.101123,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=3"
+ART_94,Comparison of Novel Optimized Random Forest Technique and Logistic Regression for Credit Card Fraud Detection with Improved Precision,10.47750/pnr.2022.13.S03.082,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=2"
+ART_95,Honest calibration assessment for binary outcome predictions,10.1093/biomet/asac068,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=1"
+ART_96,A data-driven binary-classification framework for oil fingerprinting analysis,10.1016/j.envres.2021.111454,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=7"
+ART_97,Dealing With Stakeholders After Early Failures in a Gas Pipeline in Pristine Jungle,10.1115/1.4044785,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=0"
+ART_98,Exploring the Factors Influencing Recurrence of Central Serous Chorioretinopathy using Machine Learning,,Sinalizado,Sem abstract disponivel; revisao humana necessaria
+ART_99,Landslide risk assessment on the China-Pakistan Economic Corridor (CPEC): a comparative study of quantitative and machine learning approaches,10.1007/s12046-025-02749-3,Reprovado,"Apenas SCM contextual(3), sem core; O&G=1, IA=4"
+ART_100,"India ISIN Database, by Nemo",10.5281/ZENODO.14884746,Aprovado,O&G(4) + IA(1) + SCM_core(2) + Score(17.5)
+ART_101,Beyond the giants: the hidden role of micro and small enterprises in GVC reconfiguration dynamics,10.1057/s42214-025-00218-6,Reprovado,"Score insuficiente (8.5); O&G=1, IA=1, SCM_core=1"
+ART_102,South Africa in the era of Industry 4.0: An Insightful Investigation,10.1007/s11192-022-04461-z,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=14.5; verificar profundidade SCM"
+ART_103,Improved MOEA/D with local search for solving multi-stage distributed reentrant hybrid flow shop scheduling problem,10.1016/j.eswa.2023.120893,Reprovado,"Score insuficiente (10.5); O&G=1, IA=1, SCM_core=1"
+ART_104,Towards the design of a smart warehouse management system for spare parts management in the oil and gas sector,10.3389/frsus.2024.1426089,Sinalizado,SCM core forte(4) + score alto(20.5); falta: IA
+ART_105,Research on Key Technologies of Intelligent Industrial Robot System for Bulk Material Transportation,10.1088/1742-6596/1626/1/012082,Sinalizado,SCM_core(2) + score(15.5); falta: O&G
+ART_106,"A triple-layer based surface complexation model for oil-brine interface in low-salinity waterflooding: Effect of sulphate interaction with carboxylic and basic groups, pH and temperature",10.1016/j.molliq.2024.124730,Reprovado,"Score insuficiente (6.5); O&G=0, IA=1, SCM_core=1"
+ART_107,Towards facing uncertainties in biofuel supply chain networks: a systematic literature review,10.1007/s11356-023-29331-w,Reprovado,Tipo excluido: systematic/literature review
+ART_108,"How do data, project management maturity, and PMO support shape resilient oil and gas projects?",10.5267/j.jpm.2025.4.004,Reprovado,"Score insuficiente (11.5); O&G=1, IA=0, SCM_core=1"
+ART_109,"Accurate estimation of tool wear levels during milling, drilling and turning operations by designing novel hyperparameter tuned models based on LightGBM and stacking",10.1016/j.measurement.2022.110722,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=1"
+ART_110,"Multiphase fl ow challenges in drilling, completions, and injection: Part 2",10.1016/j.petlm.2024.05.002,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=6, IA=2"
+ART_111,"Multiphase flow challenges in drilling, completions, and injection: Part 1",10.1016/j.petlm.2024.05.001,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=6, IA=2"
+ART_112,Pyrolysis performance and kinetic analysis of oily sludge,10.1007/s10973-021-10858-4,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=0"
+ART_113,Collaborative intermodal freight transport network design and vehicle arrangement with applications in the oil and gas drilling equipment industry,10.1080/23249935.2020.1758235,Aprovado,O&G(2) + IA(3) + SCM_core(2) + Score(24.5)
+ART_114,Auto-suggestive real-time classification of driller Memos into activity codes using natural language processing,10.2118/199593-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=3"
+ART_115,Vehicle routing with endogenous learning: Application to offshore plug and abandonment campaign planning,10.1016/j.ejor.2020.06.039,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=0"
+ART_116,Proposed Risk Management Decision Support Methodology for Oil and Gas Construction Projects,10.1007/978-981-15-1910-9_34,Aprovado,O&G(2) + IA(2) + SCM_core(2) + Score(22.5)
+ART_117,Risk assessment in oil and gas industry using simulation and bow-tie analysis,,Reprovado,"Score insuficiente (13.5); O&G=2, IA=0, SCM_core=1"
+ART_118,"Technological Innovation, Sustainable Green Practices and SMEs Sustainable Performance in Times of Crisis (COVID-19 pandemic)",10.1007/s10796-022-10250-z,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=0"
+ART_119,A framework for risk assessment in oil and gas supply chains,,Sinalizado,SCM_core(2) + score(15.5); falta: IA
+ART_120,Effects of supply chain digital twins in the development of digital industry,,Reprovado,"Score insuficiente (12.0); O&G=2, IA=0, SCM_core=1"
+ART_121,Digital-twin based real-time resource allocation for hull parts picking and processing,10.1007/s10845-022-02065-1,Aprovado,O&G(1) + IA(3) + SCM_core(2) + Score(20.5)
+ART_122,Coastal Shuttle Tanker Scheduling Model Considering Inventory Cost and System Reliability,10.1109/ACCESS.2020.3032556,Aprovado,O&G(2) + IA(1) + SCM_core(2) + Score(19.5)
+ART_123,Fuzzy ahp and linear programming based decision support system for logistics service providers allocation,,Sinalizado,SCM_core(2) + score(16.0); falta: IA
+ART_124,Model-based multi-objective particle swarm production optimization for efficient injection/production planning to improve reservoir recovery,10.1002/cjce.24158,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=1"
+ART_125,Cross-functional group decision making with heterogeneous cooperation for digital transformation in supply chain resilience,10.1016/j.asoc.2024.112463,Reprovado,Apenas dimensao: SCM; insuficiente
+ART_126,Adaptive framework for resilient supply chain using 3D printing in oil and gas industry,10.2118/203089-MS,Sinalizado,SCM core forte(4) + score alto(26.5); falta: IA
+ART_127,Digital concept and machine learning for cost estimation of oil and gas development,,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=20.0; verificar profundidade SCM"
+ART_128,Leveraging data-driven decisions: a framework for building intracompany capability for supply chain optimization and resilience,10.1108/SCM-12-2022-0464,Aprovado,O&G(1) + IA(2) + SCM_core(2) + Score(17.0)
+ART_129,Digitalizing Maritime Containers Shipping Companies: Impacts on Their Processes,10.3390/app12052532,Reprovado,Apenas dimensao: SCM; insuficiente
+ART_130,Agent-based modeling for decision making support: Case of transport logistics in oil company,10.46354/i3m.2020.emss.006,Sinalizado,SCM_core(2) + score(15.0); falta: IA
+ART_131,Digital Twin-Enabled Smart Maritime Logistics Management in the Context of Industry 5.0,10.1109/ACCESS.2024.3354838,Reprovado,Tipo excluido: detected in abstract
+ART_132,"Delivering best-in-class shallow water wellhead platform, and beyond",10.4043/30402-ms,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=22.5; verificar profundidade SCM"
+ART_133,Modelling decision making in digital supply chains: insights from the petroleum industry,10.1108/K-10-2018-0565,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=20.0; verificar profundidade SCM"
+ART_134,Construction of a Coupled Mathematical Model of Oil and Gas Risk Relying on Distributed Computing,10.1155/2022/5327266,Reprovado,"Apenas SCM contextual(2), sem core; O&G=3, IA=1"
+ART_135,Computer optimal path simulation planning of oil and gas storage and transportation based on similarity measurement of decision space,10.1088/1742-6596/1533/3/032047,Aprovado,SCM no titulo + O&G(2) + IA(1) + Score(18.0)
+ART_136,Stuck Pipe Prediction in Geothermal Well Drilling at Darajat Using Statistical and Machine Learning Application,10.1145/3400934.3400954,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=7"
+ART_137,Autonomous Underwater Pipe Damage Detection Positioning and Pipe Line Tracking Experiment with Unmanned Underwater Vehicle,10.3390/jmse12112002,Aprovado,O&G(3) + IA(4) + SCM_core(2) + Score(18.0)
+ART_138,The efficiency of soft sensors modelling in advanced control systems in oil refinery through the application of hybrid intelligent data mining techniques,10.1088/1742-6596/1529/5/052049,Reprovado,"Apenas SCM contextual(1), sem core; O&G=5, IA=5"
+ART_139,A dynamic risk assessment model to assess the impact of the coronavirus (COVID-19) on the sustainability of the biomass supply chain: A case study of a US biofuel industry,10.1016/j.rser.2021.111574,Reprovado,Tipo excluido: case study
+ART_140,The two-echelon inventory-routing problem with fleet management,10.1016/j.cor.2020.104944,Sinalizado,SCM core forte(4) + score alto(21.0); falta: IA
+ART_141,Development of a global earthquake-landslide-tsunami cascade database and analysis of cascading mechanisms,10.1360/TB-2024-0994,Reprovado,"Score insuficiente (10.5); O&G=2, IA=1, SCM_core=1"
+ART_142,Technology predictions for arctic hydrocarbon development: Digitalization potential,10.1007/978-3-030-64430-7_21,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=16.0; verificar profundidade SCM"
+ART_143,A Procurement Method in Oil Marketing Company Based on Forecast Model and Expectation Criterion,10.1155/2021/6670249,Aprovado,O&G(2) + IA(1) + SCM_core(3) + Score(19.5)
+ART_144,Statistical models for improving significant wave height predictions in offshore operations,10.1016/j.oceaneng.2020.107249,Reprovado,"Score insuficiente (10.0); O&G=1, IA=1, SCM_core=1"
+ART_145,Advanced Data Recognition Technique for Real-Time Sand Monitoring Systems,10.1007/978-3-030-72610-2_24,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=5, IA=5"
+ART_146,Deep Learning Approaches for Intrusion Detection in IIoT Networks – Opportunities and Future Directions,10.14569/IJACSA.2021.0120411,Aprovado,O&G(3) + IA(2) + SCM_core(2) + Score(18.0)
+ART_147,A Bayes Estimate Density Fuzzy Modular function for improving supply chain sustainability through blockchain entropy prediction,10.1016/j.sca.2023.100046,Aprovado,SCM no titulo + O&G(2) + IA(1) + Score(14.5)
+ART_148,Drilling Operations Classification Utilizing Data Fusion and Machine Learning Techniques,10.1007/978-3-030-80568-5_32,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=2"
+ART_149,Big Data Platform for Oil and Gas Production Based on Apache Spark,10.1007/978-981-33-6141-6_14,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=6"
+ART_150,Single-Well Yield Prediction Based on LSTM and MA Combination Model,10.1007/978-981-33-6141-6_15,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=7"
+ART_151,Characteristics influencing digital technology choice in digitalization projects of energy industry,10.2478/rtuect-2021-0026,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=4"
+ART_152,Investigating the use of machine learning models for the prediction of pressure gradient and flow regimes in multiphase flow in horizontal pipes,10.2118/208410-MS,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=6"
+ART_153,Transportation cost optimization model for the petroleum industry,,Sinalizado,SCM core forte(2) + score alto(19.5); falta: IA
+ART_154,Multi-objective optimization of hydrocracking processes using graph neural differential equations,10.1016/j.cherd.2025.09.042,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=1"
+ART_155,"K-mean clustering analysis and logistic boosting regression for rock facies characterization and classification in zubair reservoir in luhais oil field, southern Iraq",10.46717/igj.54.2B.6Ms-2021-08-26,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=3"
+ART_156,"Real time cloud-based automation for formation evaluation optimization, risk mitigation and decarbonization",10.2118/205402-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=29.0; verificar profundidade SCM"
+ART_157,Contribution of AI to improve planning gas stations replenishment: Synthetic Study,10.1016/j.procs.2021.07.067,Aprovado,O&G(1) + IA(4) + SCM_core(2) + Score(20.0)
+ART_158,Application of machine learning algorithms for managing well integrity in gas lift wells,10.2118/205736-MS,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=6"
+ART_159,Data-driven PHM solution for health monitoring of mud motor power sections while drilling,10.2118/205219-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=19.5; verificar profundidade SCM"
+ART_160,The simultaneous effect of green ability-motivation-opportunity and transformational leadership in environment management: the mediating role of green culture,10.1108/BIJ-08-2020-0400,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=0"
+ART_161,Predicting dysfunction vibration events while drilling using LSTM recurrent neural networks,10.2118/205571-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=7"
+ART_162,Classification and mechanism analysis of wellbore failure based on cavings,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=3"
+ART_163,Systems of distributed artificial intelligence for analysis of oil product transportation processes: evidence from Russia,10.1504/IJSPM.2021.121698,Aprovado,O&G(2) + IA(2) + SCM_core(2) + Score(21.0)
+ART_164,Procurement risk management in a petroleum refinery,10.1111/deci.12536,Aprovado,O&G(2) + IA(1) + SCM_core(3) + Score(23.5)
+ART_165,Implementing Cognitive Procurement and its Influence on Supply Chain During the Era of Digital Transformation in Oil and Gas Industry 4.0,10.2118/207211-MS,Aprovado,O&G(2) + IA(2) + SCM_core(3) + Score(29.5)
+ART_166,Development and challenges of planning and scheduling for petroleum and petrochemical production,10.1007/s42524-020-0123-3,Reprovado,"Apenas SCM contextual(2), sem core; O&G=3, IA=0"
+ART_167,Lithofacies Classification of Carbonate Reservoirs Using Advanced Machine Learning: A Case Study from a Southern Iraqi Oil Field,10.4043/31114-MS,Reprovado,Tipo excluido: case study
+ART_168,Guyana Operations and First Oil,10.4043/30979-MS,Reprovado,"Score insuficiente (14.0); O&G=7, IA=0, SCM_core=1"
+ART_169,Drilling Execution and Completion Advancements Continue to Deliver for Guyana,10.4043/31230-MS,Sinalizado,SCM_core(1) + score(20.0); falta: IA
+ART_170,AI Based Water-in-Oil Emulsions Rheology Model for Value Creation in Deepwater Fields Production Management,10.4043/31173-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=4"
+ART_171,Hybrid fuzzy MCDM and FMEA integrating with linear programming approach for the health and safety executive risks: a case study,10.1108/JM2-12-2019-0285,Reprovado,Tipo excluido: case study
+ART_172,"Value of emerging and enabling technologies in reducing costs, risks and timescales for CCS",10.2139/ssrn.3820792,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=19.0; verificar profundidade SCM"
+ART_173,How to Measure Sustainability in the Supply Chain Design: An Integrated Proposal from an Extensive and Systematic Literature Review,10.3390/su15097138,Reprovado,Tipo excluido: systematic/literature review
+ART_174,Big data driven supply chain design and applications for blockchain: An action research using case study approach,10.1016/j.omega.2021.102452,Reprovado,Tipo excluido: case study
+ART_175,An Integrated Robust Planning Model for Petrochemical Product in the Supply Chain,10.1007/s41660-025-00592-x,Sinalizado,SCM core forte(3) + score alto(31.5); falta: IA
+ART_176,Energy Commodity Logistics Planning method based on Machine Learning method,10.1088/1755-1315/769/4/042119,Aprovado,O&G(3) + IA(2) + SCM_core(2) + Score(27.5)
+ART_177,Thermal image encryption based on laser diode feedback and 2D logistic chaotic map,10.1007/s11042-022-12724-3,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=0"
+ART_178,An augmented Tabu search algorithm for the green inventory-routing problem with time windows,10.1016/j.swevo.2020.100802,Aprovado,O&G(1) + IA(1) + SCM_core(2) + Score(16.5)
+ART_179,"Volcanic lithology identification based on parameter-optimized GBDT algorithm: A case study in the Jilin Oilfield, Songliao Basin, NE China",10.1016/j.jappgeo.2021.104443,Reprovado,Tipo excluido: case study
+ART_180,Contamination control in the oil and gas industries using industrial separation technologies: A sustainability and safety-oriented DSS under Pythagorean fuzzy environment,10.1080/01496395.2024.2329276,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=0"
+ART_181,The role of big data for Supply Chain 4.0 in manufacturing organisations of developing countries,10.1108/JEIM-11-2020-0463,Sinalizado,SCM core forte(3) + score alto(23.0); falta: O&G
+ART_182,Development of Entering Order and Work-Volume Assignment Algorithms for the Management of Piping Components in Offshore Structure Construction,10.3390/jmse8110894,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=12.0; verificar profundidade SCM"
+ART_183,Accident analysis and risk prediction of tank farm based on Bayesian network method,10.1177/1748006X221139906,Reprovado,"Apenas SCM contextual(1), sem core; O&G=0, IA=2"
+ART_184,Multiobjective stochastic scheduling of upstream operations in a sustainable sugarcane supply chain,10.1016/j.jclepro.2020.123305,Sinalizado,SCM core forte(3) + score alto(23.5); falta: IA
+ART_185,Impact of carbon tax on CCUS source-sink matching: Finding from the improved ChinaCCS DSS,10.1016/j.jclepro.2021.130027,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=0"
+ART_186,Understanding AI Application Dynamics in Oil and Gas Supply Chain Management and Development: A Location Perspective,10.28991/HIJ-SP2022-03-01,Aprovado,SCM no titulo + O&G(5) + IA(2) + Score(23.5)
+ART_187,Driving Project Efficiency and Cost Control in Nigeria's Oil and Gas Industry,10.2118/212038-MS,Aprovado,O&G(4) + IA(2) + SCM_core(2) + Score(22.5)
+ART_188,Analysing the inhibitors of complexity for achieving sustainability and improving sustainable performance of petroleum supply chain,10.1016/j.jclepro.2021.127360,Sinalizado,SCM_core(2) + score(15.5); falta: IA
+ART_189,Co-training Semi-supervised Learning Algorithm for Classification of Seismic Facies of Carbonate Tidal Channels,10.1007/978-981-19-2149-0_132,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=6"
+ART_190,Similarity Learning for Well Logs Prediction Using Machine Learning Algorithms,10.2523/IPTC-22067-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=5, IA=6"
+ART_191,A Novel Hybrid Model for Vendor Selection in a Supply Chain by Using Artificial Intelligence Techniques Case Study: Petroleum Companies,10.1007/978-3-030-36178-5_19,Reprovado,Tipo excluido: case study
+ART_192,Universal Wellpad Control: An Open Automation and Control Platform with Zero-Trust and Zero-Touch Provisioning System,10.2118/211801-MS,Aprovado,O&G(3) + IA(2) + SCM_core(2) + Score(18.0)
+ART_193,A decision support approach employing the PROMETHEE method and risk factors for critical supply assessment in large-scale projects,10.1016/j.orp.2022.100238,Reprovado,"Score insuficiente (12.0); O&G=2, IA=0, SCM_core=2"
+ART_194,Virtual Tour (4.0) for Adnoc Offshore Assets,10.2118/211302-MS,Reprovado,"Apenas SCM contextual(4), sem core; O&G=3, IA=1"
+ART_195,An Integrated Management of Change Program (MOC) for Oil and Gas Industry through Blockchain Technology and Smart Contracts,10.2118/210790-MS,Aprovado,O&G(2) + IA(2) + SCM_core(2) + Score(18.5)
+ART_196,The mathematical models as a decision support tool for the oil transportation business: A case study of an oil business in Thailand,10.1080/23311916.2022.2145680,Reprovado,Tipo excluido: case study
+ART_197,Development of a Decision Support System for Operation Mode Detection of Offshore Supply Vessels,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=3"
+ART_198,A Detailed Review of Implementation of Deep Learning Approaches for Industrial Internet of Things with the Different Opportunities and Challenges,10.1109/IC3I56241.2022.10072499,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=13.5; verificar profundidade SCM"
+ART_199,Private 5G Practice in Oil and Gas Industry,10.2118/210975-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=20.5; verificar profundidade SCM"
+ART_200,Discovering Subsurface “Oceans” With Classification: A Machine Learning Method to Predict Drilling Challenges From Nearby Saltwater Disposal Wells,10.15530/urtec-2022-3722093,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=4"
+ART_201,Detecting Most Influential Parameters in High Voltage Induction Motor Failure using Logistic Regression Analysis,10.1109/ISMODE56940.2022.10180980,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=5"
+ART_202,Managing Asset and Supply Chain Resilience Using A Digital Risk Twin,10.3850/978-981-18-5183-4_R02-04-191-cd,Aprovado,SCM no titulo + O&G(3) + IA(1) + Score(17.5)
+ART_203,Analysis of compromising operational conditions for intelligent completion using Digital Twin,10.3850/978-981-18-5183-4_S01-07-508-cd,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=17.0; verificar profundidade SCM"
+ART_204,The Implementation of Discrete-Event Simulation and Demand Forecasting Using Temporal Fusion Transformers to Validate Spare Parts Inventory Policy for The Petrochemicals Industry,10.37936/ecti-cit.2022163.246900,Sinalizado,SCM core forte(2) + score alto(18.0); falta: O&G
+ART_205,The Impact of Digital Transformation in the Accounting System of Fuel and Energy Complex Enterprises (International Experience),10.32479/ijeep.13317,Aprovado,O&G(3) + IA(1) + SCM_core(2) + Score(17.0)
+ART_206,Leveraging AI for Inventory Management and Accurate Forecast-An Industrial Field Study,10.2118/214457-MS,Aprovado,O&G(3) + IA(4) + SCM_core(5) + Score(34.0)
+ART_207,Multi-product and multi-period maritime oil logistics model with a cooperative approach among hubs,10.1504/IJOGCT.2023.10053635,Aprovado,SCM no titulo + O&G(2) + IA(2) + Score(16.0)
+ART_208,A Method for Planning the Supply of Petroleum Products to Filling Stations Based on Multi-agent Resource Conversion Processes,10.1007/978-3-031-22311-2_18,Reprovado,"Score insuficiente (10.5); O&G=1, IA=0, SCM_core=1"
+ART_209,Blockchain Supercharges Digital Well Program towards Cyber-Physical Drilling System,10.2118/214536-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=4"
+ART_210,HYBRID MACHINE LEARNING MODEL APPLIED TO PHASE INVERSION PREDICTION IN LIQUID-LIQUID PIPE FLOW,10.1615/MultScienTechn.2022046139,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=4"
+ART_211,Failure Prediction Methodology for ESP and Operational Behavior,10.2118/213140-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=21.0; verificar profundidade SCM"
+ART_212,Real-Time Optimization and Decarbonization of Oil and Gas Production Value Chain Enabled by Industry 4.0 Technologies: A Critical Review,10.2118/214301-PA,Aprovado,O&G(2) + IA(3) + SCM_core(2) + Score(24.0)
+ART_213,"Iceberg Drafts Assessment using Decision Tree Regression (DTR), Artificial Neural Network (ANN), and Support Vector Regression (SVR) algorithms",,Aprovado,O&G(3) + IA(7) + SCM_core(2) + Score(26.0)
+ART_214,Assessment Methodology for Transition of Offshore Brownfield Platforms to Remote Operations,10.4043/32717-MS,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=5"
+ART_215,"Development of a Reliability and Maintenance Database System for Offshore Well Equipment in Brazil: MINERVA, Phase 1",10.4043/32957-MS,Reprovado,"Apenas SCM contextual(2), sem core; O&G=3, IA=1"
+ART_216,A Web Service Oriented Integration Solution for Capital Facilities Information Handover,10.1007/978-981-99-7254-8_30,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=12.5; verificar profundidade SCM"
+ART_217,FlexDelivery - Integrated Logistics in the Offshore Sector,10.2118/217024-MS,Aprovado,O&G(3) + IA(3) + SCM_core(6) + Score(36.0)
+ART_218,Digital Twin Applications in EPC Projects,10.2118/216770-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=19.5; verificar profundidade SCM"
+ART_219,China Offshore Intelligent Oilfield Production Monitoring System: Design and Technical Path Forward for Implementation,10.2118/216490-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=29.0; verificar profundidade SCM"
+ART_220,Fast Track Implementation of Large Projects in Today's VUCA Environment,10.2118/216728-MS,Reprovado,"Apenas SCM contextual(1), sem core; O&G=5, IA=2"
+ART_221,Digitalization Potentials in Supporting Offshore Logistics,10.2118/217032-MS,Aprovado,O&G(4) + IA(3) + SCM_core(5) + Score(35.0)
+ART_222,Wells and Facilities Instrumentation and Automation Towards Achieving Field Intelligence,10.2118/216366-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=7, IA=1"
+ART_223,Enhancing Supply Chain Efficiency through Predictive Analytics: A Systematic Approach to Forecast Unit of Activity,10.3997/2214-4609.202377007,Aprovado,SCM no titulo + O&G(1) + IA(3) + Score(16.5)
+ART_224,THE IMPLEMENTATION OF GLOVE TEXT EMBEDDINGS AND NUMERICAL INDICATORS ANALYSIS FOR PLASTIC RESIN PRICE PREDICTION,10.24507/icicel.17.03.257,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=8"
+ART_225,Salt body segmentation based on edge detection using deep supervised learning,10.1063/5.0130158,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=2"
+ART_226,Adaptive Sliding Mode Control for Three-Wheel Omnidirectional Mobile Robot,10.14445/22315381/IJETT-V71I5P202,Reprovado,"Score insuficiente (7.5); O&G=1, IA=1, SCM_core=1"
+ART_227,Improving natural gas supply chain profitability: A multi-methods optimization study,10.1016/j.energy.2023.128659,Aprovado,SCM no titulo + O&G(3) + IA(3) + Score(23.0)
+ART_228,Super learner approach to predict total organic carbon using stacking machine learning models based on well logs,10.1016/j.fuel.2023.128682,Reprovado,"Apenas SCM contextual(1), sem core; O&G=4, IA=9"
+ART_229,Flow Back Optimization in Deep Water in Presence of Solids - Contingency Management and Flaring Abatement,10.2118/220851-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=7, IA=1"
+ART_230,Prediction on Failure Pressure of Pipeline Containing Corrosion Defects Based on ISSA-BPNN Model,10.32604/ee.2023.044054,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=3"
+ART_231,Prioritizing Wells for Repurposing or Permanent Abandonment Based on Generalized Well Integrity Risk Analysis,10.2118/217738-MS,Reprovado,"Apenas SCM contextual(2), sem core; O&G=5, IA=8"
+ART_232,Modelling Stock Prices of Energy Sector using Supervised Machine Learning Techniques,10.32479/ijeep.15553,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=5"
+ART_233,Examining digital forensics in the context of Shamoan attack behavior within fog computing and exploring threat intelligence for Incident Response,10.1109/KHI-HTC60760.2024.10482310,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=4"
+ART_234,Machine Learning Techniques for Inorganic Scale Precipitation Prediction: A Real Field Data from a Carbonate Reservoir,10.2118/218796-MS,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=11"
+ART_235,Calculation of Production Back Allocation Using Machine Learning Algorithms,10.2118/219392-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=25.0; verificar profundidade SCM"
+ART_236,Machine Learning Approaches for Pattern Recognition and Missing Data Prediction in Field Datasets from Oil and Gas Operations,10.2118/219384-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=8"
+ART_237,A Language Model for Natural Language Interaction with Transactional Screens in the Oil and Gas Industry,10.2118/219324-MS,Aprovado,O&G(2) + IA(4) + SCM_core(2) + Score(18.5)
+ART_238,"Integrating IoT, AI, and Cloud Technologies for Sustainable Oilfield Operations",10.1109/ICCCBDA61447.2024.10569783,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=7"
+ART_239,Applications of information technology (IT) in Iraq's petroleum industry,10.52866/ijcsm.2024.05.02.010,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=18.0; verificar profundidade SCM"
+ART_240,Petroleum Industry Value Chain Optimization: The Inevitability of Midstream and Downstream Development. Asset Management and Information,10.2118/221689-MS,Aprovado,O&G(4) + IA(2) + SCM_core(2) + Score(32.5)
+ART_241,Asphaltene Stability Prediction Using Hybrid Artificial Neural Network Modeling Approach,10.2118/221598-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=5, IA=7"
+ART_242,Driving Profitability in Oil and Gas production Operations by Leveraging on Business Process Automation Solutions: The AI Journey,10.2118/221760-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=32.5; verificar profundidade SCM"
+ART_243,Petroleum Industry Value Chain Optimization: the Inevitability of Artificial Intelligence and Data Science in Midstream and Downstream Development,10.2118/221799-MS,Aprovado,O&G(9) + IA(4) + SCM_core(3) + Score(38.5)
+ART_244,Navigating the Future: Digital Twin in Maritime Industry,10.1109/CoBCom62281.2024.10631195,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=16.0; verificar profundidade SCM"
+ART_245,Advancing Drilling Safety: Automated Anomaly Detection in Well Control Using Machine Learning Techniques,10.2118/221626-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=22.0; verificar profundidade SCM"
+ART_246,Evolutionary algorithms for integrated oil and gas supply chain management considering enhanced oil recovery methods,10.1504/IJOGCT.2024.142058,Aprovado,O&G(4) + IA(2) + SCM_core(2) + Score(25.5)
+ART_247,Advancing Decision Making In Field Operations And Maintenance: A Practical Risk Based Analysis Tool,10.2118/221268-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=20.5; verificar profundidade SCM"
+ART_248,"Tree-based machine learning can determine lithofacies properties of reservoir rocks e Camal oil field, Yemen",10.62593/2090-2468.1041,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=4"
+ART_249,Integrating Advanced Big Data Analytics for Strategic Price Projections in the Oil and Gas Industry,10.1007/978-981-97-8666-4_7,Aprovado,O&G(4) + IA(2) + SCM_core(2) + Score(22.5)
+ART_250,Application of Artificial Intelligence in Corrosion Management,10.5006/C2024-20711,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=7"
+ART_251,Innovative Approach of Generative AI for Automating Technical Bid Evaluations in Oil Companies,10.2118/223359-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=26.5; verificar profundidade SCM"
+ART_252,Supply Chain Network Optimization & Simulation Model Digital Twin,10.2118/222960-MS,Aprovado,SCM no titulo + O&G(3) + IA(1) + Score(18.5)
+ART_253,20/20 Vision of Your Operations - Creating an Operational Twin of Completions Operations,10.2118/222086-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=6, IA=1"
+ART_254,Oil and Gas Field Digital Twin Full Lifecycle Management Platform and Application Based on Meta-Universe Technology,10.2118/221969-MS,Aprovado,O&G(5) + IA(5) + SCM_core(2) + Score(35.5)
+ART_255,A Novel Fuzzy Logic Framework for Model Reliability Evaluation in Permeability Prediction Using GPR,10.1109/CICN63059.2024.10847526,Reprovado,"Apenas SCM contextual(1), sem core; O&G=4, IA=4"
+ART_256,AGING MIDSTREAM SUPPLY CHAIN IN THE OIL AND GAS INDUSTRY: ISSUES AND AI-BASED SOLUTIONS,10.2307/27343774,Aprovado,SCM no titulo + O&G(3) + IA(2) + Score(21.0)
+ART_257,Ensemble-Based Convolutional Neural Networks (CNNs)For Weather Classification,10.1063/5.0217193,Reprovado,"Score insuficiente (9.5); O&G=1, IA=3, SCM_core=1"
+ART_258,Machine Learning and Simulation Modeling Large Offshore and Production Plants to improve Engineering and Construction,10.1016/j.procs.2025.02.056,Aprovado,O&G(3) + IA(2) + SCM_core(3) + Score(27.5)
+ART_259,Cybersecurity Challenges in Industrial Control Systems: An Interview Study with Asset Owners in Norway,10.1007/978-3-031-82349-7_27,Reprovado,"Score insuficiente (6.0); O&G=1, IA=0, SCM_core=1"
+ART_260,Renewing Fiber Optics Infrastructure on Mature Offshore Assets at Campos Basin,10.4043/35689-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=19.5; verificar profundidade SCM"
+ART_261,Data-Driven Optimization for Oilfield Operations,10.2118/224336-MS,Aprovado,O&G(4) + IA(6) + SCM_core(2) + Score(33.0)
+ART_262,Advanced Machine Learning for Accurate Reservoir Characterization: Predicting Fluid Saturations in Gharif Reservoir Using a Custom Ensemble Model,10.2118/224941-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=7"
+ART_263,Forecasting Energy Consumption and Emissions: A Data-Driven Machine Learning Approach,10.2118/224489-MS,Reprovado,"Apenas SCM contextual(1), sem core; O&G=5, IA=4"
+ART_264,Transforming Coiled Tubing Operations Utilizing Remote Monitoring and Data Transmission for Optimized Decision-Making,10.2118/224562-MS,Reprovado,"Apenas SCM contextual(2), sem core; O&G=2, IA=0"
+ART_265,Streamlining Procurement Through Digital Transformation: Enhancing Efficiency and Compliance,10.2118/224715-MS,Aprovado,SCM no titulo + O&G(5) + IA(1) + Score(21.5)
+ART_266,Digital Monitoring Systems Based on Artificial Intelligence for the Oil Industry,10.1007/978-3-031-91337-2_80,Aprovado,O&G(3) + IA(4) + SCM_core(2) + Score(22.0)
+ART_267,Satellite Gravimetry as a Tool for Forecasting Oil and Gas Potential,10.2205/2025ES000975,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=3"
+ART_268,Intelligent Technology and Application of Injection Production Adjustment in Daqing Oilfield,10.1007/978-981-96-4759-0_43,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=22.5; verificar profundidade SCM"
+ART_269,FAULT DETECTION OF ROTATING MACHINERY IN THE PETROCHEMICAL INDUSTRY USING A DEEP LEARNING BASED APPROACH: TABNET – WGAN,10.15587/1729-4061.2025.332597,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=4"
+ART_270,Robot Field Development Teams: Harnessing Multi-Agent Artificial Intelligence Systems in Petroleum Engineering,10.2118/225325-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=25.5; verificar profundidade SCM"
+ART_271,Enhanced Differential Pipe Sticking Detection in Drilling Operations Using Machine Learning Ensemble Methods,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=5"
+ART_272,Application of Machine Learning for Permeability Prediction from Well Logs in Sandstone Reservoir: A Comparative Study of Model Performance,10.2118/228754-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=4"
+ART_273,The Future of Asset Integrity: Balancing Innovation with Operational Excellence,10.2118/228641-MS,Aprovado,O&G(4) + IA(4) + SCM_core(2) + Score(25.0)
+ART_274,Multi-Model Machine Learning Approaches for Fault and Anomaly Detection in Petroleum Product Distribution: A Comparison,10.1109/SoSE66311.2025.11083821,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=24.5; verificar profundidade SCM"
+ART_275,Adaptive Neural Network for CO2 Reduction: A Predictive Model Integrating MCMC and GAT Techniques for Oil Vessel Supply Chain,10.1007/978-981-96-2625-0_41,Aprovado,SCM no titulo + O&G(2) + IA(3) + Score(18.5)
+ART_276,A Robust Methodology for Rig Equipment Automation Leveraging Computer Vision,10.2118/223688-MS,Reprovado,"Apenas SCM contextual(1), sem core; O&G=6, IA=4"
+ART_277,Spatial Machine Learning Algorithms to Discover Prospective Oil and Gas Wells Locations Based on Surface Driving Factors,10.52939/ijg.v21i2.3935,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=24.0; verificar profundidade SCM"
+ART_278,DDoS Attack Detection: A Comparative Study of TabNet Classifier with Isolation Forest and Tabular Transformer Models,10.1063/5.0247903,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=5"
+ART_279,Artificial neural network model for process monitoring of crude oil distillation column in a petroleum refinery,10.1177/1063293X251329460,Reprovado,"Apenas SCM contextual(1), sem core; O&G=4, IA=2"
+ART_280,Enhancing petroleum logistics with innovative decision support mechanism for fuel tanker selection,10.1007/s11356-025-36307-5,Sinalizado,SCM_core(2) + score(17.5); falta: IA
+ART_281,Research on hierarchical emergency resource scheduling for island petrochemical enterprises based on improved multi-objective grey wolf optimization algorithm,10.1016/j.energy.2025.135791,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=16.0; verificar profundidade SCM"
+ART_282,Clustering with Machine Learning and Using NDEA in Development Planning: A Case Study in the Petrochemical Two-Stage SSC,10.22105/riej.2024.455576.1443,Reprovado,Tipo excluido: case study
+ART_283,A Hybrid Approach for Solving the Capacitated Vehicle Routing Problem,10.30939/ijastech..1663305,Aprovado,O&G(1) + IA(3) + SCM_core(3) + Score(19.5)
+ART_284,Performance Evaluation of Machine Learning Algorithms for Detecting Gas Leakage System,10.19153/cleiej.28.3.12,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=6"
+ART_285,Challenges and Solutions for Advanced Through-Tubing Cement Evaluation,10.30632/PJV66N4-2025a10,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=1"
+ART_286,Graph Pointer Network Based Hierarchical Curriculum Reinforcement Learning Method Solving Shuttle Tankers Scheduling Problem,10.23919/CSMS.2024.0017,Aprovado,O&G(2) + IA(1) + SCM_core(2) + Score(15.5)
+ART_287,Integrated method combining analytical and mathematical models for the evaluation and optimization of sustainable supply chains: A Brazilian case study,10.1016/j.cie.2019.01.044,Reprovado,Tipo excluido: case study
+ART_288,Machine learning based intelligent downhole drilling optimization system using an electromagnetic short hop bit dynamic measurements,10.2118/201572-MS,Reprovado,"Apenas SCM contextual(1), sem core; O&G=4, IA=5"
+ART_289,Improved African buffalo optimisation algorithm for petroleum product supply chain management,10.1504/IJGUC.2020.110905,Aprovado,SCM no titulo + O&G(1) + IA(2) + Score(17.5)
+ART_290,Machine Learning Models to Automatically Validate Petroleum ProductionTests,10.2118/199112-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=7"
+ART_291,Improving NCEP's global-scale wave ensemble averages using neural networks,10.1016/j.ocemod.2020.101617,Reprovado,"Score insuficiente (8.0); O&G=1, IA=2, SCM_core=1"
+ART_292,Intelligent diagnosis of petroleum equipment faults using a deep hybrid model,10.1007/s42452-020-2741-0,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=6"
+ART_293,Comprehensive Decision Framework Combining Price Prediction and Production-Planning Models for Strategic Operation of a Petrochemical Industry,10.1021/acs.iecr.0c01957,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=21.5; verificar profundidade SCM"
+ART_294,Data analysis to facilitate offshore seawater ultrafiltration membrane replacement decision and scheduling of chemical wash,10.3850/978-981-14-8593-0_4388-cd,Sinalizado,SCM_core(1) + score(16.5); falta: IA
+ART_295,Drilling stuck pipe classification and mitigation in the Gulf of Suez oil fields using artificial intelligence,10.1007/s13202-020-00857-w,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=10"
+ART_296,Comparison of machine learning classifiers for accurate prediction of real-time stuck pipe incidents,10.3390/en13143683,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=8"
+ART_297,Supervised Machine Learning Classification Algorithmic Approach for Finding Anomaly Type of Intrusion Detection in Wireless Sensor Network,10.3103/S1060992X20030029,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=6"
+ART_298,Machine Learning Algorithm for Intelligent Prediction for Military Logistics and Planning,10.1109/ICTC49870.2020.9289286,Aprovado,O&G(2) + IA(6) + SCM_core(4) + Score(36.0)
+ART_299,Data–driven decision–making for lost circulation treatments: A machine learning approach,10.1016/j.egyai.2020.100031,Reprovado,"Apenas SCM contextual(2), sem core; O&G=1, IA=4"
+ART_300,Integrating machine learning and data analytics for geostatistical characterization of clastic reservoirs,10.1016/j.petrol.2020.107837,Reprovado,"Apenas SCM contextual(1), sem core; O&G=5, IA=7"
+ART_301,Development and internal validation of risk prediction model of metabolic syndrome in oil workers,10.1186/s12889-020-09921-w,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=5"
+ART_302,Neural networks to locate and quantify fugitive natural gas leaks for a MIR detection system,10.1016/j.aeaoa.2020.100092,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=1"
+ART_303,Digitize-PID: Automatic Digitization of Piping and Instrumentation Diagrams,10.1007/978-3-030-75015-2_17,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=13.0; verificar profundidade SCM"
+ART_304,Quantifying methane emissions through process simulations model and beyond,10.1115/OPTC2021-67334,Aprovado,O&G(6) + IA(1) + SCM_core(2) + Score(18.5)
+ART_305,Interventional Video Grounding with Dual Contrastive Learning,10.1109/CVPR46437.2021.00279,Reprovado,"Score insuficiente (7.0); O&G=0, IA=2, SCM_core=1"
+ART_306,Petroleum Software License Usage Forecast Based on ARIMA Algorithm,10.1109/ICNISC54316.2021.00067,Reprovado,"Score insuficiente (9.5); O&G=1, IA=2, SCM_core=1"
+ART_307,DYNAMIC PLACEMENT OF RAPIDLY DEPLOYABLE MOBILE SENSOR ROBOTS USING MACHINE LEARNING AND EXPECTED VALUE OF INFORMATION,10.1115/IMECE2021-70759,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=6"
+ART_308,Distilling small volumes of crude oil,10.1016/j.fuel.2020.119072,Aprovado,O&G(6) + IA(2) + SCM_core(2) + Score(21.5)
+ART_309,Development of a decision support system for assessing the supply chain risk mitigation strategies: an application in Indian petroleum supply chain,10.1108/JMTM-02-2020-0035,Sinalizado,SCM core forte(3) + score alto(24.5); falta: IA
+ART_310,Optimisation of biochar-based supply chains for negative emissions and resource savings in carbon management networks,10.1007/s10098-020-01990-0,Reprovado,"Score insuficiente (9.0); O&G=1, IA=0, SCM_core=2"
+ART_311,Characterizing oil and gas wells with fugitive gas migration through Bayesian multilevel logistic regression,10.1016/j.scitotenv.2020.144678,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=22.5; verificar profundidade SCM"
+ART_312,Blockchain-based royalty contract transactions scheme for Industry 4.0 supply-chain management,10.1016/j.ipm.2021.102586,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=15.5; verificar profundidade SCM"
+ART_313,Fragility assessment approach of deepwater drilling risers subject to harsh environments using Bayesian regularization artificial neural network,10.1016/j.oceaneng.2021.108793,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=19.0; verificar profundidade SCM"
+ART_314,Machine Learning Algorithm Model for Improving Business Decisions Making in Upstream Oil Gas,10.1109/ICOTEN52080.2021.9493499,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=21.5; verificar profundidade SCM"
+ART_315,PredictMed: A Machine Learning Model for Identifying Risk Factors of Neuromuscular Hip Dysplasia: A Multicenter Descriptive Study,10.1055/s-0040-1721703,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=3"
+ART_316,Using machine learning to predict post-operative depth of focus after cataract surgery with implantation of Tecnis Symfony,10.1177/1120672121991777,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=5"
+ART_317,Demodulation of em telemetry data using fuzzy wavelet neural network with logistic response,10.3390/app112210877,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=3"
+ART_318,Gradient descent algorithm to optimize the offshore scale squeeze treatments,10.1016/j.petrol.2021.109469,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=1"
+ART_319,"Spatial assessment of gross vertical reservoir heterogeneity using geostatistics and GIS-based machine-learning classifiers: A case study from the Zubair Formation, Rumaila oil field, southern Iraq",10.1016/j.petrol.2021.109482,Reprovado,Tipo excluido: case study
+ART_320,Data science and reinforcement learning for price forecasting and raw material procurement in petrochemical industry,10.1016/j.aei.2021.101443,Aprovado,SCM no titulo + O&G(3) + IA(4) + Score(24.5)
+ART_321,Anomaly Detection Using Explainable Random Forest for the Prediction of Undesirable Events in Oil Wells,10.1155/2022/1558381,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=8"
+ART_322,Creating an Auto-Encoder Based Predictive Maintenance Tool for Offshore Annulus Wells,10.2118/210220-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=20.0; verificar profundidade SCM"
+ART_323,Real-time Electrical Submersible Pump Smart Alarms Suite Enabled Through Data Analytics and Edge-based Virtual Flowmeter,10.2118/209958-MS,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=20.0; verificar profundidade SCM"
+ART_324,Data-Driven Models for Forecasting Failure Modes in Oil and Gas Pipes,10.3390/pr10020400,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=23.0; verificar profundidade SCM"
+ART_325,Spatial-Temporal Land Loss Modeling and Simulation in a Vulnerable Coast: A Case Study in Coastal Louisiana,10.3390/rs14040896,Reprovado,Tipo excluido: case study
+ART_326,A decision support system for sustainability prioritization of air pollution control technologies in energy and carbon management: Oil & gas industry of Iran,10.1016/j.jngse.2022.104416,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=1"
+ART_327,Machine Learning-Enhanced Play Fairway Analysis for Uncertainty Characterization and Decision Support in Geothermal Exploration,10.3390/en15051929,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=6"
+ART_328,Sustainability of operations through disruptive technologies in the petroleum supply chain,10.1108/BIJ-02-2021-0086,Aprovado,SCM no titulo + O&G(1) + IA(2) + Score(14.5)
+ART_329,Augmented deep learning workflow for robust fault prediction over multiple tectonic regimes,10.1093/jge/gxac056,Aprovado,O&G(2) + IA(6) + SCM_core(2) + Score(22.0)
+ART_330,Machine Learning Models for Predicting Mortality in 7472 Very Low Birth Weight Infants Using Data from a Nationwide Neonatal Network,10.3390/diagnostics12030625,Reprovado,"Apenas SCM contextual(1), sem core; O&G=0, IA=10"
+ART_331,The Digital Design Basis. Demonstrating a framework to reduce costs and improve quality in early-phase design,10.1016/j.dche.2022.100015,Reprovado,"Score insuficiente (9.0); O&G=3, IA=0, SCM_core=1"
+ART_332,Prediction of Oil and Gas Well Integrity Using Well Construction Physical Parameters and Geospatial Metrics,10.1021/acs.energyfuels.4c03758,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=5"
+ART_333,Self-Healing Databases for Emergency Response Logistics in Remote and Infrastructure-Poor Settings,10.3390/logistics9010023,Aprovado,SCM no titulo + O&G(1) + IA(3) + Score(15.5)
+ART_334,Advanced EOR screening methodology based on LightGBM and random forest: A classification problem with imbalanced data,10.1002/cjce.25433,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=5"
+ART_335,Prediction of Lithofacies in Heterogeneous Shale Reservoirs Based on a Robust Stacking Machine Learning Model,10.3390/min15030240,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=5, IA=5"
+ART_336,Reference Synthetic Data Set for Drilling Inventory Optimization,10.2118/220950-PA,Aprovado,SCM no titulo + O&G(5) + IA(3) + Score(25.0)
+ART_337,Semi-Supervised Class-Incremental Sucker-Rod Pumping Well Operating Condition Recognition Based on Multi-Source Data Distillation,10.3390/s25082372,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=4"
+ART_338,Deep learning based early warning methodology for gas kick of deepwater drilling using pilot-scale rig data,10.1016/j.psep.2025.106844,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=24.0; verificar profundidade SCM"
+ART_339,"Machine Learning for Onshore Oil Seeps Detection: A Case Study in Kirkuk-Sulaimaniyah Area, Northeastern Iraq",10.2118/226184-PA,Reprovado,Tipo excluido: case study
+ART_340,A multi-level classification model for corrosion defects in oil and gas pipelines using meta-learner ensemble (MLE) techniques,10.1016/j.jpse.2024.100244,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=5"
+ART_341,Risk Analysis of Flowlines in the Oil and Gas Sector: A Geographic Information Systems and Machine Learning Approach,10.2118/228286-PA,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=27.5; verificar profundidade SCM"
+ART_342,"Automated hydraulic flow unit determination using FZI-Z-score probability, K-means clustering with autoencoders, and machine learning classification: A case study of the Subei Basin, China",10.1016/j.jappgeo.2025.105778,Reprovado,Tipo excluido: case study
+ART_343,Vision-based volumetric estimation of localized construction and demolition waste,10.1016/j.wasman.2025.115046,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=17.0; verificar profundidade SCM"
+ART_344,Efficiency enhancement of energy supply chains using a machine learning-driven network evaluation framework for blockchain adoption,10.1016/j.esr.2025.101816,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=20.0; verificar profundidade SCM"
+ART_345,Measuring Multidimensional Resilience of China’s Oil and Gas Industry and Forecasting Resilience Under Multiple Scenarios,10.3390/su17178019,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=2"
+ART_346,Machine learning-based prediction of oil–water relative permeability using core flooding and CT-scan data,10.1016/j.rineng.2025.105735,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=7"
+ART_347,Near-Surface Monitoring of Plugged and Abandoned Wells for Real-Time Leakage Detection in Geologic Carbon Storage,10.1016/j.ijggc.2025.104483,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=7"
+ART_348,Quantifying Tail Risk Spillovers in Chinese Petroleum Supply Chain Enterprises: A Neural-Network-Inspired Multi-Layer Machine Learning Framework,10.3390/systems13100874,Aprovado,SCM no titulo + O&G(3) + IA(1) + Score(18.0)
+ART_349,A Novel Approach for the Estimation of the Efficiency of Demulsification of Water-In-Crude Oil Emulsions,10.3390/polym17212957,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=2"
+ART_350,A hybrid data envelopment analysis and artificial intelligence framework for sustainable supplier selection: a case study in the petrochemical industry,10.1016/j.asej.2025.103871,Reprovado,Tipo excluido: case study
+ART_351,An explainable machine learning framework for predicting injury severity in extractive industry accidents,10.1016/j.rineng.2025.107552,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=9"
+ART_352,On the influence of uncertainty in risk analysis based on digital models,10.1016/j.measurement.2025.119125,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=15.5; verificar profundidade SCM"
+ART_353,Knowledge-Assisted Dual-Stage Evolutionary Optimization of Large-Scale Crude Oil Scheduling,10.1109/TETCI.2024.3353590,Aprovado,O&G(3) + IA(2) + SCM_core(2) + Score(19.5)
+ART_354,"A Comprehensive Survey of Industry 4.0, IIoT and Areas of Implementation",10.1109/SoutheastCon45413.2021.9401860,Reprovado,Tipo excluido: survey paper
+ART_355,A Framework and Operational Procedures for Metaverses-Based Industrial Foundation Models,10.1109/TSMC.2022.3226755,Reprovado,"Apenas SCM contextual(1), sem core; O&G=0, IA=0"
+ART_356,Robotics Technology for Inspection of Ships,10.1109/ETFA46521.2020.9212143,Reprovado,"Apenas SCM contextual(1), sem core; O&G=0, IA=0"
+ART_357,Drilling in the Fourth Industrial Revolution—Vision and Challenges,10.1109/EMR.2020.2999420,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=3"
+ART_358,Digital Trends in the Mining Industry Value Chain,10.1109/eSmarTA56775.2022.9935469,Reprovado,"Score insuficiente (12.0); O&G=1, IA=0, SCM_core=1"
+ART_359,On Predictive Big Data Quality,10.1109/IS61756.2024.10705180,Reprovado,"Score insuficiente (11.5); O&G=1, IA=3, SCM_core=1"
+ART_360,An Improvement of Pearson Correlation Coefficient for Variable Importance Analysis,10.1109/ICCIA59741.2023.00023,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=2"
+ART_361,Digital Project Execution – Optimizing Your Assets,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=0"
+ART_362,Anomaly Detection Based on Temporal Attention Network With Adaptive Threshold Adjustment for Electrical Submersible Pump,10.1109/TIM.2024.3436113,Reprovado,"Score insuficiente (10.0); O&G=1, IA=2, SCM_core=1"
+ART_363,Internet of Things (IoT) for Real-Time Tracking and Monitoring,10.1109/ICRITO66076.2025.11241612,Reprovado,"Score insuficiente (12.0); O&G=0, IA=4, SCM_core=1"
+ART_364,"Subsuming AI, IoT and Big Data in Smart Farm Practices",10.1109/DevIC57758.2023.10134816,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=16.0; verificar profundidade SCM"
+ART_365,Data-Driven Dynamic Modeling and Fault Diagnosis of Dimethyl Oxalate Industrial Production Process,10.1109/DOCS63458.2024.10704444,Reprovado,"Score insuficiente (8.0); O&G=0, IA=2, SCM_core=1"
+ART_366,"Impact of Big Data Analytics, Knowledge Management, and Capabilities on the Firms' Ability and Performance",10.1109/SNAMS58071.2022.10062800,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=1"
+ART_367,A Meta-learner Based Ensemble System of Neural Networks for Improving the Accuracy of Preterm Birth Prediction,10.1109/ICDSIS65355.2025.11071092,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=2"
+ART_368,Data-Driven Diversification Strategies for Uzbekistan’s Tourism Product using Predictive Market Modeling,10.1109/ICSCDS65426.2025.11167646,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=3"
+ART_369,Bio-Inspired Ant Lion Optimizer for a Constrained Petroleum Product Scheduling,10.1109/ACCESS.2022.3204811,Reprovado,"Apenas SCM contextual(2), sem core; O&G=1, IA=1"
+ART_370,Development of a Resource Forecasting Model for Project Management Tasks in the Design and Construction of Facilities,10.1109/SCM66446.2025.11060171,Aprovado,SCM no titulo + O&G(1) + IA(3) + Score(16.5)
+ART_371,Enterprise Resource Planning for Robotic Process Automation in Big Companies. A Case Study,10.1109/ICSTCC50638.2020.9259739,Reprovado,Tipo excluido: case study
+ART_372,Digital transformation of maintenance processes for analytical instrumentation in the Philippine manufacturing industry,10.1109/ICCAD60883.2024.10553811,Reprovado,"Apenas SCM contextual(1), sem core; O&G=0, IA=5"
+ART_373,Risk Mitigation to Minimize Distribution Delays and Empty Stock at Industrial Jakarta Gas Station,10.1109/ICDABI56818.2022.10041578,Reprovado,"Apenas SCM contextual(3), sem core; O&G=0, IA=0"
+ART_374,An Efficient Method for Sharing Information in the Wellbore Engineering Data Center Stage Applying Ubiquitous Sensing Networks,10.1109/ICDM63232.2024.10762322,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=1"
+ART_375,Impact of Digital Twin Technology Utilization in Manufacturing on Sustainability: An Industrial Case Study,10.23919/PICMET59654.2023.10216885,Reprovado,Tipo excluido: case study
+ART_376,An analysis framework for resource management in smart manufacturing the Industrial Internet of Things (IIoT) applications and taxonomy,10.1109/ARIIA63345.2024.11051437,Aprovado,O&G(1) + IA(4) + SCM_core(4) + Score(28.0)
+ART_377,Deep Learning Based Leak Detection of Oil Transmission,10.1109/ICICyTA60173.2023.10428859,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=3"
+ART_378,Trends In Blockchain Applications: Current and Future Perspectives,10.1109/ICoSEIT60086.2024.10497520,Reprovado,"Score insuficiente (10.0); O&G=0, IA=2, SCM_core=2"
+ART_379,A Hybrid Machine Learning Approach to Anomaly Detection in Industrial IoT,10.1109/ACCESS57397.2023.10199711,Sinalizado,SCM_core(1) + score(16.0); falta: O&G
+ART_380,Additive Manufacturing for Spare Parts Management: Is Decentralized Production Always Environmentally Preferable?,10.1109/TEM.2025.3540938,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=12.0; verificar profundidade SCM"
+ART_381,Safe and Secure Oil and Gas Pipeline Transportation System Based on Industrial Internet of Things,10.1109/JSEN.2024.3353595,Aprovado,SCM no titulo + O&G(2) + IA(1) + Score(19.5)
+ART_382,IoT Based AI and its Implementations in Industries,10.1109/ICCES51560.2020.9334627,Reprovado,"Score insuficiente (12.5); O&G=0, IA=5, SCM_core=1"
+ART_383,Wireless IoT System for Detection of Fruit Maturation by Color and Ethylene Gas,10.1109/SIoT60039.2023.10390149,Reprovado,"Score insuficiente (9.0); O&G=0, IA=2, SCM_core=1"
+ART_384,"Interpretable Cross Value Chain Decision Support Model: A Combined Approach Based on Multi-Roles Agent, AIGC and Knowledge Engineering",10.1109/ICAHN67688.2025.00018,Aprovado,SCM no titulo + O&G(1) + IA(1) + Score(14.5)
+ART_385,Towards Blockchain-Secured Agile Validation of Cyber Resilience in Industrial Control System Defence Environments,10.1109/BCCA66705.2025.11229554,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=0"
+ART_386,Instrument Reliability using Predictive Analytics (IRIS),10.1109/CSPA60979.2024.10525647,Reprovado,"Apenas SCM contextual(1), sem core; O&G=0, IA=4"
+ART_387,Digital Interconnected Intelligent Decision-Making Platform Based on AI Technology,10.1109/AIITA65135.2025.11047625,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=17.5; verificar profundidade SCM"
+ART_388,"Fuels Demand Forecasting: Identifying Leading Feature Sets, Prediction Strategy, and Regressors",10.1109/ICMLA61862.2024.00141,Sinalizado,SCM_core(2) + score(17.0); falta: O&G
+ART_389,A Predictive Readiness Model for Blockchain Adoption in the Malaysian Palm Oil Industry,10.1109/AiDAS67696.2025.11213858,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=4"
+ART_390,The Influence of AI Technologies on Job Seeker Experiences In Online Recruitment: A Comprehensive Analysis,10.1109/AIMV66517.2025.11203482,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=2"
+ART_391,Digital Twin in complex operations environments: potential applications and research challenges,10.1109/ACIE58528.2023.00022,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=2"
+ART_392,"Challenges in developing and deploying AI in the engineering, procurement and construction industry",10.1109/COMPSAC54236.2022.00167,Aprovado,SCM no titulo + O&G(4) + IA(4) + Score(22.0)
+ART_393,Securing Industrial Networks: An Ensemble Learning Approach to Trojan Prevention in Digital Information Transfer,10.1109/ICEC59683.2024.10837272,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=1"
+ART_394,Interval Forecast based on Markov Chain Monte Carlo with Autoregressive Recurrent Networks for Natural Gas Consumption,10.1109/EI264398.2024.10991474,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=12.5; verificar profundidade SCM"
+ART_395,Supply Chain Characteristics as Predictors of Cyber Risk: A Machine-Learning Assessment,10.1109/TDSC.2025.3571045,Reprovado,"Score insuficiente (12.5); O&G=0, IA=3, SCM_core=1"
+ART_396,Harnessing Big Data for Price Predictions in Oil and Gas Markets,10.1109/ICMACC62921.2024.10894164,Aprovado,O&G(2) + IA(2) + SCM_core(2) + Score(17.5)
+ART_397,Determining the Readiness Factors to Adapt Blockchain Technology in the Palm Oil Industry to Facilitate Circular Economy Transition,10.1109/AiDAS63860.2024.10730330,Reprovado,"Score insuficiente (6.0); O&G=1, IA=0, SCM_core=1"
+ART_398,Intelligent Forecasting Methods in Choosing a Strategy for Participation in Public Procurement,10.1109/SUMMA60232.2023.10349375,Aprovado,SCM no titulo + O&G(1) + IA(3) + Score(16.5)
+ART_399,Machine Learning Frameworks for Industrial Internet of Things (IIoT): A Comprehensive Analysis,10.1109/ICEEICT53079.2022.9768630,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=5"
+ART_400,Industrial Expert Systems Review: A Comprehensive Analysis of Typical Applications,10.1109/ACCESS.2024.3419047,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=17.5; verificar profundidade SCM"
+ART_401,Medical Drug Data Cluster Analysis Using Mimetic Optimization Technique Combined with Chaotic Logistic Maps,10.1109/AICCIT57614.2023.10218163,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=4"
+ART_402,Internet of Things for Sustainable Carbon Footprint Reduction and Energy Management in Supply Chain,10.1109/JIOT.2025.3630155,Aprovado,SCM no titulo + O&G(1) + IA(5) + Score(23.0)
+ART_403,Proposal of Closed Loop Supply Chain Model for Medical Oxygen Cylinders,10.1109/ETIS64005.2025.10961657,Sinalizado,SCM core forte(3) + score alto(22.5); falta: O&G
+ART_404,Sustainability-Based Strategic Framework for Digital Transformation in the Oil and Gas Industry,10.1109/ACCESS.2025.3548960,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=5"
+ART_405,Digital Twin Technology for Predictive Maintenance in Industrial Iot Environments: Enhancing Operational Efficiency and Asset Longevity,10.1109/ICBATS66542.2025.11258212,Reprovado,"Apenas SCM contextual(1), sem core; O&G=0, IA=4"
+ART_406,Integrating Real-Time Automation and Big Data Analytics in the Oil and Gas Industry,10.1109/ICCCNT61001.2024.10723854,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=3"
+ART_407,Application of Natural Language Processing (NLP) and Text-Mining of Big-Data to Engineering-Procurement-Construction (EPC) Bid and Contract Documents,10.1109/CDMA47397.2020.00027,Aprovado,SCM no titulo + O&G(1) + IA(5) + Score(25.0)
+ART_408,"Intelligent Management of Business Processes in the Energy, Oil and Gas Industries of Russia",10.1109/SCM66446.2025.11060097,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=5"
+ART_409,Extended CSF-CoCoSo Method: A Novel Approach for Optimizing Logistics in the Oil and Gas Supply Chain,10.1109/ACCESS.2024.3390938,Sinalizado,SCM core forte(2) + score alto(21.5); falta: IA
+ART_410,"A Survey on Supply Chain Security: Application Areas, Security Threats, and Solution Architectures",10.1109/JIOT.2020.3025775,Reprovado,Tipo excluido: survey paper
+ART_411,Securing the Petroleum Supply Chain Through Proof of Work Implementation,10.1109/ICBDS61829.2024.10837551,Sinalizado,SCM_core(1) + score(15.5); falta: IA
+ART_412,Digitalization and Industry 4.0 Technologies in Asset Integrity: A Comparative Analysis in the Oil and Gas Sector,10.1109/SEB4SDG60871.2024.10629803,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=1"
+ART_413,Innovative Applications of 5G in Petrochemical Industry: Challenges and Opportunities,10.1109/ICIBA62489.2024.10867981,Reprovado,"Score insuficiente (10.5); O&G=3, IA=0, SCM_core=1"
+ART_414,Designing a Digital Twin in Oil and Gas Technologies: Technology Integration,10.1109/SCM62608.2024.10554148,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=5"
+ART_415,Optimizing Supply Chain Operations through Machine Learning: Opportunities and Challenges,10.1109/ICPCT64145.2025.10941283,Sinalizado,SCM core forte(4) + score alto(24.5); falta: O&G
+ART_416,Construction and Application of Digital Supply Chain Finance Platform in Oil and Gas Industry,10.1109/ICCSIE61360.2024.10698449,Aprovado,O&G(3) + IA(2) + SCM_core(2) + Score(21.5)
+ART_417,Digital Healthcare Engineering System for Enhancing the Safety and Sustainability of Aging Monopile Offshore Wind Turbines in Storm Conditions,10.5957/SMC-2025-049,Reprovado,"Apenas SCM contextual(2), sem core; O&G=2, IA=3"
+ART_418,Operational State Analysis of Semi-Submersible Floating Wind Turbines Based on Measured Data,,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=4"
+ART_419,Studies on Early Warning Models and Ship Navigation State Monitoring Using Multi-Source Data,,Reprovado,"Score insuficiente (12.5); O&G=0, IA=3, SCM_core=1"
+ART_420,Prediction of Mooring Line Tension of a FOWT Under Uniform Wind and Irregular Waves by Artificial Neural Networks,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=2"
+ART_421,DiEM – A Digital Engine Management Platform for Condition-Based Maintenance and Performance Optimization,10.5957/SMC-2025-084,Aprovado,O&G(1) + IA(3) + SCM_core(2) + Score(17.5)
+ART_422,The Extreme Short-Term Prediction of Motions for Two Parallel Ships in Waves by Deep-Learning,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=4"
+ART_423,Characterizing Fracture Asperity Distribution in the Laboratory with Internal Seismic Sources and Triplet Neural Networks,10.56952/ARMA-2025-0507,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=1"
+ART_424,"Geothermal reservoir modeling and calibration in a coupled thermo-hydro-mechanical perspective - a case study for DEEP Geothermal Project in Saskatchewan, Canada",10.56952/ARMA-2025-0617,Reprovado,Tipo excluido: case study
+ART_425,Phase-Based Offshore Wind Power Prediction Using LSTM Neural Networks,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=5"
+ART_426,On the Wind Turbine Clearance Forecasting Surrogate Model,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=5"
+ART_427,Generating and Testing Navigation Scenarios for Verifying COLREG-Compliant Decision Support System,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=1"
+ART_428,Bridging Data Gaps with Machine Learning for Reliable Monitoring of a Floating Solar Array Under Extreme Marine Environments,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=4"
+ART_429,Federated Learning for the Maritime and Offshore Industries: Training Machine Learning Models Without Data Sharing,10.5957/TOS-2025-019,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=2"
+ART_430,Integrated Live Geomechanics Model to Unlock the Deep Shale Gas Reservoir,10.56952/IGS-2024-0456,Reprovado,"Apenas SCM contextual(1), sem core; O&G=6, IA=1"
+ART_431,1D and 3D Geomechanical Modeling of an Unconventional Shale Gas Formation for Well Placement Location and Completions Optimization,10.56952/IGS-2024-0085,Reprovado,"Apenas SCM contextual(1), sem core; O&G=6, IA=4"
+ART_432,Artificial Intelligence Utilization for Ship Design Optimization,10.5957/SMC-2024-023,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=2"
+ART_433,Random-Forest Model-Based Technique for Segmentation of Deep-Sea Images,,Reprovado,"Apenas SCM contextual(1), sem core; O&G=0, IA=1"
+ART_434,Machine Learning Algorithms and Statistical Methods for Investigating Hydrate Promoters for CO2 Sequestration in Marine Hydrate Reservoirs,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=5, IA=2"
+ART_435,Real-Time Rate of Penetration Prediction for Motorized Bottom Hole Assembly Using Artificial Intelligence,10.56952/ARMA-2024-1059,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=3"
+ART_436,Ship Collision Detection and Classification Employing AIS Data,,Reprovado,"Apenas SCM contextual(1), sem core; O&G=0, IA=1"
+ART_437,Progressive Reduced Order Modeling: From Single-Phase Flow to Coupled Multiphysics Processes,10.56952/ARMA-2024-0096,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=2"
+ART_438,Multi-Source Data Fusion and Knowledge Presentation for Shield Tunnel Maintenance Work Based on Knowledge Graph,10.56952/ARMA-2024-0876,Reprovado,"Score insuficiente (11.0); O&G=0, IA=4, SCM_core=1"
+ART_439,A Real-Time Inversion Framework for Carbon Equivalent Emissions in Oil and Gas Extraction Based on Vision Transformer,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=2"
+ART_440,Deep Learning for S-Wave Arrival Time Picking in Acoustic Emission Source Location Analysis,10.56952/ARMA-2024-0279,Reprovado,"Apenas SCM contextual(2), sem core; O&G=1, IA=2"
+ART_441,Comparative Analysis Framework for Route-Based Fuel Oil Consumption,,Reprovado,"Score insuficiente (10.5); O&G=1, IA=1, SCM_core=1"
+ART_442,Lithology Identification of Deep Coal Seam Based on Machine Learning,10.56952/ARMA-2024-0906,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=4"
+ART_443,Enhancing Well Kick Classification in Drilling Operations Using a Novel PCA-Based Machine Learning Approach,10.56952/ARMA-2024-0626,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=4"
+ART_444,Production and Tracking Methods of Surrogate Particles for Experimental Testing of Paint Flake Emissions Originating from Offshore Structures,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=1"
+ART_445,Mechanisms and Mode Recognition of Two-Phase Flow Instability in Offshore Passive Heat Removal System for Nuclear Powered Ships,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=1"
+ART_446,Seismic Source Characterization with Distributed Acoustic Sensing,10.56952/ARMA-2024-1111,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=2"
+ART_447,Unveiling the Invisible: Mapping Basement Faults Using Microseismic Clouds,10.56952/ARMA-2024-0557,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=5"
+ART_448,Wavelet Transform and Hidden Markov Model Application for Unsupervised Clustering of Microseismic Events from CO2 Injection,10.56952/ARMA-2024-0844,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=3"
+ART_449,"Rocks, Data, Algorithms: A Roadmap for Practical Machine Learning Adoption in Rock Engineering",10.56952/ARMA-2024-1234,Reprovado,"Apenas SCM contextual(1), sem core; O&G=0, IA=4"
+ART_450,Hyperparameter Tuning of an Artificial Neural Network (ANN) for Laboratory Acoustic Emission Source Location,10.56952/ARMA-2024-0277,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=3"
+ART_451,Duration Prediction of Ship Lifting Machine Based on LIWOA Optimal Neural Network,,Reprovado,"Apenas SCM contextual(1), sem core; O&G=0, IA=3"
+ART_452,Automatic Classification of Underwater Sounds Measured Under a Shipping Lane Using Machine Learning and its Validation with AIS Data,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=2"
+ART_453,Improved Shale Volume Prediction Using Machine Learning Algorithms in Complex Reservoirs,10.56952/ARMA-2024-1085,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=6"
+ART_454,Hydrodynamic Characteristion of Flapping Hydrofoils Based on Machine Learning,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=3"
+ART_455,The Fast Time-Domain Fatigue Check Method for Floating Offshore Wind Turbine,,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=1"
+ART_456,Enhancing DeepLabV3+ for Underwater Equipment Detection and Segmentation,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=4"
+ART_457,Evaluation of Different Tree-Based Machine Learning Approaches for Formation Lithology Classification,10.56952/IGS-2023-0026,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=4"
+ART_458,Singular Value Decomposition-Based Multiple Model Approach Towards Developing Digital Twin Applications in Ship Performance Prediction,,Aprovado,O&G(2) + IA(4) + SCM_core(2) + Score(24.0)
+ART_459,Enhancing Long-Term Predictive Accuracy in Wave Energy Converters Through a Dual-Model Approach,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=10"
+ART_460,Study on Fire Risk Assessment Method for FPSO Upper Module Based on FDS Numerical Simulation,,Reprovado,"Apenas SCM contextual(1), sem core; O&G=6, IA=2"
+ART_461,A Fast Forecasting Method for Parametric Rolling and Synchronous Rolling of Container Ship Based on GRNN Neural Network,,Reprovado,"Score insuficiente (10.5); O&G=0, IA=3, SCM_core=1"
+ART_462,Fracture Morphology Evaluation of Surrogate Model for Fast Prediction Using Machine Learning,10.56952/IGS-2023-0199,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=4"
+ART_463,Digital Twin Supported Structural Health Monitoring of Test Rigs for Wave Energy Applications,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=4"
+ART_464,An Automated Data-Driven Workflow for Identifying Fractured Horizontal Well Sweet Spots in Shale Reservoirs,10.56952/ARMA-2023-0672,Reprovado,"Apenas SCM contextual(1), sem core; O&G=5, IA=4"
+ART_465,Unified Flow Pattern Prediction of Gas/Viscous-Liquid Two-Phase Flow using Machine Learning,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=7"
+ART_466,Committee IV.1: Design Principles and Criteria,10.5957/ISSC-2022-COMMITTEE-IV-1,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=1"
+ART_467,Maximizing Wind-Generated Power Using Pitching Angles and Wind Speed,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=3"
+ART_468,Predicting Trapping Indices in CO2 Sequestration: A Data-Driven Machine Learning Approach for Coupled Chemo-Hydro-Mechanical Models in Deep Saline Aquifers,10.56952/ARMA-2023-0757,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=3"
+ART_469,Real-Time Seismic Wave Velocity Prediction for Accurate Source Location in Underground Mines Based on Machine Learning,10.56952/ARMA-2023-0482,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=5"
+ART_470,"Spatial Data Analysis of Water Production from Unconventional Reservoirs, Case Study from the Williston Basin, North Dakota",10.56952/ARMA-2023-0859,Reprovado,Tipo excluido: case study
+ART_471,Active Control of the Wave-Induced Motions of a Float: Real-Time Simulations with a Digital Twin and Experimental Validation,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=1"
+ART_472,A Conventional Neural Network Lithology Classification Method Based on Vibration Data,10.56952/ARMA-2022-0143,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=5"
+ART_473,A Method of Recognizing Ship Vibration Mode Based on CNN,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=2"
+ART_474,A Machine Learning-Based Microseismic Event Location and Wave Velocity Prediction,10.56952/ARMA-2022-0166,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=4"
+ART_475,Automated Extraction of Borehole Breakout Properties from Acoustic Televiewer (ATV) Data,10.56952/ARMA-2022-0408,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=3"
+ART_476,Formation Pressure Abnormality Identification Using Artificial Neural Networks: A Classification Model,10.56952/ARMA-2022-0824,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=1"
+ART_477,Dynamic Fracture Network Evolution: Monitoring and Characterizing Using a Geomechanically Constrained Time-Lapsed Windowed Microseismic Imaging,10.56952/ARMA-2022-0711,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=1"
+ART_478,Study on Numerical Simulation of Complex Wave Based on Deep Reinforcement Learning Method,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=2"
+ART_479,Study on BP-DS Algorithm for Operation State Identification of Inland River Navigation Markers,,Reprovado,Apenas dimensao: SCM; insuficiente
+ART_480,Forecasting Coastal Significant Wave Heights Using Long Short-Term Memory Network Model,,Reprovado,"Score insuficiente (14.0); O&G=0, IA=8, SCM_core=1"
+ART_481,Neural Network Model for Trim Optimization of Oil Tankers in Operation,,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=13.5; verificar profundidade SCM"
+ART_482,Machine Learning Techniques for Ship Performance Predictions in Open Water and Ice,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=6"
+ART_483,High-Efficiency Optimization Design of Marine Propeller Based on P-System Diffusion Algorithm and Parameter Model,,Reprovado,"Apenas SCM contextual(1), sem core; O&G=1, IA=6"
+ART_484,A Novel Algorithmic Design and Implementation for Predicting Crude-Oil PVT Properties,10.2118/203716-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=3"
+ART_485,Advanced Data Analytics towards Energy Efficient and Emission Reduction Retrofit Technology Integration in Shipping,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=0"
+ART_486,Improved Correlations and Predictive Models for Nigerian Crude Oil Pvt Properties Using Advanced Regression and Intelligent Techniques,10.2118/203658-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=4"
+ART_487,A New Method to Evaluate Shale Fracability and Fracture Complex Index in Shale Gas Play,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=4, IA=1"
+ART_488,Forces Prediction of a Hydrofoil by Combined Machine Learning and CFD Approach,,Sinalizado,SCM_core(1) + score(15.0); falta: O&G
+ART_489,Longitudinal Motion Control of ARVs Via Sliding Mode Controller Driven By Nonlinear Disturbance Observer,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=2"
+ART_490,Developing a Drilling Optimization System for Improved Overall Rate of Penetration in Geothermal Wells,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=2"
+ART_491,Formation Pressure Prediction From Mechanical and Hydraulic Drilling Data Using Artificial Neural Networks,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=2"
+ART_492,3D Geomechanical Modelling for Unconventional Sweet Spot Identification and Optimized Reservoir Development,,Reprovado,"Apenas SCM contextual(1), sem core; O&G=3, IA=1"
+ART_493,Evaluation of Brittleness Index Based on Mineral Compositions Prediction Using Artificial Neural Network,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=3"
+ART_494,Particle Filter Based Ship State and Parameter Estimation for Vessel Maneuvers,,Reprovado,"Score insuficiente (8.0); O&G=0, IA=2, SCM_core=1"
+ART_495,The Identification Models of the Copper Recovery Using Supervised Machine Learning Algorithms for the Geochemical Data.,,Sinalizado,"3 dimensoes presentes; SCM_core=1, score=13.0; verificar profundidade SCM"
+ART_496,Learning From Laboratory Earthquakes: A Transfer Learning Approach to Active Source Seismic Monitoring,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=2"
+ART_497,Hydrodynamic Optimization Design Research Based On Parametric Deformation of DTMB5415,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=1, IA=2"
+ART_498,Decision-Support System for Offshore Wind Farm Installation,,Reprovado,"Apenas SCM contextual(1), sem core; O&G=2, IA=0"
+ART_499,Fault Diagnosis Analysis of Large Scale AUV Hydraulic Steering Gear Based on Multi-Information Fusion,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=2"
+ART_500,Machine Learning for Locating Acoustic Emissions From Single-Station Observations of Brittle Cracking in Rocks,,Reprovado,"Apenas SCM contextual(1), sem core; O&G=0, IA=4"
+ART_501,Development and Prediction of Cavitation in Centrifugal Pumps using Industrial Internet of Things Technology,10.2118/203661-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=5, IA=3"
+ART_502,Predicting the Risk of Lost Circulation Using Support Vector Machine Model,,Reprovado,"Apenas SCM contextual(1), sem core; O&G=5, IA=4"
+ART_503,Sonic Logs Prediction in Real Time by Using Random Forest Technique,,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=3, IA=3"
+ART_504,Assisted Cement Log Interpretation,10.2118/209529-MS,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=0, IA=3"
+ART_505,CISSNet: Causal Intervention and Sparse Shift Network for Superior Lithology Classification in Well Logging Data,10.2118/230314-PA,Reprovado,"Sem sinal de SCM/SCRM/logistica; O&G=2, IA=1"
