@@ -93,6 +93,8 @@ def _compile_term_entry(
     entry: dict,
     is_anti: bool = False,
     normalization_engine: NormalizationEngine | None = None,
+    warnings: list[str] | None = None,
+    block_name: str = "",
 ) -> dict | None:
     """Compile a single term entry, adding a 'pattern' key."""
     term = entry.get("term", "").strip()
@@ -105,6 +107,13 @@ def _compile_term_entry(
 
     pattern = compile_pattern(term, is_regex=is_regex)
     if pattern is None:
+        if warnings is not None and is_regex:
+            row = entry.get("source_row")
+            row_num = int(row) + 2 if row is not None else "?"
+            warnings.append(
+                f"Row {row_num}, block '{block_name}', term '{term}': "
+                f"invalid regex pattern. Term excluded from analysis."
+            )
         return None
 
     compiled = dict(entry)
@@ -128,6 +137,8 @@ def precompile_patterns(
     block: dict,
     normalization_engine: NormalizationEngine | None = None,
     global_params: GlobalParams | None = None,
+    block_name: str = "",
+    warnings: list[str] | None = None,
 ) -> dict:
     """Compile all patterns in a block configuration.
 
@@ -139,7 +150,10 @@ def precompile_patterns(
     # Compile positives
     compiled_positives = []
     for entry in block.get("positives", []):
-        compiled = _compile_term_entry(entry, normalization_engine=normalization_engine)
+        compiled = _compile_term_entry(
+            entry, normalization_engine=normalization_engine,
+            warnings=warnings, block_name=block_name,
+        )
         if compiled is not None:
             compiled_positives.append(compiled)
     compiled_block["positives"] = compiled_positives
@@ -149,7 +163,8 @@ def precompile_patterns(
     compiled_exclude = []
     for entry in anti.get("exclude", []):
         compiled = _compile_term_entry(
-            entry, is_anti=True, normalization_engine=normalization_engine
+            entry, is_anti=True, normalization_engine=normalization_engine,
+            warnings=warnings, block_name=block_name,
         )
         if compiled is not None:
             compiled_exclude.append(compiled)
@@ -158,7 +173,8 @@ def precompile_patterns(
     compiled_flag = []
     for entry in anti.get("flag", []):
         compiled = _compile_term_entry(
-            entry, is_anti=True, normalization_engine=normalization_engine
+            entry, is_anti=True, normalization_engine=normalization_engine,
+            warnings=warnings, block_name=block_name,
         )
         if compiled is not None:
             compiled_flag.append(compiled)

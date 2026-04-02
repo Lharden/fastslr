@@ -5,6 +5,8 @@
   "config_not_found": "Configuracion no encontrada: {path}",
   "config_error": "Error de configuracion: {message}",
   "warning": "Advertencia: {message}",
+  "warnings_found": "{count} advertencia(s) encontrada(s) en la configuracion:",
+  "continue_with_warnings": "Desea continuar de todos modos?",
 
   "triage_complete": "Resultados guardados en: {path}",
   "preview_note": "Vista previa basada en {count} articulos muestreados.",

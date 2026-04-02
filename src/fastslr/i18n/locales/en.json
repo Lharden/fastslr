@@ -5,6 +5,8 @@
   "config_not_found": "Config not found: {path}",
   "config_error": "Config error: {message}",
   "warning": "Warning: {message}",
+  "warnings_found": "{count} warning(s) found in configuration:",
+  "continue_with_warnings": "Continue with these warnings?",
 
   "triage_complete": "Results saved to: {path}",
   "preview_note": "Preview based on {count} sampled articles.",

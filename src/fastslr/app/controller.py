@@ -147,6 +147,14 @@ def validate_config(config: dict) -> list[ValidationIssue]:
                     )
                 )
 
+    # Surface parse errors from terms CSV (logic contradictions — block run)
+    for msg in config.get("_parse_errors", []):
+        issues.append(ValidationIssue("error", msg))
+
+    # Surface parse warnings from terms CSV
+    for msg in config.get("_parse_warnings", []):
+        issues.append(ValidationIssue("warning", msg))
+
     return issues
 
 
@@ -161,13 +169,23 @@ def _prepare_config(config_path: Path, terms_path: Path | None = None) -> dict:
     norm_engine = NormalizationEngine(norm_rules)
     global_params = load_global_params(config.get("global", {}))
 
+    compile_warnings: list[str] = config.get("_parse_warnings", [])
+
     for block_name in get_domain_blocks(config):
         if block_name in config:
-            config[block_name] = precompile_patterns(config[block_name], norm_engine, global_params)
+            config[block_name] = precompile_patterns(
+                config[block_name], norm_engine, global_params,
+                block_name=block_name, warnings=compile_warnings,
+            )
             config[block_name]["normalization_engine"] = norm_engine
 
     if "T0" in config:
-        config["T0"] = precompile_patterns(config["T0"], norm_engine, global_params)
+        config["T0"] = precompile_patterns(
+            config["T0"], norm_engine, global_params,
+            block_name="T0", warnings=compile_warnings,
+        )
+
+    config["_parse_warnings"] = compile_warnings
 
     return config
 
@@ -367,6 +385,23 @@ def create_project(
                 "level": "1",
                 "section_scope": "any",
                 "is_regex": "0",
+                "normalization_type": "",
+                "normalization_target": "",
+            }
+        )
+
+    # Add example with abbreviation normalization
+    if blocks:
+        terms_rows.append(
+            {
+                "block": blocks[0]["name"],
+                "kind": "pos",
+                "term": "example abbreviation",
+                "level": "2",
+                "section_scope": "any",
+                "is_regex": "0",
+                "normalization_type": "abbreviation",
+                "normalization_target": "example expanded form",
             }
         )
 
@@ -379,6 +414,8 @@ def create_project(
             "level": "",
             "section_scope": "any",
             "is_regex": "0",
+            "normalization_type": "",
+            "normalization_target": "",
         }
     )
 

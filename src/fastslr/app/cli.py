@@ -135,8 +135,13 @@ def run(
 
     warnings = [i for i in issues if i.level == "warning"]
     if warnings and not quiet:
-        for issue in warnings:
-            console.print(f"[yellow]{t('warning', message=issue.message)}[/yellow]")
+        console.print(f"\n[yellow bold]{t('warnings_found', count=len(warnings))}[/yellow bold]")
+        for i, issue in enumerate(warnings, 1):
+            console.print(f"  [yellow]{i}. {issue.message}[/yellow]")
+        console.print()
+        if not typer.confirm(t("continue_with_warnings"), default=False):
+            raise typer.Exit(0)
+        console.print()
 
     with Progress(
         SpinnerColumn(),

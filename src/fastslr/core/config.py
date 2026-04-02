@@ -15,6 +15,7 @@ from .constants import (
     DEFAULT_SECTION_WEIGHTS,
     GLOBAL_BLOCK_NAME,
     T0_BLOCK_NAME,
+    TERM_KINDS,
     VALID_SCOPES,
 )
 from .models import GlobalParams
@@ -151,39 +152,135 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
 
     config = dict(base_config)
 
-    normalization_rules = extract_normalization_rules(df)
-    config["normalization_rules"] = normalization_rules
-
     required_cols = {"block", "kind", "term"}
     if not required_cols.issubset(set(df.columns)):
         raise ValueError(f"Terms CSV missing required columns: {required_cols - set(df.columns)}")
 
+    # Resolve configured level range for validation
+    global_cfg = base_config.get("global", {})
+    raw_level_scores = global_cfg.get("PONTUACAO_NIVEIS", {})
+    configured_levels: set[int] = set()
+    if raw_level_scores:
+        configured_levels = {int(k) for k in raw_level_scores}
+
+    _VALID_IS_REGEX = frozenset({"0", "1", "true", "false", "yes", "no", ""})
+
+    parse_warnings: list[str] = []
+
+    normalization_rules = extract_normalization_rules(df, warnings=parse_warnings)
+    config["normalization_rules"] = normalization_rules
+
     block_terms: dict[str, dict] = {}
     valid_count = 0
+    seen_terms: set[tuple[str, str, str]] = set()  # (block, kind, term_lower)
 
     for idx, row in df.iterrows():
         try:
             block = str(row.get("block", "")).strip()
             kind = str(row.get("kind", "")).strip().lower()
             term = str(row.get("term", "")).strip()
+            row_num = int(idx) + 2 if idx is not None else None  # +2: header + 0-indexed
 
-            if not block or not kind or not term or pd.isna(block) or pd.isna(term):
+            # ── empty fields ──────────────────────────────────────────
+            empty_fields: list[str] = []
+            if not block or pd.isna(block):
+                empty_fields.append("block")
+            if not kind or pd.isna(kind):
+                empty_fields.append("kind")
+            if not term or pd.isna(term):
+                empty_fields.append("term")
+            if empty_fields:
+                parse_warnings.append(
+                    f"Row {row_num}: empty {', '.join(empty_fields)}. Row skipped."
+                )
                 continue
 
+            # ── kind validation ───────────────────────────────────────
+            if kind not in TERM_KINDS:
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': "
+                    f"invalid kind '{kind}' (valid: {', '.join(sorted(TERM_KINDS))}). "
+                    f"Row skipped."
+                )
+                continue
+
+            # ── duplicate detection ───────────────────────────────────
+            dedup_key = (block, kind, term.lower())
+            if dedup_key in seen_terms:
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': "
+                    f"duplicate term (same block + kind). "
+                    f"Only the first occurrence is used. Row skipped."
+                )
+                continue
+            seen_terms.add(dedup_key)
+
+            # ── level validation ──────────────────────────────────────
             level = row.get("level", "")
             if pd.isna(level):
                 level = ""
             level = str(level).strip()
 
+            if kind == "pos":
+                if not level:
+                    parse_warnings.append(
+                        f"Row {row_num}, block '{block}', term '{term}': "
+                        f"positive term without level. Score contribution will be 0."
+                    )
+                else:
+                    try:
+                        # Handle Excel float formatting: "1.0" → 1
+                        level_float = float(level)
+                        if level_float != int(level_float):
+                            raise ValueError("fractional level")
+                        level_int = int(level_float)
+                        level = str(level_int)
+                        if configured_levels and level_int not in configured_levels:
+                            parse_warnings.append(
+                                f"Row {row_num}, block '{block}', term '{term}': "
+                                f"level {level_int} not in configured levels "
+                                f"({', '.join(str(lv) for lv in sorted(configured_levels))}). "
+                                f"Score contribution will be 0."
+                            )
+                    except (ValueError, TypeError):
+                        parse_warnings.append(
+                            f"Row {row_num}, block '{block}', term '{term}': "
+                            f"invalid level '{level}' (must be a whole number, "
+                            f"e.g. {', '.join(str(lv) for lv in sorted(configured_levels)) if configured_levels else '1, 2, 3...'}). "
+                            f"Score contribution will be 0."
+                        )
+                        level = ""
+            elif level:
+                # anti/flag with level filled — doesn't make sense
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': "
+                    f"level is ignored for '{kind}' terms."
+                )
+
+            # ── section_scope validation ──────────────────────────────
             scope = str(row.get("section_scope", "any")).strip().lower()
             if scope not in VALID_SCOPES:
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': "
+                    f"invalid section_scope '{scope}' (valid: {', '.join(sorted(VALID_SCOPES))}). "
+                    f"Defaulting to 'any'."
+                )
                 scope = "any"
 
+            # ── is_regex validation ───────────────────────────────────
             is_regex_raw = row.get("is_regex", "0")
             if pd.isna(is_regex_raw):
                 is_regex_raw = "0"
-            is_regex = str(is_regex_raw).strip().lower() in ("1", "true", "yes")
+            is_regex_str = str(is_regex_raw).strip().lower()
+            if is_regex_str not in _VALID_IS_REGEX:
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': "
+                    f"invalid is_regex '{is_regex_raw}' (valid: 0, 1). "
+                    f"Defaulting to 0 (plain text)."
+                )
+            is_regex = is_regex_str in ("1", "true", "yes")
 
+            # ── build entry ───────────────────────────────────────────
             if block not in block_terms:
                 block_terms[block] = {
                     "positives": [],
@@ -212,10 +309,80 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
 
     config["_valid_terms_count"] = valid_count
 
+    # ── block-level validation ────────────────────────────────────────
+    block_order = global_cfg.get("BLOCK_ORDER")
+
+    # Warn about blocks in CSV that are not in BLOCK_ORDER
+    if block_order:
+        ordered_set = set(block_order)
+        for csv_block in sorted(block_terms):
+            if csv_block != GLOBAL_BLOCK_NAME and csv_block not in ordered_set:
+                term_count = (
+                    len(block_terms[csv_block].get("positives", []))
+                    + len(block_terms[csv_block].get("anti", {}).get("exclude", []))
+                    + len(block_terms[csv_block].get("anti", {}).get("flag", []))
+                )
+                parse_warnings.append(
+                    f"Block '{csv_block}' has {term_count} term(s) in CSV but is not in "
+                    f"BLOCK_ORDER ({', '.join(block_order)}). All its terms will be ignored."
+                )
+
+    # ── cross-term logical validation ─────────────────────────────────
+    parse_errors: list[str] = []
+
+    for blk_name, blk_data in block_terms.items():
+        if blk_name == GLOBAL_BLOCK_NAME:
+            continue
+
+        pos_terms = {e["term"].lower() for e in blk_data.get("positives", [])}
+        anti_excl_terms = {
+            e["term"].lower() for e in blk_data.get("anti", {}).get("exclude", [])
+        }
+        anti_flag_terms = {
+            e["term"].lower() for e in blk_data.get("anti", {}).get("flag", [])
+        }
+
+        # #15: positive + anti-exclude conflict → BLOCKS RUN
+        for conflict in sorted(pos_terms & anti_excl_terms):
+            parse_errors.append(
+                f"Block '{blk_name}': term '{conflict}' is both 'pos' and 'anti'. "
+                f"Logic contradiction — keep it as 'pos' OR 'anti', not both."
+            )
+
+        # #18: positive + anti-flag conflict → BLOCKS RUN
+        for conflict in sorted(pos_terms & anti_flag_terms):
+            parse_errors.append(
+                f"Block '{blk_name}': term '{conflict}' is both 'pos' and 'flag'. "
+                f"Logic contradiction — keep it as 'pos' OR 'flag', not both."
+            )
+
+        # #16: wildcard-only or single-char terms
+        for entry in blk_data.get("positives", []):
+            t = entry["term"].strip()
+            if t in ("*", "?") or (len(t) == 1 and t.isalpha()):
+                parse_warnings.append(
+                    f"Block '{blk_name}': term '{t}' is too broad — "
+                    f"will match nearly everything."
+                )
+
+        # #17: block with anti-terms but no positives
+        has_positives = len(blk_data.get("positives", [])) > 0
+        has_anti = (
+            len(blk_data.get("anti", {}).get("exclude", []))
+            + len(blk_data.get("anti", {}).get("flag", []))
+        ) > 0
+        if has_anti and not has_positives:
+            parse_warnings.append(
+                f"Block '{blk_name}' has anti-terms but no positive terms. "
+                f"Score will always be 0 — this block can only reject, never approve."
+            )
+
+    config["_parse_warnings"] = parse_warnings
+    config["_parse_errors"] = parse_errors
+
     domain_blocks: list[str] = []
     block_labels: dict[str, str] = {}
 
-    block_order = config.get("global", {}).get("BLOCK_ORDER")
     if block_order:
         ordered = list(block_order)
     else:

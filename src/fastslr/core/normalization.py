@@ -80,7 +80,13 @@ class NormalizationEngine:
         return re.sub(r"\s+", " ", normalized).strip()
 
 
-def extract_normalization_rules(df: pd.DataFrame) -> dict:
+_VALID_NORM_TYPES = frozenset({"abbreviation", "compound_variant", "symbol_replacement"})
+
+
+def extract_normalization_rules(
+    df: pd.DataFrame,
+    warnings: list[str] | None = None,
+) -> dict:
     """Extract normalization rules from the terms CSV DataFrame.
 
     Looks for ``normalization_type`` and ``normalization_target`` columns.
@@ -105,8 +111,59 @@ def extract_normalization_rules(df: pd.DataFrame) -> dict:
             norm_target = str(row.get("normalization_target", "")).strip()
             term = str(row.get("term", "")).strip()
 
-            if not norm_type or not term or pd.isna(norm_type) or not norm_target:
+            row_num = int(_idx) + 2 if _idx is not None else None
+
+            # #2: normalization_target filled but type empty
+            if (not norm_type or pd.isna(norm_type)) and norm_target:
+                if warnings is not None:
+                    warnings.append(
+                        f"Row {row_num}, term '{term}': "
+                        f"normalization_target is '{norm_target}' but normalization_type is empty. "
+                        f"Normalization rule ignored."
+                    )
                 continue
+
+            if not norm_type or pd.isna(norm_type):
+                continue
+
+            if norm_type not in _VALID_NORM_TYPES:
+                if warnings is not None:
+                    warnings.append(
+                        f"Row {row_num}, term '{term}': "
+                        f"invalid normalization_type '{norm_type}' "
+                        f"(valid: {', '.join(sorted(_VALID_NORM_TYPES))}). "
+                        f"Normalization rule ignored."
+                    )
+                continue
+
+            if not norm_target:
+                if warnings is not None:
+                    warnings.append(
+                        f"Row {row_num}, term '{term}': "
+                        f"normalization_type is '{norm_type}' but normalization_target is empty. "
+                        f"Normalization rule ignored."
+                    )
+                continue
+
+            if not term:
+                continue
+
+            # #3: duplicate normalization rules
+            existing = None
+            if norm_type == "abbreviation":
+                existing = rules["abbreviations"].get(term.lower())
+            elif norm_type == "compound_variant":
+                existing = rules["compound_variants"].get(term.lower())
+            elif norm_type == "symbol_replacement":
+                existing = rules["symbol_replacements"].get(term)
+
+            if existing is not None and existing != norm_target.lower():
+                if warnings is not None:
+                    warnings.append(
+                        f"Row {row_num}, term '{term}': "
+                        f"duplicate normalization rule (already mapped to '{existing}'). "
+                        f"Overwriting with '{norm_target}'."
+                    )
 
             if norm_type == "abbreviation":
                 rules["abbreviations"][term.lower()] = norm_target.lower()
