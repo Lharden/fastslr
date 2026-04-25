@@ -105,7 +105,13 @@ def _compile_term_entry(
     if isinstance(is_regex, str):
         is_regex = is_regex.lower() in ("1", "true", "yes")
 
-    pattern = compile_pattern(term, is_regex=is_regex)
+    match_term = term
+    if normalization_engine is not None and not is_regex:
+        normalized_term = normalization_engine.normalize(term)
+        if normalized_term:
+            match_term = normalized_term
+
+    pattern = compile_pattern(match_term, is_regex=is_regex)
     if pattern is None:
         if warnings is not None and is_regex:
             row = entry.get("source_row")
@@ -119,6 +125,17 @@ def _compile_term_entry(
     compiled = dict(entry)
     compiled["pattern"] = pattern
     compiled["original_term"] = term
+    compiled["match_term"] = match_term
+
+    highlight_patterns = []
+    original_pattern = compile_pattern(term, is_regex=is_regex)
+    if original_pattern is not None:
+        highlight_patterns.append(original_pattern)
+    if match_term != term and not is_regex:
+        match_pattern = compile_pattern(match_term)
+        if match_pattern is not None:
+            highlight_patterns.append(match_pattern)
+    compiled["highlight_patterns"] = highlight_patterns
 
     if not is_anti:
         level = entry.get("level")
@@ -193,17 +210,25 @@ def precompile_patterns(
     proximity_positives = []
     if enable_proximity:
         for entry in compiled_positives:
-            compounds = detect_compound_terms(entry.get("original_term", ""))
+            compounds = detect_compound_terms(
+                entry.get("match_term") or entry.get("original_term", "")
+            )
             for part_a, part_b in compounds:
                 prox_pattern = compile_proximity_pattern(
                     part_a, part_b, max_gap=max_gap, token_unit=token_unit
                 )
                 if prox_pattern is not None:
+                    highlight_patterns = []
+                    original_pattern = compile_pattern(entry.get("original_term", ""))
+                    if original_pattern is not None:
+                        highlight_patterns.append(original_pattern)
                     proximity_positives.append(
                         {
                             "term": entry.get("original_term", ""),
                             "original_term": entry.get("original_term", ""),
+                            "match_term": entry.get("match_term", ""),
                             "pattern": prox_pattern,
+                            "highlight_patterns": highlight_patterns,
                             "level": entry.get("level"),
                             "scope": entry.get("scope", "any"),
                             "source_row": entry.get("source_row"),

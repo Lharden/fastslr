@@ -400,6 +400,8 @@ def make_final_decision(
     rejected_blocks = [n for n, s in block_statuses.items() if s == "REJECTED"]
 
     total_blocks = len(evaluations)
+    if total_blocks == 0:
+        return "REJECTED_FINAL", "No domain blocks configured"
 
     policy = global_params.decision_policy
 
@@ -414,6 +416,9 @@ def make_final_decision(
     elif policy == "k_of_n":
         min_approved = global_params.min_approved_blocks or 1
         max_flagged = global_params.max_flagged_blocks_for_approval
+
+        if rejected_blocks:
+            return "REJECTED_FINAL", f"Rejected blocks: {', '.join(rejected_blocks)}"
 
         if len(approved_blocks) >= min_approved and len(flagged_blocks) <= max_flagged:
             return "APPROVED_FINAL", (f"{len(approved_blocks)}/{total_blocks} approved (k_of_n)")

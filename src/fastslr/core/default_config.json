@@ -55,7 +55,7 @@
     "csv_sep": ";",
     "csv_decimal": ",",
     "csv_float_format": "%.2f",
-    "xlsx_engine": "xlsxwriter",
+    "xlsx_engine": "openpyxl",
     "xlsx_sheet_name": "resultados",
     "academic_package": true
   },

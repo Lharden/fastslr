@@ -28,9 +28,11 @@ from textual.widgets import (
     TextArea,
 )
 
-from ..core.constants import VERSION
 from ..i18n import _ as t
 from ..i18n import set_locale
+from . import controller
+
+APP_VERSION = controller.get_version()
 
 # ── Dashboard ────────────────────────────────────────────────────────────────
 
@@ -70,7 +72,7 @@ class DashboardScreen(Screen):
         yield Header()
         with VerticalScroll():
             yield Static(
-                f"\n  [bold cyan]FastSLR v{VERSION}[/bold cyan]"
+                f"\n  [bold cyan]FastSLR v{APP_VERSION}[/bold cyan]"
                 f" — Systematic Review Triage Engine\n",
                 id="title",
             )
@@ -159,13 +161,16 @@ class RunTriageScreen(Screen):
             yield Static("\n  Configuration file (config.json):")
             yield Input(placeholder="Path to config.json...", id="config_file")
             yield Static("\n  Terms file (optional, CSV):")
-            yield Input(placeholder="Path to terms CSV (leave empty to skip)...", id="terms_file")
+            yield Input(
+                placeholder="Path to terms XLSX/CSV (leave empty to skip)...", id="terms_file"
+            )
             yield Static("\n  Output directory (optional):")
             yield Input(
                 placeholder="Output directory (leave empty for default)...", id="output_dir"
             )
             yield Static("")
             with Horizontal():
+                yield Button("Check Setup", variant="default", id="btn_check")
                 yield Button("Run Triage", variant="primary", id="btn_run")
                 yield Button("Cancel", variant="default", id="btn_cancel")
             yield Static("", id="status")
@@ -181,10 +186,54 @@ class RunTriageScreen(Screen):
     def start_triage(self) -> None:
         self._run_triage()
 
+    @on(Button.Pressed, "#btn_check")
+    def check_setup(self) -> None:
+        input_path = self.query_one("#input_file", Input).value.strip()
+        config_path = self.query_one("#config_file", Input).value.strip()
+        terms_path = self.query_one("#terms_file", Input).value.strip()
+        output_dir = self.query_one("#output_dir", Input).value.strip()
+
+        status = self.query_one("#status", Static)
+        results = self.query_one("#results", Static)
+
+        inspection = controller.inspect_run_setup(
+            input_path=Path(input_path) if input_path else None,
+            config_path=Path(config_path) if config_path else None,
+            terms_path=Path(terms_path) if terms_path else None,
+            output_dir=Path(output_dir) if output_dir else None,
+        )
+
+        lines: list[str] = []
+        if inspection.errors:
+            lines.append("[red]Errors[/red]")
+            lines.extend(f"  - {msg}" for msg in inspection.errors)
+        if inspection.warnings:
+            lines.append("[yellow]Warnings[/yellow]")
+            lines.extend(f"  - {msg}" for msg in inspection.warnings)
+        if inspection.input_rows is not None:
+            lines.append(f"Articles: {inspection.input_rows}")
+        if inspection.field_mapping:
+            lines.append("Column mapping:")
+            for field, column in inspection.field_mapping.items():
+                lines.append(f"  {field}: {column or 'not found'}")
+        if inspection.domain_blocks:
+            lines.append("Blocks: " + ", ".join(inspection.domain_blocks))
+        if inspection.terms_count is not None:
+            lines.append(f"Valid terms: {inspection.terms_count}")
+        if inspection.run_command:
+            lines.append("")
+            lines.append(inspection.run_command)
+
+        setup_status = (
+            "  [green]Setup looks runnable.[/green]"
+            if inspection.ok
+            else "  [red]Setup needs attention.[/red]"
+        )
+        status.update(setup_status)
+        results.update("\n  " + "\n  ".join(lines) + "\n")
+
     @work(thread=True)
     def _run_triage(self) -> None:
-        from . import controller
-
         input_path = self.query_one("#input_file", Input).value.strip()
         config_path = self.query_one("#config_file", Input).value.strip()
         terms_path = self.query_one("#terms_file", Input).value.strip()
@@ -302,8 +351,6 @@ class NewProjectScreen(Screen):
 
     @on(Button.Pressed, "#btn_create")
     def create(self) -> None:
-        from . import controller
-
         name = self.query_one("#project_name", Input).value.strip()
         blocks_raw = self.query_one("#blocks", Input).value.strip()
         output_raw = self.query_one("#output_dir", Input).value.strip()
@@ -364,8 +411,8 @@ class BrowseTermsScreen(Screen):
             yield Static("\n  [bold]Browse Terms[/bold]\n")
             yield Static("  Config file:")
             yield Input(placeholder="Path to config.json...", id="config_path")
-            yield Static("  Terms CSV:")
-            yield Input(placeholder="Path to terms.csv...", id="terms_path")
+            yield Static("  Terms file:")
+            yield Input(placeholder="Path to terms.xlsx or terms.csv...", id="terms_path")
             yield Static("")
             yield Button("Load Terms", variant="primary", id="btn_load")
             yield Static("")
@@ -374,8 +421,6 @@ class BrowseTermsScreen(Screen):
 
     @on(Button.Pressed, "#btn_load")
     def load_terms(self) -> None:
-        from . import controller
-
         config_path = self.query_one("#config_path", Input).value.strip()
         terms_path = self.query_one("#terms_path", Input).value.strip()
 
@@ -420,6 +465,7 @@ class ResultsScreen(Screen):
     """Browse triage results with filtering."""
 
     BINDINGS = [Binding("escape", "go_back", "Back")]
+    PAGE_SIZE = 50
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -438,15 +484,18 @@ class ResultsScreen(Screen):
                 value="all",
                 id="filter_decision",
             )
-            yield Button("Load Results", variant="primary", id="btn_load")
+            with Horizontal():
+                yield Button("Load Results", variant="primary", id="btn_load")
+                yield Button("Previous", variant="default", id="btn_prev")
+                yield Button("Next", variant="default", id="btn_next")
+                yield Button("Show Detail", variant="default", id="btn_detail")
             yield Static("", id="summary")
             yield DataTable(id="results_table")
+            yield Static("", id="article_detail")
         yield Footer()
 
     @on(Button.Pressed, "#btn_load")
     def load_results(self) -> None:
-        import pandas as pd
-
         results_path = self.query_one("#results_path", Input).value.strip()
         filter_val = self.query_one("#filter_decision", Select).value
 
@@ -455,18 +504,11 @@ class ResultsScreen(Screen):
 
         try:
             path = Path(results_path)
-            df = pd.read_excel(path) if path.suffix == ".xlsx" else pd.read_csv(path)
+            df = controller.read_results_table(path)
 
             if filter_val != "all" and "Final_Decision" in df.columns:
                 df = df[df["Final_Decision"] == filter_val]
 
-            summary = self.query_one("#summary", Static)
-            summary.update(f"\n  Showing {len(df)} articles\n")
-
-            table = self.query_one("#results_table", DataTable)
-            table.clear(columns=True)
-
-            # Show key columns
             show_cols = []
             for col in df.columns:
                 if (
@@ -480,12 +522,89 @@ class ResultsScreen(Screen):
             if not show_cols:
                 show_cols = list(df.columns[:6])
 
-            table.add_columns(*show_cols)
-            for _, row in df.head(200).iterrows():
-                table.add_row(*[str(row.get(c, "")) for c in show_cols])
+            self._results_df = df.reset_index(drop=True)
+            self._results_columns = show_cols
+            self._results_page = 0
+            self._render_results_page()
 
         except Exception as e:
             self.notify(f"Error: {e}", severity="error")
+
+    @on(Button.Pressed, "#btn_prev")
+    def previous_page(self) -> None:
+        if not hasattr(self, "_results_df"):
+            return
+        self._results_page = max(0, self._results_page - 1)
+        self._render_results_page()
+
+    @on(Button.Pressed, "#btn_next")
+    def next_page(self) -> None:
+        if not hasattr(self, "_results_df"):
+            return
+        total = len(self._results_df)
+        max_page = max((total - 1) // self.PAGE_SIZE, 0)
+        self._results_page = min(max_page, self._results_page + 1)
+        self._render_results_page()
+
+    @on(Button.Pressed, "#btn_detail")
+    def show_selected_detail(self) -> None:
+        if not hasattr(self, "_results_df"):
+            return
+
+        table = self.query_one("#results_table", DataTable)
+        cursor_row = getattr(table, "cursor_row", 0) or 0
+        row_index = self._results_page * self.PAGE_SIZE + int(cursor_row)
+        if row_index >= len(self._results_df):
+            return
+
+        row = self._results_df.iloc[row_index]
+        priority_cols = [
+            "ID",
+            "key",
+            "Key",
+            "Final_Decision",
+            "Decision_Reason",
+            "Title_Highlighted",
+            "Abstract_Highlighted",
+        ]
+        detail_cols = [c for c in priority_cols if c in self._results_df.columns]
+        detail_cols.extend(
+            c
+            for c in self._results_df.columns
+            if (c.startswith("Status_") or c.startswith("FinalScore_")) and c not in detail_cols
+        )
+
+        lines = ["\n  [bold]Article detail[/bold]"]
+        for col in detail_cols[:20]:
+            value = str(row.get(col, ""))
+            if len(value) > 500:
+                value = value[:497] + "..."
+            lines.append(f"  [cyan]{col}[/cyan]: {value}")
+
+        self.query_one("#article_detail", Static).update("\n".join(lines) + "\n")
+
+    def _render_results_page(self) -> None:
+        table = self.query_one("#results_table", DataTable)
+        table.clear(columns=True)
+
+        show_cols = self._results_columns
+        table.add_columns(*show_cols)
+
+        start = self._results_page * self.PAGE_SIZE
+        end = min(start + self.PAGE_SIZE, len(self._results_df))
+        page_df = self._results_df.iloc[start:end]
+
+        for _, row in page_df.iterrows():
+            table.add_row(*[str(row.get(c, "")) for c in show_cols])
+
+        total = len(self._results_df)
+        total_pages = max((total - 1) // self.PAGE_SIZE + 1, 1)
+        summary = self.query_one("#summary", Static)
+        summary.update(
+            f"\n  Showing {start + 1 if total else 0}-{end} of {total} "
+            f"(page {self._results_page + 1}/{total_pages})\n"
+        )
+        self.query_one("#article_detail", Static).update("")
 
     def action_go_back(self) -> None:
         self.app.pop_screen()
@@ -507,8 +626,8 @@ class CoverageScreen(Screen):
             yield Input(placeholder="Path to articles CSV...", id="input_file")
             yield Static("  Config file:")
             yield Input(placeholder="Path to config.json...", id="config_file")
-            yield Static("  Terms CSV:")
-            yield Input(placeholder="Path to terms.csv...", id="terms_file")
+            yield Static("  Terms file:")
+            yield Input(placeholder="Path to terms.xlsx or terms.csv...", id="terms_file")
             yield Static("")
             yield Button("Analyze Coverage", variant="primary", id="btn_analyze")
             yield Static("", id="report_output")
@@ -516,9 +635,6 @@ class CoverageScreen(Screen):
 
     @on(Button.Pressed, "#btn_analyze")
     def analyze(self) -> None:
-        from ..core.coverage import format_coverage_report
-        from . import controller
-
         input_path = self.query_one("#input_file", Input).value.strip()
         config_path = self.query_one("#config_file", Input).value.strip()
         terms_path = self.query_one("#terms_file", Input).value.strip()
@@ -534,7 +650,7 @@ class CoverageScreen(Screen):
                 terms_path=Path(terms_path) if terms_path else None,
             )
             output = self.query_one("#report_output", Static)
-            output.update(f"\n{format_coverage_report(report)}\n")
+            output.update(f"\n{controller.format_coverage(report)}\n")
         except Exception as e:
             self.notify(f"Error: {e}", severity="error")
 
@@ -566,8 +682,6 @@ class DiffScreen(Screen):
 
     @on(Button.Pressed, "#btn_compare")
     def compare(self) -> None:
-        from . import controller
-
         file_a = self.query_one("#file_a", Input).value.strip()
         file_b = self.query_one("#file_b", Input).value.strip()
 
@@ -626,8 +740,6 @@ class ExportScreen(Screen):
 
     @on(Button.Pressed, "#btn_export")
     def do_export(self) -> None:
-        from . import controller
-
         result_file = self.query_one("#result_file", Input).value.strip()
         output_dir = self.query_one("#output_dir", Input).value.strip()
         config_file = self.query_one("#config_file", Input).value.strip()
@@ -666,8 +778,11 @@ class EditConfigScreen(Screen):
             yield Static("  Config file:")
             yield Input(placeholder="Path to config.json...", id="config_path")
             yield Static("")
-            yield Button("Load", variant="primary", id="btn_load")
-            yield Button("Save Changes", variant="warning", id="btn_save")
+            with Horizontal():
+                yield Button("Load", variant="primary", id="btn_load")
+                yield Button("Validate", variant="default", id="btn_validate")
+                yield Button("Save Changes", variant="warning", id="btn_save")
+            yield Static("", id="config_status")
             yield Static("")
             yield TextArea(id="config_editor", language="json")
         yield Footer()
@@ -683,8 +798,33 @@ class EditConfigScreen(Screen):
                 content = f.read()
             editor = self.query_one("#config_editor", TextArea)
             editor.load_text(content)
+            self.query_one("#config_status", Static).update("  [green]Loaded.[/green]")
         except Exception as e:
             self.notify(f"Error: {e}", severity="error")
+
+    @on(Button.Pressed, "#btn_validate")
+    def validate_config_text(self) -> None:
+        editor = self.query_one("#config_editor", TextArea)
+        status = self.query_one("#config_status", Static)
+
+        try:
+            cfg = json.loads(editor.text)
+        except json.JSONDecodeError as e:
+            status.update(f"  [red]Invalid JSON: {e}[/red]")
+            return
+
+        issues = controller.validate_config(cfg)
+        if not issues:
+            status.update("  [green]Configuration looks valid.[/green]")
+            return
+
+        lines = ["  [yellow]Validation issues:[/yellow]"]
+        for issue in issues[:12]:
+            style = "red" if issue.level == "error" else "yellow"
+            lines.append(f"  [{style}]- {issue.level}: {issue.message}[/{style}]")
+        if len(issues) > 12:
+            lines.append(f"  [dim]... and {len(issues) - 12} more[/dim]")
+        status.update("\n".join(lines))
 
     @on(Button.Pressed, "#btn_save")
     def save_config(self) -> None:
@@ -697,9 +837,16 @@ class EditConfigScreen(Screen):
             editor = self.query_one("#config_editor", TextArea)
             content = editor.text
             # Validate JSON
-            json.loads(content)
+            cfg = json.loads(content)
+            errors = [issue for issue in controller.validate_config(cfg) if issue.level == "error"]
+            if errors:
+                self.query_one("#config_status", Static).update(
+                    "  [red]Cannot save with validation errors. Use Validate for details.[/red]"
+                )
+                return
             Path(config_path).write_text(content, encoding="utf-8")
             self.notify("Configuration saved.", severity="information")
+            self.query_one("#config_status", Static).update("  [green]Saved.[/green]")
         except json.JSONDecodeError as e:
             self.notify(f"Invalid JSON: {e}", severity="error")
         except Exception as e:
@@ -800,7 +947,7 @@ class SettingsScreen(Screen):
 class FastSLRApp(App):
     """FastSLR — Interactive TUI for Systematic Literature Review triage."""
 
-    TITLE = f"FastSLR v{VERSION}"
+    TITLE = f"FastSLR v{APP_VERSION}"
     CSS = """
     Screen {
         background: $surface;

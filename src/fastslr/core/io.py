@@ -45,6 +45,9 @@ _PROTOCOL_ROOT_KEYS = frozenset(
     }
 )
 
+SPREADSHEET_EXTENSIONS = frozenset({".xlsx", ".xlsm", ".xls"})
+DELIMITED_EXTENSIONS = frozenset({".csv", ".tsv", ".txt"})
+
 
 # ── hashing ──────────────────────────────────────────────────────────────────
 
@@ -69,6 +72,7 @@ def _sanitize_config_for_serialization(config: dict) -> dict:
                         for term in term_list:
                             if isinstance(term, dict):
                                 term.pop("pattern", None)
+                                term.pop("highlight_patterns", None)
 
     return config_clean
 
@@ -89,31 +93,109 @@ def compute_file_hash(file_path: str) -> str:
     return hasher.hexdigest()[:16]
 
 
-# ── CSV loading ──────────────────────────────────────────────────────────────
+# ── Table loading ────────────────────────────────────────────────────────────
 
 
-def load_csv_safe(path: Path) -> pd.DataFrame:
-    """Load a CSV file with automatic encoding and separator detection."""
+def _detect_encoding(path: Path) -> str:
+    with open(path, "rb") as f:
+        raw_data = f.read(10000)
+        if chardet is None:
+            return "utf-8"
+        return chardet.detect(raw_data).get("encoding", "utf-8") or "utf-8"
+
+
+def _header_score(columns: list[object]) -> int:
+    known_headers = {
+        "id",
+        "key",
+        "eid",
+        "ut",
+        "title",
+        "articletitle",
+        "abstract",
+        "abstractnote",
+        "manualtags",
+        "authorkeywords",
+        "keywords",
+        "block",
+        "kind",
+        "term",
+        "level",
+        "sectionscope",
+        "isregex",
+        "finaldecision",
+    }
+    score = 0
+    for col in columns:
+        normalized = re.sub(r"[^a-z0-9]+", "", str(col).lower())
+        if normalized in known_headers:
+            score += 1
+    return score
+
+
+def _load_delimited_table(path: Path, min_columns: int) -> pd.DataFrame:
+    encoding = _detect_encoding(path)
+    separators = ("\t", ";", ",") if path.suffix.lower() == ".tsv" else (";", ",", "\t")
+    candidates: list[tuple[int, int, pd.DataFrame]] = []
+
+    for sep in separators:
+        try:
+            df = pd.read_csv(path, encoding=encoding, sep=sep, dtype=str, keep_default_na=False)
+            if len(df.columns) >= min_columns:
+                candidates.append((_header_score(list(df.columns)), len(df.columns), df))
+        except Exception:
+            continue
+
+    if candidates:
+        return max(candidates, key=lambda item: (item[0], item[1]))[2]
+
+    raise ValueError(f"Unable to load delimited table: {path}")
+
+
+def _load_spreadsheet_table(path: Path, min_columns: int) -> pd.DataFrame:
+    try:
+        df = pd.read_excel(path, dtype=str, keep_default_na=False)
+    except ImportError as exc:
+        raise ValueError(
+            "Reading Excel files requires the spreadsheet dependencies installed with FastSLR."
+        ) from exc
+    except Exception as exc:
+        raise ValueError(f"Unable to load spreadsheet: {path}") from exc
+
+    if len(df.columns) < min_columns:
+        raise ValueError(f"Spreadsheet has fewer than {min_columns} column(s): {path}")
+
+    return df
+
+
+def load_table_safe(path: Path, min_columns: int = 3) -> pd.DataFrame:
+    """Load a CSV/TSV or Excel table with conservative format detection."""
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
 
-    with open(path, "rb") as f:
-        raw_data = f.read(10000)
-        if chardet is None:
-            encoding = "utf-8"
-        else:
-            encoding = chardet.detect(raw_data).get("encoding", "utf-8")
+    suffix = path.suffix.lower()
+    if suffix in SPREADSHEET_EXTENSIONS:
+        return _load_spreadsheet_table(path, min_columns)
+    if suffix in DELIMITED_EXTENSIONS or not suffix:
+        return _load_delimited_table(path, min_columns)
 
-    for sep in (";", ",", "\t"):
-        try:
-            df = pd.read_csv(path, encoding=encoding, sep=sep, dtype=str, keep_default_na=False)
-            if len(df.columns) >= 3:
-                return df
-        except Exception:
-            continue
+    raise ValueError(
+        f"Unsupported table format: {path.suffix}. Use CSV, TSV, XLSX, XLSM, or XLS."
+    )
 
-    raise ValueError(f"Unable to load CSV: {path}")
+
+def load_csv_safe(path: Path) -> pd.DataFrame:
+    """Load an input table.
+
+    Kept for backward compatibility; despite the name, XLSX/XLSM/XLS are accepted.
+    """
+    return load_table_safe(path)
+
+
+def read_result_table(path: Path) -> pd.DataFrame:
+    """Read a result file exported by FastSLR."""
+    return load_table_safe(path, min_columns=1)
 
 
 # ── export helpers ───────────────────────────────────────────────────────────
@@ -136,28 +218,48 @@ def get_export_opts(cfg: dict) -> dict:
     }
 
 
-def export_results(df: pd.DataFrame, output_path: Path, cfg: dict) -> None:
-    """Export the result DataFrame to CSV and/or XLSX."""
+def _result_base_path(output_path: Path) -> Path:
+    if output_path.suffix.lower() in {".csv", ".xlsx"}:
+        return output_path.with_suffix("")
+    return output_path
+
+
+def export_results(df: pd.DataFrame, output_path: Path, cfg: dict) -> dict[str, Path]:
+    """Export the result DataFrame to CSV and/or XLSX.
+
+    ``output_path`` is treated as a base path. Passing ``triage_results.xlsx``
+    still produces ``triage_results.csv`` when CSV export is enabled.
+    """
     opts = get_export_opts(cfg)
+    base_path = _result_base_path(output_path)
+    exported: dict[str, Path] = {}
+
+    if not opts["export_csv"] and not opts["export_xlsx"]:
+        opts["export_xlsx"] = True
 
     if opts["export_csv"]:
+        csv_path = base_path.with_suffix(".csv")
         df.to_csv(
-            output_path,
+            csv_path,
             index=False,
             encoding=opts["encoding"],
             sep=opts["csv_sep"],
             float_format=opts["csv_float_fmt"],
             decimal=opts["csv_decimal"],
         )
+        exported["csv"] = csv_path
 
     if opts["export_xlsx"]:
-        xlsx_path = output_path.with_suffix(".xlsx")
+        xlsx_path = base_path.with_suffix(".xlsx")
         df.to_excel(
             xlsx_path,
             index=False,
             engine=opts["xlsx_engine"],
             sheet_name=opts["xlsx_sheet"],
         )
+        exported["xlsx"] = xlsx_path
+
+    return exported
 
 
 # ── highlighting ─────────────────────────────────────────────────────────────
@@ -174,15 +276,17 @@ def highlight_text(original_text: str, all_terms: list[dict], section_name: str)
         if term.get("scope", "any") not in ("any", section_name):
             continue
 
-        pattern = term.get("pattern")
-        if not pattern:
-            continue
+        patterns = term.get("highlight_patterns") or [term.get("pattern")]
 
-        try:
-            for match in pattern.finditer(original_text):
-                spans.append(match.span())
-        except re.error:
-            continue
+        for pattern in patterns:
+            if not pattern:
+                continue
+
+            try:
+                for match in pattern.finditer(original_text):
+                    spans.append(match.span())
+            except re.error:
+                continue
 
     if not spans:
         return original_text
@@ -545,7 +649,9 @@ __all__ = [
     "PROTOCOL_VERSION_CURRENT",
     "compute_config_hash",
     "compute_file_hash",
+    "load_table_safe",
     "load_csv_safe",
+    "read_result_table",
     "get_export_opts",
     "export_results",
     "highlight_text",

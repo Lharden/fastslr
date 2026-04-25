@@ -25,8 +25,9 @@ from ..core.coverage import (
     TermCoverageReport,
     analyze_term_coverage,
     export_coverage_csv,
+    format_coverage_report,
 )
-from ..core.engine import process_articles, sample_articles
+from ..core.engine import process_articles, resolve_field_columns, sample_articles
 from ..core.io import (
     build_protocol_snapshot,
     compute_config_hash,
@@ -37,13 +38,30 @@ from ..core.io import (
     export_results,
     generate_academic_report,
     generate_report,
-    load_csv_safe,
+    get_export_opts,
+    load_table_safe,
+    read_result_table,
 )
 from ..core.normalization import NormalizationEngine
 from ..core.patterns import precompile_patterns
 from ..core.presets import generate_config
 
 logger = logging.getLogger(__name__)
+
+
+def get_version() -> str:
+    """Return the application version."""
+    return VERSION
+
+
+def format_coverage(report: TermCoverageReport) -> str:
+    """Format a coverage report for CLI/TUI display."""
+    return format_coverage_report(report)
+
+
+def read_results_table(path: Path) -> pd.DataFrame:
+    """Read a result table using the same rules as diff/export workflows."""
+    return read_result_table(path)
 
 
 # ── Data classes ─────────────────────────────────────────────────────────────
@@ -66,6 +84,8 @@ class TriageResult:
     config: dict
     output_dir: Path
     result_path: Path | None = None
+    artifact_paths: dict[str, Path] = field(default_factory=dict)
+    academic_package_path: Path | None = None
 
 
 @dataclass
@@ -107,6 +127,23 @@ class ProfileInfo:
     description: str = ""
 
 
+@dataclass
+class SetupInspection:
+    """Human-readable setup inspection for a planned triage run."""
+
+    ok: bool
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    messages: list[str] = field(default_factory=list)
+    input_rows: int | None = None
+    input_columns: list[str] = field(default_factory=list)
+    field_mapping: dict[str, str | None] = field(default_factory=dict)
+    domain_blocks: list[str] = field(default_factory=list)
+    terms_count: int | None = None
+    output_dir: Path | None = None
+    run_command: str | None = None
+
+
 # ── Configuration & Validation ───────────────────────────────────────────────
 
 
@@ -119,7 +156,13 @@ def validate_config(config: dict) -> list[ValidationIssue]:
 
     domain_blocks = get_domain_blocks(config)
     if not domain_blocks:
-        issues.append(ValidationIssue("warning", "No domain blocks defined"))
+        issues.append(
+            ValidationIssue(
+                "error",
+                "No domain blocks defined. Add BLOCK_ORDER in config.json or provide a terms file "
+                "with at least one non-GLOBAL block.",
+            )
+        )
 
     for block_name in domain_blocks:
         if block_name not in config:
@@ -147,11 +190,11 @@ def validate_config(config: dict) -> list[ValidationIssue]:
                     )
                 )
 
-    # Surface parse errors from terms CSV (logic contradictions — block run)
+    # Surface parse errors from terms table (logic contradictions — block run)
     for msg in config.get("_parse_errors", []):
         issues.append(ValidationIssue("error", msg))
 
-    # Surface parse warnings from terms CSV
+    # Surface parse warnings from terms table
     for msg in config.get("_parse_warnings", []):
         issues.append(ValidationIssue("warning", msg))
 
@@ -190,6 +233,88 @@ def _prepare_config(config_path: Path, terms_path: Path | None = None) -> dict:
     return config
 
 
+def _cmd_path(path: Path) -> str:
+    text = str(path)
+    if " " in text:
+        return f'"{text}"'
+    return text
+
+
+def inspect_run_setup(
+    input_path: Path | None = None,
+    config_path: Path | None = None,
+    terms_path: Path | None = None,
+    output_dir: Path | None = None,
+) -> SetupInspection:
+    """Inspect files and configuration before a run and return actionable guidance."""
+    inspection = SetupInspection(ok=True, output_dir=output_dir)
+
+    if input_path is None and config_path is None and terms_path is None:
+        inspection.messages.extend(
+            [
+                "Create a project: fastslr new-project my-review --blocks CTX,TECH,SCM",
+                "Fill terms.xlsx with block, kind, term, level, section_scope and is_regex.",
+                "Check files: fastslr doctor --input articles.csv -c config.json -t terms.xlsx",
+                "Run triage: fastslr run articles.csv -c config.json -t terms.xlsx",
+            ]
+        )
+        return inspection
+
+    config: dict = {}
+    if config_path is not None:
+        if not config_path.exists():
+            inspection.errors.append(f"Config file not found: {config_path}")
+        else:
+            try:
+                config = _prepare_config(config_path, terms_path)
+                for issue in validate_config(config):
+                    if issue.level == "error":
+                        inspection.errors.append(issue.message)
+                    else:
+                        inspection.warnings.append(issue.message)
+                inspection.domain_blocks = get_domain_blocks(config)
+                inspection.terms_count = config.get("_valid_terms_count")
+            except Exception as exc:
+                inspection.errors.append(f"Could not load config/terms: {exc}")
+
+    if input_path is not None:
+        if not input_path.exists():
+            inspection.errors.append(f"Input file not found: {input_path}")
+        else:
+            try:
+                df = load_table_safe(input_path)
+                inspection.input_rows = len(df)
+                inspection.input_columns = [str(c) for c in df.columns]
+                fields = config.get("fields", {}) if config else {}
+                inspection.field_mapping = resolve_field_columns(df, fields)
+
+                for required in ("id", "title", "abstract"):
+                    if inspection.field_mapping.get(required) is None:
+                        inspection.warnings.append(
+                            f"Could not identify the '{required}' column. "
+                            f"Set fields.{required} in config.json."
+                        )
+            except Exception as exc:
+                inspection.errors.append(f"Could not load input table: {exc}")
+
+    if terms_path is not None and not terms_path.exists():
+        inspection.errors.append(f"Terms file not found: {terms_path}")
+
+    if output_dir is None and input_path is not None:
+        inspection.output_dir = input_path.parent / "output"
+
+    if input_path is not None and config_path is not None:
+        parts = ["fastslr", "run", _cmd_path(input_path), "-c", _cmd_path(config_path)]
+        if terms_path is not None:
+            parts.extend(["-t", _cmd_path(terms_path)])
+        if output_dir is not None:
+            parts.extend(["-o", _cmd_path(output_dir)])
+        inspection.run_command = " ".join(parts)
+
+    inspection.ok = not inspection.errors
+    return inspection
+
+
 # ── Triage ───────────────────────────────────────────────────────────────────
 
 
@@ -202,7 +327,7 @@ def run_triage(
 ) -> TriageResult:
     """Execute a full triage run."""
     config = _prepare_config(config_path, terms_path)
-    df = load_csv_safe(input_path)
+    df = load_table_safe(input_path)
 
     if output_dir is None:
         output_dir = input_path.parent / "output"
@@ -211,8 +336,10 @@ def run_triage(
     result_df, stats = process_articles(df, config, on_progress=on_progress)
 
     # Export results
-    result_path = output_dir / "triage_results.xlsx"
-    export_results(result_df, result_path, config)
+    exported_results = export_results(result_df, output_dir / "triage_results", config)
+    result_path = exported_results.get("xlsx") or exported_results.get("csv")
+    if result_path is None:
+        raise RuntimeError("No result file was exported.")
 
     # Export report
     report_path = output_dir / "triage_report.txt"
@@ -245,12 +372,28 @@ def run_triage(
     academic_path = output_dir / "academic_report.md"
     generate_academic_report(snapshot, academic_path)
 
+    artifact_paths: dict[str, Path] = {
+        **{f"results_{fmt}": path for fmt, path in exported_results.items()},
+        "report": report_path,
+        "audit": audit_path,
+        "protocol": protocol_path,
+        "academic_report": academic_path,
+    }
+
+    academic_package_path: Path | None = None
+    if get_export_opts(config)["academic_package"]:
+        academic_package_path = output_dir / "academic_package.zip"
+        export_appendix_pack(artifact_paths, academic_package_path, snapshot["execution_id"])
+        artifact_paths["academic_package"] = academic_package_path
+
     return TriageResult(
         result_df=result_df,
         stats=stats,
         config=config,
         output_dir=output_dir,
         result_path=result_path,
+        artifact_paths=artifact_paths,
+        academic_package_path=academic_package_path,
     )
 
 
@@ -263,7 +406,7 @@ def preview_triage(
 ) -> PreviewResult:
     """Run triage on a sample for validation."""
     config = _prepare_config(config_path, terms_path)
-    df = load_csv_safe(input_path)
+    df = load_table_safe(input_path)
     sample_df = sample_articles(df, sample_size, seed=seed)
     result_df, stats = process_articles(sample_df, config)
     return PreviewResult(
@@ -284,7 +427,7 @@ def analyze_coverage(
 ) -> TermCoverageReport:
     """Run triage and analyze term coverage."""
     config = _prepare_config(config_path, terms_path)
-    df = load_csv_safe(input_path)
+    df = load_table_safe(input_path)
     result_df, _ = process_articles(df, config)
     report = analyze_term_coverage(result_df, config)
 
@@ -299,8 +442,8 @@ def analyze_coverage(
 
 def diff_results(path_a: Path, path_b: Path) -> DiffReport:
     """Compare two triage result files and find changed decisions."""
-    df_a = pd.read_excel(path_a) if path_a.suffix == ".xlsx" else pd.read_csv(path_a)
-    df_b = pd.read_excel(path_b) if path_b.suffix == ".xlsx" else pd.read_csv(path_b)
+    df_a = read_result_table(path_a)
+    df_b = read_result_table(path_b)
 
     # Validate that both files have Final_Decision
     if "Final_Decision" not in df_a.columns:
@@ -373,7 +516,8 @@ def create_project(
         encoding="utf-8",
     )
 
-    # Generate terms CSV template
+    # Generate terms templates. XLSX is the primary editing format; CSV is kept
+    # as a lightweight fallback for scripts and version control.
     terms_rows: list[dict] = []
     for block in blocks:
         block_name = block["name"]
@@ -420,10 +564,20 @@ def create_project(
     )
 
     terms_df = pd.DataFrame(terms_rows)
-    terms_path = output_dir / "terms.csv"
-    terms_df.to_csv(terms_path, sep=";", index=False, encoding="utf-8-sig")
+    terms_xlsx_path = output_dir / "terms.xlsx"
+    terms_csv_path = output_dir / "terms.csv"
+    terms_df.to_excel(terms_xlsx_path, index=False, engine="openpyxl")
+    terms_df.to_csv(terms_csv_path, sep=";", index=False, encoding="utf-8-sig")
 
     return output_dir
+
+
+def save_profile_config(name: str, config_path: Path, description: str = "") -> Path:
+    """Save a config file as a named profile."""
+    from . import profiles
+
+    cfg = load_config(config_path)
+    return profiles.save_profile(name, cfg, description)
 
 
 # ── Export ───────────────────────────────────────────────────────────────────
@@ -547,13 +701,19 @@ __all__ = [
     "DiffEntry",
     "DiffReport",
     "ProfileInfo",
+    "SetupInspection",
     "TermsView",
+    "get_version",
+    "format_coverage",
+    "read_results_table",
     "validate_config",
+    "inspect_run_setup",
     "run_triage",
     "preview_triage",
     "analyze_coverage",
     "diff_results",
     "create_project",
+    "save_profile_config",
     "export_academic_package",
     "browse_terms",
 ]

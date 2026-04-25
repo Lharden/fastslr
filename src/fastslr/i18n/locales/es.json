@@ -17,7 +17,7 @@
 
   "project_created": "Proyecto creado: {path}",
   "project_config_hint": "  config.json  — edite umbrales y parametros",
-  "project_terms_hint": "  terms.csv    — agregue sus terminos de busqueda aqui",
+  "project_terms_hint": "  terms.xlsx   — agregue sus terminos de busqueda aqui (tambien se crea CSV)",
   "blocks_required": "Se requiere al menos un nombre de bloque.",
 
   "table_triage_results": "Resultados del Triaje",

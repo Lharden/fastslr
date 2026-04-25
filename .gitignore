@@ -30,3 +30,11 @@ Thumbs.db
 # Ruff / Pyright
 .ruff_cache/
 .pyright/
+
+# Local AI/Claude configuration
+.ai/
+.claude/
+
+# Local data and scratch
+data/
+teste/

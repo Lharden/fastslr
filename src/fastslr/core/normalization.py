@@ -87,7 +87,7 @@ def extract_normalization_rules(
     df: pd.DataFrame,
     warnings: list[str] | None = None,
 ) -> dict:
-    """Extract normalization rules from the terms CSV DataFrame.
+    """Extract normalization rules from the terms table DataFrame.
 
     Looks for ``normalization_type`` and ``normalization_target`` columns.
     Returns a dict suitable for :class:`NormalizationEngine`.

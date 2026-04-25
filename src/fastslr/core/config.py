@@ -1,4 +1,4 @@
-"""Configuration loading, terms CSV parsing, and parameter construction."""
+"""Configuration loading, terms table parsing, and parameter construction."""
 
 from __future__ import annotations
 
@@ -53,7 +53,20 @@ def auto_detect_input(input_dir: Path) -> Path | None:
 
 def get_domain_blocks(config: dict) -> list[str]:
     """Return the list of domain block names from the configuration."""
-    return list(config.get("_domain_blocks", []))
+    configured_blocks = list(config.get("_domain_blocks", []))
+    if configured_blocks:
+        return configured_blocks
+
+    block_order = config.get("global", {}).get("BLOCK_ORDER", [])
+    inline_blocks = [
+        block_name
+        for block_name in block_order
+        if isinstance(config.get(block_name), dict) and "positives" in config[block_name]
+    ]
+    if inline_blocks:
+        return inline_blocks
+
+    return []
 
 
 def load_global_params(global_cfg: dict) -> GlobalParams:
@@ -139,16 +152,16 @@ def load_global_params(global_cfg: dict) -> GlobalParams:
 
 
 def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
-    """Parse a terms CSV and merge term definitions into the base configuration.
+    """Parse a terms CSV/XLSX table and merge terms into the base configuration.
 
-    The terms CSV must have columns: block, kind, term, level, section_scope, is_regex.
+    The terms table must have columns: block, kind, term, level, section_scope, is_regex.
     The 'block' column determines which thematic block a term belongs to.
     'GLOBAL' block terms become T0 anti-terms.
     """
-    from .io import load_csv_safe
+    from .io import load_table_safe
 
     terms_path = Path(terms_path)
-    df = load_csv_safe(terms_path)
+    df = load_table_safe(terms_path)
 
     config = dict(base_config)
 
@@ -172,7 +185,10 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
 
     block_terms: dict[str, dict] = {}
     valid_count = 0
-    seen_terms: set[tuple[str, str, str]] = set()  # (block, kind, term_lower)
+    # Dedup key: (block, kind, term_lower, scope, level_str, is_regex).
+    # Rows that share a term but differ in scope, level, or regex flag are
+    # intentionally distinct rules and must all be kept.
+    seen_terms: set[tuple[str, str, str, str, str, bool]] = set()
 
     for idx, row in df.iterrows():
         try:
@@ -204,17 +220,6 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                 )
                 continue
 
-            # ── duplicate detection ───────────────────────────────────
-            dedup_key = (block, kind, term.lower())
-            if dedup_key in seen_terms:
-                parse_warnings.append(
-                    f"Row {row_num}, block '{block}', term '{term}': "
-                    f"duplicate term (same block + kind). "
-                    f"Only the first occurrence is used. Row skipped."
-                )
-                continue
-            seen_terms.add(dedup_key)
-
             # ── level validation ──────────────────────────────────────
             level = row.get("level", "")
             if pd.isna(level):
@@ -243,10 +248,15 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                                 f"Score contribution will be 0."
                             )
                     except (ValueError, TypeError):
+                        examples = (
+                            ", ".join(str(lv) for lv in sorted(configured_levels))
+                            if configured_levels
+                            else "1, 2, 3..."
+                        )
                         parse_warnings.append(
                             f"Row {row_num}, block '{block}', term '{term}': "
                             f"invalid level '{level}' (must be a whole number, "
-                            f"e.g. {', '.join(str(lv) for lv in sorted(configured_levels)) if configured_levels else '1, 2, 3...'}). "
+                            f"e.g. {examples}). "
                             f"Score contribution will be 0."
                         )
                         level = ""
@@ -279,6 +289,20 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                     f"Defaulting to 0 (plain text)."
                 )
             is_regex = is_regex_str in ("1", "true", "yes")
+
+            # ── duplicate detection ───────────────────────────────────
+            # Key must include scope, level and is_regex so that rows
+            # intentionally reusing a term across sections, levels or
+            # regex/literal variants are preserved as distinct rules.
+            dedup_key = (block, kind, term.lower(), scope, level, is_regex)
+            if dedup_key in seen_terms:
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': "
+                    f"duplicate term (same block, kind, scope, level and is_regex). "
+                    f"Only the first occurrence is used. Row skipped."
+                )
+                continue
+            seen_terms.add(dedup_key)
 
             # ── build entry ───────────────────────────────────────────
             if block not in block_terms:
@@ -383,16 +407,50 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
     domain_blocks: list[str] = []
     block_labels: dict[str, str] = {}
 
+    def _is_inline_block(value: object) -> bool:
+        """Return True if a base_config entry looks like an inline block definition."""
+        return isinstance(value, dict) and "positives" in value
+
+    inline_block_names = {
+        name for name, value in base_config.items()
+        if name not in {GLOBAL_BLOCK_NAME, T0_BLOCK_NAME} and _is_inline_block(value)
+    }
+
     if block_order:
         ordered = list(block_order)
     else:
-        ordered = sorted(k for k in block_terms if k != GLOBAL_BLOCK_NAME)
+        csv_names = {k for k in block_terms if k != GLOBAL_BLOCK_NAME}
+        ordered = sorted(csv_names | inline_block_names)
 
     for block_name in ordered:
         if block_name == GLOBAL_BLOCK_NAME:
             continue
-        if block_name in block_terms:
-            config[block_name] = block_terms[block_name]
+        csv_block = block_terms.get(block_name)
+        base_entry = base_config.get(block_name)
+        inline = base_entry if _is_inline_block(base_entry) else None
+
+        if csv_block is not None and inline is not None:
+            # Merge CSV terms into the existing inline block so both survive.
+            inline_anti = inline.get("anti", {}) or {}
+            csv_anti = csv_block.get("anti", {})
+            config[block_name] = {
+                "positives": list(inline.get("positives", []))
+                + list(csv_block.get("positives", [])),
+                "anti": {
+                    "exclude": list(inline_anti.get("exclude", []))
+                    + list(csv_anti.get("exclude", [])),
+                    "flag": list(inline_anti.get("flag", []))
+                    + list(csv_anti.get("flag", [])),
+                },
+            }
+            domain_blocks.append(block_name)
+            block_labels[block_name] = block_name
+        elif csv_block is not None:
+            config[block_name] = csv_block
+            domain_blocks.append(block_name)
+            block_labels[block_name] = block_name
+        elif inline is not None:
+            # Block defined only in config.json: preserve it unchanged.
             domain_blocks.append(block_name)
             block_labels[block_name] = block_name
 

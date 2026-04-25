@@ -1,7 +1,8 @@
 """FastSLR CLI — batch mode entry point.
 
 Usage:
-    fastslr run <input> --config <config.json> --terms <terms.csv>
+    fastslr doctor --input <input> --config <config.json> --terms <terms.xlsx>
+    fastslr run <input> --config <config.json> --terms <terms.xlsx>
     fastslr preview <input> --config <config.json> --sample 50
     fastslr new-project
     fastslr coverage <input> --config <config.json>
@@ -23,7 +24,6 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
 
-from ..core.constants import VERSION
 from ..i18n import _ as t
 from ..i18n import set_locale
 
@@ -91,6 +91,50 @@ def _print_stats(stats: dict) -> None:
     console.print(table)
 
 
+def _print_setup_inspection(inspection) -> None:
+    """Print a setup inspection returned by the controller."""
+    if inspection.messages:
+        console.print("\n[bold]FastSLR quick start[/bold]")
+        for msg in inspection.messages:
+            console.print(f"  - {msg}")
+
+    if inspection.errors:
+        console.print("\n[red bold]Setup errors[/red bold]")
+        for msg in inspection.errors:
+            console.print(f"  [red]- {msg}[/red]")
+
+    if inspection.warnings:
+        console.print("\n[yellow bold]Setup warnings[/yellow bold]")
+        for msg in inspection.warnings:
+            console.print(f"  [yellow]- {msg}[/yellow]")
+
+    if inspection.input_rows is not None:
+        console.print(f"\n[bold]Input articles[/bold]: {inspection.input_rows}")
+        if inspection.input_columns:
+            console.print("Columns: " + ", ".join(inspection.input_columns[:20]))
+
+    if inspection.field_mapping:
+        table = Table(title="Detected field mapping", show_header=True)
+        table.add_column("Field", style="cyan")
+        table.add_column("Column")
+        for field, column in inspection.field_mapping.items():
+            table.add_row(field, column or "[yellow]not found[/yellow]")
+        console.print(table)
+
+    if inspection.domain_blocks:
+        console.print("\n[bold]Domain blocks[/bold]: " + ", ".join(inspection.domain_blocks))
+
+    if inspection.terms_count is not None:
+        console.print(f"[bold]Valid terms[/bold]: {inspection.terms_count}")
+
+    if inspection.output_dir is not None:
+        console.print(f"[bold]Output directory[/bold]: {inspection.output_dir}")
+
+    if inspection.run_command:
+        console.print("\n[bold green]Run command[/bold green]")
+        console.print(f"  {inspection.run_command}")
+
+
 # ── Commands ─────────────────────────────────────────────────────────────────
 
 
@@ -100,14 +144,42 @@ def version(
 ) -> None:
     """Show FastSLR version."""
     _setup_lang(lang)
-    console.print(t("version_info", version=VERSION))
+    from . import controller
+
+    console.print(t("version_info", version=controller.get_version()))
+
+
+@app.command()
+def doctor(
+    input_file: Path | None = typer.Option(
+        None, "--input", "-i", help="Path to articles CSV/XLSX file."
+    ),
+    config: Path | None = typer.Option(None, "--config", "-c", help="Path to config.json."),
+    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms XLSX/CSV."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Output directory."),
+    lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
+) -> None:
+    """Check setup files and show the exact run command."""
+    _setup_lang(lang)
+    from . import controller
+
+    inspection = controller.inspect_run_setup(
+        input_path=input_file,
+        config_path=config,
+        terms_path=terms,
+        output_dir=output,
+    )
+    _print_setup_inspection(inspection)
+
+    if not inspection.ok:
+        raise typer.Exit(1)
 
 
 @app.command()
 def run(
     input_file: Path = typer.Argument(..., help="Path to articles CSV/XLSX file."),
     config: Path = typer.Option(..., "--config", "-c", help="Path to config.json."),
-    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
+    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms XLSX/CSV."),
     output: Path | None = typer.Option(None, "--output", "-o", help="Output directory."),
     lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Suppress output."),
@@ -171,7 +243,7 @@ def run(
 def preview(
     input_file: Path = typer.Argument(..., help="Path to articles CSV/XLSX file."),
     config: Path = typer.Option(..., "--config", "-c", help="Path to config.json."),
-    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
+    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms XLSX/CSV."),
     sample: int = typer.Option(50, "--sample", "-s", help="Number of articles to sample."),
     lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
@@ -198,13 +270,12 @@ def preview(
 def coverage(
     input_file: Path = typer.Argument(..., help="Path to articles CSV/XLSX file."),
     config: Path = typer.Option(..., "--config", "-c", help="Path to config.json."),
-    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
+    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms XLSX/CSV."),
     output: Path | None = typer.Option(None, "--output", "-o", help="Export coverage CSV."),
     lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Analyze term coverage across all articles."""
     _setup_lang(lang)
-    from ..core.coverage import format_coverage_report
     from . import controller
 
     report = controller.analyze_coverage(
@@ -214,7 +285,7 @@ def coverage(
         output_path=output,
     )
 
-    console.print(format_coverage_report(report))
+    console.print(controller.format_coverage(report))
 
 
 @app.command()
@@ -321,7 +392,7 @@ def export_cmd(
 @app.command(name="terms")
 def terms_cmd(
     config: Path = typer.Option(..., "--config", "-c", help="Path to config.json."),
-    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms CSV."),
+    terms: Path | None = typer.Option(None, "--terms", "-t", help="Path to terms XLSX/CSV."),
     block: str | None = typer.Option(None, "--block", "-b", help="Filter by block name."),
     kind: str | None = typer.Option(None, "--kind", "-k", help="Filter by kind (pos/anti/flag)."),
     lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
@@ -382,11 +453,9 @@ def profile_save(
 ) -> None:
     """Save a configuration as a named profile."""
     _setup_lang(lang)
-    from ..core.config import load_config
-    from . import profiles
+    from . import controller
 
-    cfg = load_config(config)
-    path = profiles.save_profile(name, cfg, description)
+    path = controller.save_profile_config(name, config, description)
     console.print(f"[green]{t('profile_saved', name=name, path=path)}[/green]")
 
 

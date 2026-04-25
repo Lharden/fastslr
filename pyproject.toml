@@ -42,8 +42,6 @@ select = ["E", "F", "W", "I", "UP"]
 [tool.pyright]
 pythonVersion = "3.10"
 typeCheckingMode = "standard"
-venvPath = "."
-venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

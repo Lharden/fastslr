@@ -17,7 +17,7 @@
 
   "project_created": "Project created: {path}",
   "project_config_hint": "  config.json  — edit thresholds and parameters",
-  "project_terms_hint": "  terms.csv    — add your search terms here",
+  "project_terms_hint": "  terms.xlsx   — add your search terms here (CSV fallback also created)",
   "blocks_required": "At least one block name is required.",
 
   "table_triage_results": "Triage Results",

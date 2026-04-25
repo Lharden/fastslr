@@ -90,14 +90,14 @@ Entrada (CSV/XLSX)
     │
     ▼
 ┌─────────────────────────┐
-│  load_csv_safe()        │  Auto-deteccao de encoding e separador
+│  load_table_safe()      │  CSV/TSV/XLSX com deteccao de encoding/separador
 │  Auto-map colunas       │  Mapeamento: key, title, abstract, manual_tags
 └───────────┬─────────────┘
             │
             ▼
 ┌─────────────────────────┐
 │  _prepare_config()      │  1. Carrega config.json
-│                         │  2. Faz merge com terms.csv (parse_terms_csv)
+│                         │  2. Faz merge com terms.xlsx/csv (parse_terms_csv)
 │                         │  3. Extrai regras de normalizacao
 │                         │  4. Precompila todos os padroes regex
 └───────────┬─────────────┘
@@ -391,7 +391,7 @@ Regras sao extraidas automaticamente do CSV de termos via colunas `normalization
 }
 ```
 
-### 7.2 Estrutura do terms.csv
+### 7.2 Estrutura do terms.xlsx/CSV
 
 ```
 block;kind;term;level;section_scope;is_regex;normalization_type;normalization_target
@@ -458,7 +458,7 @@ GLOBAL;flag;conference abstract;0;any;0;;
 └──────────────────────────────────────────────┘
 ```
 
-**Regra arquitetural:** CLI e TUI **nunca** importam diretamente do `core`. Toda comunicacao passa pelo `controller.py`, que atua como fachada unica.
+**Regra arquitetural:** fluxos de aplicacao da CLI e da TUI passam pelo `controller.py`, que atua como fachada unica para preparacao de config, execucao, diff, coverage e export. A camada de interface evita importar regras de dominio diretamente do `core`.
 
 ---
 
@@ -466,10 +466,10 @@ GLOBAL;flag;conference abstract;0;any;0;;
 
 ### 9.1 Carregamento de Entrada
 
-`load_csv_safe()` implementa deteccao automatica:
-1. Detecta encoding via `chardet` (ou assume UTF-8)
-2. Tenta separadores na ordem: `;`, `,`, `\t`
-3. Aceita CSV com >= 3 colunas
+`load_table_safe()` implementa deteccao automatica:
+1. Aceita CSV, TSV, TXT, XLSX, XLSM e XLS
+2. Detecta encoding via `chardet` para arquivos delimitados (ou assume UTF-8)
+3. Escolhe o separador com maior reconhecimento de cabecalhos conhecidos
 4. Auto-mapeia colunas por aliases (ex: "Abstract Note" → "abstract")
 
 ### 9.2 Artefatos de Saida

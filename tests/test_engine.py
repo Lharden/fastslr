@@ -159,6 +159,7 @@ class TestProcessArticles:
     def test_error_policy_flag_keeps_article(self, sample_config, mini_terms_csv, monkeypatch):
         cfg = parse_terms_csv(str(mini_terms_csv), sample_config)
         cfg["global"]["ERROR_POLICY"] = "flag"
+        cfg["global"]["MAX_ERROR_RATE"] = 1.0
 
         engine = NormalizationEngine(cfg.get("normalization_rules", {}))
         gp = load_global_params(cfg.get("global", {}))
@@ -185,6 +186,38 @@ class TestProcessArticles:
         assert len(result_df) == 1
         assert result_df.iloc[0]["Final_Decision"] == "FLAGGED_FINAL"
         assert stats["error_count"] == 1
+        assert stats["error_rate"] == 1.0
+
+    def test_error_policy_flag_raises_when_error_rate_exceeds_limit(
+        self, sample_config, mini_terms_csv, monkeypatch
+    ):
+        cfg = parse_terms_csv(str(mini_terms_csv), sample_config)
+        cfg["global"]["ERROR_POLICY"] = "flag"
+        cfg["global"]["MAX_ERROR_RATE"] = 0.5
+
+        engine = NormalizationEngine(cfg.get("normalization_rules", {}))
+        gp = load_global_params(cfg.get("global", {}))
+        for block_name in get_domain_blocks(cfg):
+            cfg[block_name] = precompile_patterns(cfg[block_name], engine, gp)
+        if "T0" in cfg:
+            cfg["T0"] = precompile_patterns(cfg["T0"], engine, gp)
+
+        def _boom(*_args, **_kwargs):
+            raise RuntimeError("forced rate failure")
+
+        monkeypatch.setattr(engine_module, "evaluate_block", _boom)
+
+        df = pd.DataFrame(
+            {
+                "key": ["E001"],
+                "title": ["oil and gas"],
+                "abstract": ["machine learning"],
+                "manual_tags": [""],
+            }
+        )
+
+        with pytest.raises(RuntimeError, match="MAX_ERROR_RATE"):
+            process_articles(df, cfg, on_progress=None)
 
     def test_error_policy_fail_raises(self, sample_config, mini_terms_csv, monkeypatch):
         cfg = parse_terms_csv(str(mini_terms_csv), sample_config)

@@ -6,7 +6,9 @@ Processes articles through the multi-block triage system.
 from __future__ import annotations
 
 import logging
+import re
 import time
+import unicodedata
 from collections.abc import Callable
 from datetime import datetime
 
@@ -21,11 +23,36 @@ from .scoring import evaluate_block, evaluate_t0_conditional, make_final_decisio
 logger = logging.getLogger(__name__)
 
 _COLUMN_ALIASES: dict[str, list[str]] = {
-    "key": ["Key", "key", "ID", "id"],
-    "title": ["Title", "title"],
-    "abstract": ["Abstract Note", "abstract", "Abstract"],
-    "manual_tags": ["Manual Tags", "manual_tags", "Tags"],
+    "key": ["Key", "key", "ID", "id", "EID", "UT", "Record ID", "Article ID"],
+    "title": ["Title", "title", "TI", "Article Title", "Document Title", "Titulo", "Título"],
+    "abstract": [
+        "Abstract Note",
+        "abstract",
+        "Abstract",
+        "AB",
+        "Resumo",
+        "Resumen",
+        "Description",
+    ],
+    "manual_tags": [
+        "Manual Tags",
+        "manual_tags",
+        "Tags",
+        "Author Keywords",
+        "Keywords",
+        "DE",
+        "Palavras-chave",
+        "Palavras chave",
+        "Palabras clave",
+    ],
 }
+
+
+def _normalize_column_label(label: str) -> str:
+    """Normalize a column label for tolerant matching."""
+    no_accents = unicodedata.normalize("NFKD", str(label))
+    ascii_label = "".join(ch for ch in no_accents if not unicodedata.combining(ch))
+    return re.sub(r"[^a-z0-9]+", "", ascii_label.lower())
 
 
 def _auto_map_column(df: pd.DataFrame, col_name: str) -> str:
@@ -41,13 +68,42 @@ def _auto_map_column(df: pd.DataFrame, col_name: str) -> str:
         if actual_col.lower() == col_lower:
             return actual_col
 
+    normalized_configured = _normalize_column_label(col_name)
+    for actual_col in df.columns:
+        if _normalize_column_label(actual_col) == normalized_configured:
+            return actual_col
+
     for alias_key, aliases in _COLUMN_ALIASES.items():
         if col_lower == alias_key or col_name in aliases:
             for alias in aliases:
                 if alias in df.columns:
                     return alias
+                normalized_alias = _normalize_column_label(alias)
+                for actual_col in df.columns:
+                    if _normalize_column_label(actual_col) == normalized_alias:
+                        return actual_col
 
     return col_name
+
+
+def resolve_field_columns(df: pd.DataFrame, fields: dict) -> dict[str, str | None]:
+    """Resolve configured field names to actual DataFrame columns."""
+    resolved: dict[str, str | None] = {}
+    configured = {
+        "id": fields.get("id", "key"),
+        "title": fields.get("title", "title"),
+        "abstract": fields.get("abstract", "abstract"),
+        "manual_tags": fields.get("manual_tags"),
+    }
+
+    for field_name, configured_col in configured.items():
+        if not configured_col:
+            resolved[field_name] = None
+            continue
+        actual_col = _auto_map_column(df, str(configured_col))
+        resolved[field_name] = actual_col if actual_col in df.columns else None
+
+    return resolved
 
 
 def collect_statistics(df_result: pd.DataFrame) -> dict:
@@ -280,6 +336,19 @@ def process_articles(
     stats["processing_time"] = processing_time
     stats["articles_per_second"] = len(output_rows) / processing_time if processing_time > 0 else 0
     stats["error_count"] = error_count
+    stats["error_rate"] = error_count / total if total > 0 else 0
+
+    if (
+        error_policy == "flag"
+        and total > 0
+        and global_params.max_error_rate >= 0
+        and stats["error_rate"] > global_params.max_error_rate
+    ):
+        raise RuntimeError(
+            "Processing error rate exceeded MAX_ERROR_RATE: "
+            f"{stats['error_rate']:.1%} > {global_params.max_error_rate:.1%} "
+            f"({error_count}/{total} article(s))"
+        )
 
     return result_df, stats
 
@@ -294,4 +363,4 @@ def sample_articles(df: pd.DataFrame, n: int, seed: int | None = None) -> pd.Dat
     return df.sample(n=n, random_state=seed).reset_index(drop=True)
 
 
-__all__ = ["process_articles", "collect_statistics", "sample_articles"]
+__all__ = ["process_articles", "collect_statistics", "sample_articles", "resolve_field_columns"]

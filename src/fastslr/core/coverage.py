@@ -29,15 +29,16 @@ def _extract_term_hits(
     result_df: pd.DataFrame,
     domain_blocks: list[str],
 ) -> dict[str, dict[str, int]]:
-    """Parse highlight columns to count per-term, per-section hits."""
+    """Parse highlight columns to count per-term article and section hits."""
     term_hits: dict[str, dict[str, int]] = {}
+    article_term_seen: set[tuple[object, str]] = set()
 
     for block in domain_blocks:
         col = f"Highlights_{block}"
         if col not in result_df.columns:
             continue
 
-        for raw in result_df[col].dropna():
+        for article_idx, raw in result_df[col].dropna().items():
             for match in _HIGHLIGHT_TERM_RE.finditer(str(raw)):
                 term, section = match.group(1), match.group(2)
                 if term not in term_hits:
@@ -46,9 +47,15 @@ def _extract_term_hits(
                         "abstract": 0,
                         "manual_tags": 0,
                         "_total": 0,
+                        "_articles": 0,
                     }
                 term_hits[term][section] = term_hits[term].get(section, 0) + 1
                 term_hits[term]["_total"] += 1
+
+                article_key = (article_idx, term)
+                if article_key not in article_term_seen:
+                    article_term_seen.add(article_key)
+                    term_hits[term]["_articles"] += 1
 
     return term_hits
 
@@ -60,7 +67,7 @@ def analyze_term_coverage(
 ) -> TermCoverageReport:
     """Analyze term coverage after a triage run."""
     if domain_blocks is None:
-        domain_blocks = config.get("_domain_blocks", [])
+        domain_blocks = list(config.get("_domain_blocks") or [])
 
     total_articles = len(result_df)
     report = TermCoverageReport(total_articles=total_articles)
@@ -87,12 +94,20 @@ def analyze_term_coverage(
 
     # Broad terms (matched >80% of articles)
     broad_threshold = total_articles * 0.8 if total_articles > 0 else 0
-    for term, hits in sorted(term_hits.items(), key=lambda x: -x[1]["_total"]):
-        if hits["_total"] > broad_threshold:
-            pct = hits["_total"] / max(total_articles, 1) * 100
-            report.broad_terms.append({"term": term, "hit_count": hits["_total"], "pct": pct})
+    for term, hits in sorted(term_hits.items(), key=lambda x: -x[1]["_articles"]):
+        article_count = hits["_articles"]
+        if article_count > broad_threshold:
+            pct = article_count / max(total_articles, 1) * 100
+            report.broad_terms.append(
+                {
+                    "term": term,
+                    "article_count": article_count,
+                    "hit_count": hits["_total"],
+                    "pct": pct,
+                }
+            )
             report.suggestions.append(
-                f"Term '{term}' matched {hits['_total']}/{total_articles}"
+                f"Term '{term}' matched {article_count}/{total_articles}"
                 f" articles ({pct:.0f}%) - may add noise"
             )
 
@@ -146,7 +161,11 @@ def format_coverage_report(report: TermCoverageReport) -> str:
     if report.broad_terms:
         lines.append(f"  BROAD TERMS ({len(report.broad_terms)} matching >80% of articles):")
         for bt in report.broad_terms[:10]:
-            lines.append(f"    - {bt['term']} ({bt['hit_count']} hits, {bt['pct']:.0f}%)")
+            lines.append(
+                f"    - {bt['term']} "
+                f"({bt['article_count']} articles, {bt['hit_count']} section hits, "
+                f"{bt['pct']:.0f}%)"
+            )
         lines.append("")
 
     if report.block_discrimination:
@@ -181,7 +200,8 @@ def export_coverage_csv(report: TermCoverageReport, output_path: Path) -> None:
             {
                 "term": bt["term"],
                 "status": "broad",
-                "hits": bt["hit_count"],
+                "articles": bt["article_count"],
+                "section_hits": bt["hit_count"],
                 "pct": bt["pct"],
             }
         )

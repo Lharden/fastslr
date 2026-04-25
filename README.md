@@ -65,19 +65,28 @@ fastslr new-project meu-projeto --blocks "CTX,TECH,SCM" --preset standard
 
 Isso cria uma pasta `meu-projeto/` com:
 - `config.json` — configuracao pronta para uso
-- `terms.csv` — template de termos para voce preencher
+- `terms.xlsx` — template principal de termos para voce preencher
+- `terms.csv` — copia alternativa para scripts/versionamento
 
 ### 2. Edite o arquivo de termos
 
-Abra `terms.csv` e adicione seus termos de busca (veja a secao [Criando o Arquivo de Termos](#criando-o-arquivo-de-termos)).
+Abra `terms.xlsx` e adicione seus termos de busca (veja a secao [Criando o Arquivo de Termos](#criando-o-arquivo-de-termos)).
 
-### 3. Execute a triagem
+### 3. Verifique o setup
 
 ```bash
-fastslr run artigos.csv --config meu-projeto/config.json --terms meu-projeto/terms.csv
+fastslr doctor --input artigos.csv --config meu-projeto/config.json --terms meu-projeto/terms.xlsx
 ```
 
-### 4. Confira os resultados
+O comando mostra se os arquivos existem, quais colunas foram detectadas e qual comando de run usar.
+
+### 4. Execute a triagem
+
+```bash
+fastslr run artigos.csv --config meu-projeto/config.json --terms meu-projeto/terms.xlsx
+```
+
+### 5. Confira os resultados
 
 Os resultados estao na pasta `output/`:
 - `triage_results.xlsx` — resultados completos com scores e decisoes
@@ -206,7 +215,7 @@ O sistema tambem faz auto-deteccao de colunas comuns (Zotero, Scopus, Web of Sci
 
 ## Criando o Arquivo de Termos
 
-O arquivo `terms.csv` define **todos os termos de busca** organizados por bloco. Use separador `;`.
+O arquivo `terms.xlsx` define **todos os termos de busca** organizados por bloco. O mesmo formato tambem e aceito em CSV com separador `;`.
 
 ### Formato
 
@@ -283,23 +292,31 @@ CTX;pos;supply-chain;2;any;0;compound_variant;supply chain
 ### `fastslr run` — Executar triagem
 
 ```bash
-fastslr run artigos.csv -c config.json -t terms.csv [-o output/] [-l pt_BR] [-q]
+fastslr run artigos.csv -c config.json -t terms.xlsx [-o output/] [-l pt_BR] [-q]
 ```
 
 | Flag | Descricao |
 |------|-----------|
 | `-c, --config` | Caminho para o config.json (obrigatorio) |
-| `-t, --terms` | Caminho para o terms.csv |
+| `-t, --terms` | Caminho para o terms.xlsx ou terms.csv |
 | `-o, --output` | Diretorio de saida (padrao: `output/` junto ao input) |
 | `-l, --lang` | Idioma da interface: `en`, `pt_BR`, `es` |
 | `-q, --quiet` | Suprime saida no terminal |
+
+### `fastslr doctor` — Verificar setup antes da run
+
+```bash
+fastslr doctor --input artigos.csv -c config.json -t terms.xlsx
+```
+
+Mostra mapeamento de colunas detectado, blocos carregados, quantidade de termos validos, avisos de configuracao e o comando exato para executar a triagem.
 
 ### `fastslr preview` — Pre-visualizar resultados
 
 Executa a triagem em uma **amostra** de artigos para validacao rapida.
 
 ```bash
-fastslr preview artigos.csv -c config.json -t terms.csv [-s 50]
+fastslr preview artigos.csv -c config.json -t terms.xlsx [-s 50]
 ```
 
 | Flag | Descricao |
@@ -311,7 +328,7 @@ fastslr preview artigos.csv -c config.json -t terms.csv [-s 50]
 Identifica termos mortos (0 matches), termos amplos demais (>80% dos artigos) e blocos sem discriminacao.
 
 ```bash
-fastslr coverage artigos.csv -c config.json -t terms.csv [-o cobertura.csv]
+fastslr coverage artigos.csv -c config.json -t terms.xlsx [-o cobertura.csv]
 ```
 
 ### `fastslr diff` — Comparar duas execucoes
@@ -345,7 +362,7 @@ Gera um ZIP com todos os artefatos de auditoria para publicacao.
 ### `fastslr terms` — Navegar termos configurados
 
 ```bash
-fastslr terms -c config.json -t terms.csv [-b TECH] [-k pos]
+fastslr terms -c config.json -t terms.xlsx [-b TECH] [-k pos]
 ```
 
 | Flag | Descricao |
@@ -415,33 +432,34 @@ fastslr tui
 
 1. Exporte seus artigos do gerenciador bibliografico (Zotero, Scopus ou Web of Science) em CSV
 2. Crie o projeto: `fastslr new-project minha-rsl -b "CTX,TECH,APP"`
-3. Defina seus termos no `terms.csv`
+3. Defina seus termos no `terms.xlsx`
 
 ### Etapa 2: Calibracao
 
-4. Execute um preview: `fastslr preview artigos.csv -c config.json -t terms.csv -s 100`
-5. Analise a distribuicao de decisoes
-6. Ajuste thresholds e termos conforme necessario
-7. Execute analise de cobertura: `fastslr coverage artigos.csv -c config.json -t terms.csv`
-8. Remova termos mortos, refine termos amplos demais
+4. Verifique o setup: `fastslr doctor --input artigos.csv -c config.json -t terms.xlsx`
+5. Execute um preview: `fastslr preview artigos.csv -c config.json -t terms.xlsx -s 100`
+6. Analise a distribuicao de decisoes
+7. Ajuste thresholds e termos conforme necessario
+8. Execute analise de cobertura: `fastslr coverage artigos.csv -c config.json -t terms.xlsx`
+9. Remova termos mortos, refine termos amplos demais
 
 ### Etapa 3: Execucao
 
-9. Execute a triagem completa: `fastslr run artigos.csv -c config.json -t terms.csv`
-10. Revise manualmente os artigos `FLAGGED_FINAL`
-11. Documente decisoes manuais
+10. Execute a triagem completa: `fastslr run artigos.csv -c config.json -t terms.xlsx`
+11. Revise manualmente os artigos `FLAGGED_FINAL`
+12. Documente decisoes manuais
 
 ### Etapa 4: Documentacao
 
-12. Exporte o pacote academico: `fastslr export resultado.xlsx`
-13. Inclua o `protocol.json` como material suplementar na publicacao
-14. Use o `config_hash` para garantir reprodutibilidade
+13. Exporte o pacote academico, se precisar regenerar o ZIP: `fastslr export resultado.xlsx`
+14. Inclua o `protocol.json` como material suplementar na publicacao
+15. Use o `config_hash` para garantir reprodutibilidade
 
 ### Etapa 5: Iteracao (se necessario)
 
-15. Ajuste termos e thresholds
-16. Re-execute: `fastslr run artigos.csv -c config.json -t terms.csv`
-17. Compare com a execucao anterior: `fastslr diff resultado_v1.xlsx resultado_v2.xlsx`
+16. Ajuste termos e thresholds
+17. Re-execute: `fastslr run artigos.csv -c config.json -t terms.xlsx`
+18. Compare com a execucao anterior: `fastslr diff resultado_v1.xlsx resultado_v2.xlsx`
 
 ---
 
@@ -498,7 +516,7 @@ O pacote academico (`academic_package.zip`) contem tudo necessario para reprodut
 
 ### Reprodutibilidade
 
-Qualquer pessoa com os mesmos arquivos de entrada (`artigos.csv`, `config.json`, `terms.csv`) e a mesma versao do FastSLR produzira **exatamente** os mesmos resultados. O `protocol.json` contem hashes SHA-256 para verificacao.
+Qualquer pessoa com os mesmos arquivos de entrada (`artigos.csv`, `config.json`, `terms.xlsx` ou `terms.csv`) e a mesma versao do FastSLR produzira **exatamente** os mesmos resultados. O `protocol.json` contem hashes SHA-256 para verificacao.
 
 ---
 
@@ -555,14 +573,14 @@ FastSLR pode ser usado como biblioteca Python:
 ```python
 from fastslr.core import process_articles, collect_statistics
 from fastslr.core.config import load_config, parse_terms_csv, load_global_params
-from fastslr.core.io import load_csv_safe
+from fastslr.core.io import load_table_safe
 from fastslr.core.patterns import precompile_patterns
 from fastslr.core.normalization import NormalizationEngine
 
 # Carregar dados
 config = load_config("config.json")
-config = parse_terms_csv("terms.csv", config)
-df = load_csv_safe("artigos.csv")
+config = parse_terms_csv("terms.xlsx", config)
+df = load_table_safe("artigos.csv")
 
 # Preparar normalizacao e padroes
 norm_rules = config.get("normalization_rules", {})
@@ -591,7 +609,7 @@ from fastslr.app.controller import run_triage
 result = run_triage(
     input_path=Path("artigos.csv"),
     config_path=Path("config.json"),
-    terms_path=Path("terms.csv"),
+    terms_path=Path("terms.xlsx"),
 )
 
 print(f"Aprovados: {(result.result_df['Final_Decision'] == 'APPROVED_FINAL').sum()}")
@@ -631,7 +649,7 @@ Na politica "special", se exatamente 1 bloco estiver FLAGGED (por score, nao por
 
 ### Como garanto a reprodutibilidade?
 
-1. Use o mesmo `config.json` e `terms.csv`
+1. Use o mesmo `config.json` e `terms.xlsx` ou `terms.csv`
 2. Use a mesma versao do FastSLR (`fastslr version`)
 3. Inclua o `protocol.json` como material suplementar
 4. Os hashes SHA-256 no protocolo permitem verificar que os arquivos de entrada nao foram alterados
