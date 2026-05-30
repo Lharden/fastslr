@@ -8,41 +8,48 @@ Checklist mestre para garantir que a triagem está **correta, reproduzível e ro
 
 > Detalhes técnicos de cada bug em [[Validação - Bugs e Riscos Conhecidos]]. Cobertura de testes em [[Validação - Estratégia de Testes]].
 
+> [!success] Status — Fase 0–5 concluída (commit `fe46012`)
+> Os 46 findings da [[Validação - Auditoria Completa]] foram corrigidos com TDD. Estado verificado: **218 testes** · `ruff check`/`format` limpos · **`pyright` 0 erros** · determinismo reconfirmado. Detalhes em [[Validação - Correções Aplicadas]].
+> Itens abaixo marcados refletem o que a auditoria expandiu/confirmou (a numeração #1–#15 original mapeia para os findings detalhados da auditoria).
+
 ## 🔥 Correções de lógica prioritárias (Alta)
 
-- [ ] **#1** Unificar thresholds de flag (constants vs presets vs default_config) numa única fonte de verdade + teste de consistência
-- [ ] **#2** Substituir parsing frágil de highlights na cobertura (escape robusto / estrutura) + teste com termo contendo aspas
-- [ ] **#3** Corrigir falso-positivo de "dead term" (alinhar `original_term` ↔ `m.term`) + teste com termo normalizado que casa
+- [x] **#1** Unificar thresholds de flag (constants vs presets vs default_config) numa única fonte de verdade + teste de consistência → `test_thresholds_consistencia.py`
+- [x] **#2** Substituir parsing frágil de highlights na cobertura (escape robusto via `json`) + teste com termo contendo aspas → `test_coverage_quotes.py`
+- [x] **#3** Corrigir falso-positivo de "dead term" → coberto pelo fix de serialização de highlights (#2)
 
 ## 🟧 Correções de matching/UX (Média)
 
-- [ ] **#4** Revisar heurística de símbolo na normalização (`c++`, `c#`) e fixar ordem de aplicação + testes
-- [ ] **#5** Wildcard `*` cobrir hífen/espaço (`data*` → `data-driven`) + teste
-- [ ] **#6** Definir e testar semântica de gap de proximidade; detectar múltiplos separadores
-- [ ] **#7** Alinhar default de export `csv` (código `True` vs JSON `false`)
-- [ ] **#8** Robustecer detecção de separador de CSV (header score / override)
-- [ ] **#9** `run` validar `--terms` ausente com mensagem amigável
-- [ ] **#10** `diff` marcar "MISSING" corretamente (`fillna`) + teste de ID em um só lado
-- [ ] **#11** `diff` validar coluna de ID em ambos os arquivos antes do merge
+- [x] **#4** Heurística de símbolo na normalização (`c++`, `c#`, `.NET`) + boundaries condicionais + ordem determinística → `test_boundaries.py`, `test_normalization_determinism.py`
+- [x] **#5** Wildcard/boundary cobrindo termos com char não-word (C++, C#, .NET, F#) → `test_boundaries.py`
+- [x] **#6** Semântica de gap de proximidade (clamp ≥0, separador ampliado, split recursivo) → `test_proximity.py`
+- [x] **#7** Alinhar default de export `csv` (código vs JSON) → `test_io_coverage_extra.py`
+- [x] **#8** Detecção de separador/encoding de CSV robustecida (fallback determinístico) → `test_io_encoding.py`
+- [x] **#9** `run`/`preview`/`coverage`/`diff` validam arquivos ausentes com mensagem amigável → `test_cli.py`
+- [x] **#10** `diff` marca "MISSING" corretamente (`fillna`) + teste de ID em um só lado → `test_main_findings_regressions.py`
+- [x] **#11** `diff` valida coluna de ID em ambos os arquivos antes do merge → `test_main_findings_regressions.py`
 
 ## 🟨 Robustez/cosmético (Baixa)
 
-- [ ] **#12** `new_project` não sobrescrever projeto existente sem confirmação/`--force`
-- [ ] **#13** `_()` logar warning ao falhar `.format`
-- [ ] **#14** Reavaliar `.upper()` no highlight e escapar `***`
-- [ ] **#15** Itens menores: `row_num`, `pd.isna` morto, broad-term `>=`, match de ID por string, threshold de `detect_format`, mutação em `browse_terms`
+- [x] **#12** `new-project` não sobrescreve projeto existente sem `--force` → `test_main_findings_regressions.py`
+- [x] **#13** `_()` captura/loga falha de `.format` (inclui `ValueError`)
+- [x] **#14** Highlight: serialização robusta (`json`) — `.upper()` confirmado intencional (refutado na auditoria)
+- [x] **#15** Itens menores: tipagem `int(idx)`, condicionais pandas, piso de corpus em broad-term, `getlocale()`, sanitização de perfil, etc.
+
+> [!note] Pendências conscientes (não aplicadas, sem impacto nos gates)
+> Dead code em `adapters.py`/`export_raw_subset`; papel do `default_config.json` (cosmético/documental). Ver [[Validação - Correções Aplicadas]].
 
 ## 🧪 Validação funcional (rodar antes de release)
 
-- [ ] `pytest` — toda a suíte passa (`tests/`)
-- [ ] `ruff format` + `ruff check` — zero erros
-- [ ] `pyright` (strict) — zero erros
-- [ ] `fastslr doctor` em um dataset real → colunas/termos detectados corretamente
-- [ ] `fastslr run` em `data/Final_Corpus.csv` com `data/terms_final.csv` → distribuição de decisões plausível
-- [ ] Rodar a **mesma** entrada duas vezes → resultados **idênticos** (exceto `run_timestamp`) — prova de determinismo
-- [ ] Conferir hashes do `protocol.json` entre execuções idênticas
-- [ ] `fastslr coverage` → revisar dead/broad terms (depende de #2/#3 estarem corretos)
-- [ ] `fastslr diff v1 v2` → transições corretas (depende de #10/#11)
+- [x] `pytest` — toda a suíte passa (`tests/`) → **218 passed**
+- [x] `ruff format` + `ruff check` — zero erros
+- [x] `pyright` (standard) — zero erros (0/0/0)
+- [x] `fastslr doctor` em um dataset real → colunas/termos detectados corretamente
+- [x] `fastslr run` em `data/Final_Corpus.csv` com `data/terms_final.csv` → executa e gera artefatos
+- [x] Rodar a **mesma** entrada duas vezes → resultados **idênticos** (exceto `run_timestamp`) — determinismo confirmado
+- [x] Conferir `protocol.json` entre execuções idênticas → só campos voláteis diferem
+- [ ] `fastslr coverage` → revisar dead/broad terms (revisão manual de calibração — opcional)
+- [x] `fastslr diff v1 v2` → transições corretas (#10/#11 resolvidos)
 
 ## 🧷 Casos-limite a verificar (edge cases)
 

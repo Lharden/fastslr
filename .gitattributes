@@ -1,0 +1,9 @@
+# Normaliza quebras de linha: LF no repositório, auto no working tree.
+* text=auto eol=lf
+
+# Binários: nunca normalizar.
+*.xlsx binary
+*.zip binary
+*.png binary
+*.jpg binary
+*.pdf binary
