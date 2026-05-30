@@ -44,7 +44,7 @@ DEFAULT_APPROVAL_THRESHOLDS: dict[int, float | None] = {
     4: 22,
     5: None,
 }
-DEFAULT_FLAGGING_THRESHOLDS: dict[int, float] = {1: 6, 2: 6, 3: 6, 4: 8, 5: 12}
+DEFAULT_FLAGGING_THRESHOLDS: dict[int, float] = {1: 6, 2: 6, 3: 6, 4: 7, 5: 12}
 
 __all__ = [
     "VERSION",

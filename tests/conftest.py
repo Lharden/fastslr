@@ -21,7 +21,10 @@ def default_global_params() -> GlobalParams:
         level_scores={1: 10, 2: 8, 3: 6, 4: 4, 5: 2},
         section_weights={"title": 2.0, "abstract": 1.0, "manual_tags": 1.5},
         approval_thresholds={1: 10, 2: 12, 3: 18, 4: 22, 5: None},
-        flagging_thresholds={1: 6, 2: 6, 3: 6, 4: 8, 5: 12},
+        # L4=7 to match the single source of truth (constants.py / standard
+        # preset / default_config.json). Previously hardcoded the divergent
+        # value 8 (audit finding flagging-threshold-l4-divergence).
+        flagging_thresholds={1: 6, 2: 6, 3: 6, 4: 7, 5: 12},
         no_tags_uplift=1.17,
         max_section_score=30,
         fail_fast_enabled=True,

@@ -19,7 +19,7 @@ from .constants import SECTION_NAMES, VERSION
 
 chardet: ModuleType | None
 try:
-    import chardet as _chardet
+    import chardet as _chardet  # type: ignore[import-not-found]
 except ModuleNotFoundError:
     chardet = None
 else:
@@ -96,12 +96,42 @@ def compute_file_hash(file_path: str) -> str:
 # ── Table loading ────────────────────────────────────────────────────────────
 
 
-def _detect_encoding(path: Path) -> str:
-    with open(path, "rb") as f:
-        raw_data = f.read(10000)
-        if chardet is None:
-            return "utf-8"
-        return chardet.detect(raw_data).get("encoding", "utf-8") or "utf-8"
+# Deterministic fallback chain. ``latin-1`` is last and never fails on decode
+# (every byte maps to a code point), so it guarantees a successful read.
+_ENCODING_FALLBACK_CHAIN = ("utf-8-sig", "utf-8", "cp1252", "latin-1")
+
+
+def _candidate_encodings(path: Path, preferred: str | None = None) -> list[str]:
+    """Return an ordered, de-duplicated list of encodings to try.
+
+    Order: caller-provided ``preferred`` (e.g. from config), then an optional
+    chardet guess (kept only as an optimization when the dependency is present),
+    then the deterministic fallback chain that ends with ``latin-1``.
+    """
+    ordered: list[str] = []
+    if preferred:
+        ordered.append(preferred)
+
+    if chardet is not None:
+        try:
+            with open(path, "rb") as f:
+                raw_data = f.read(10000)
+            guess = chardet.detect(raw_data).get("encoding")
+        except (OSError, ValueError):
+            guess = None
+        if guess:
+            ordered.append(guess)
+
+    ordered.extend(_ENCODING_FALLBACK_CHAIN)
+
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for enc in ordered:
+        key = enc.lower()
+        if key not in seen:
+            seen.add(key)
+            deduped.append(enc)
+    return deduped
 
 
 def _header_score(columns: list[object]) -> int:
@@ -133,23 +163,42 @@ def _header_score(columns: list[object]) -> int:
     return score
 
 
-def _load_delimited_table(path: Path, min_columns: int) -> pd.DataFrame:
-    encoding = _detect_encoding(path)
+def _load_delimited_table(
+    path: Path, min_columns: int, encoding: str | None = None
+) -> pd.DataFrame:
     separators = ("\t", ";", ",") if path.suffix.lower() == ".tsv" else (";", ",", "\t")
-    candidates: list[tuple[int, int, pd.DataFrame]] = []
+    encodings = _candidate_encodings(path, preferred=encoding)
+    tried_encodings: list[str] = []
 
-    for sep in separators:
-        try:
-            df = pd.read_csv(path, encoding=encoding, sep=sep, dtype=str, keep_default_na=False)
+    for enc in encodings:
+        candidates: list[tuple[int, int, pd.DataFrame]] = []
+        decode_failed = False
+        for sep in separators:
+            try:
+                df = pd.read_csv(path, encoding=enc, sep=sep, dtype=str, keep_default_na=False)
+            except UnicodeDecodeError:
+                # This encoding cannot decode the bytes; advance to the next one.
+                decode_failed = True
+                break
+            except Exception:
+                # Parsing/separator issue specific to this separator; try the next sep.
+                continue
             if len(df.columns) >= min_columns:
                 candidates.append((_header_score(list(df.columns)), len(df.columns), df))
-        except Exception:
+
+        tried_encodings.append(enc)
+
+        if candidates:
+            if enc != encodings[0]:
+                logger.debug("Loaded delimited table %s using fallback encoding %r", path, enc)
+            return max(candidates, key=lambda item: (item[0], item[1]))[2]
+
+        if decode_failed:
             continue
 
-    if candidates:
-        return max(candidates, key=lambda item: (item[0], item[1]))[2]
-
-    raise ValueError(f"Unable to load delimited table: {path}")
+    raise ValueError(
+        f"Unable to load delimited table: {path} (tried encodings: {', '.join(tried_encodings)})"
+    )
 
 
 def _load_spreadsheet_table(path: Path, min_columns: int) -> pd.DataFrame:
@@ -168,8 +217,12 @@ def _load_spreadsheet_table(path: Path, min_columns: int) -> pd.DataFrame:
     return df
 
 
-def load_table_safe(path: Path, min_columns: int = 3) -> pd.DataFrame:
-    """Load a CSV/TSV or Excel table with conservative format detection."""
+def load_table_safe(path: Path, min_columns: int = 3, encoding: str | None = None) -> pd.DataFrame:
+    """Load a CSV/TSV or Excel table with conservative format detection.
+
+    When ``encoding`` is provided (e.g. from configuration), it is tried first
+    for delimited files before the deterministic fallback chain.
+    """
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
@@ -178,24 +231,22 @@ def load_table_safe(path: Path, min_columns: int = 3) -> pd.DataFrame:
     if suffix in SPREADSHEET_EXTENSIONS:
         return _load_spreadsheet_table(path, min_columns)
     if suffix in DELIMITED_EXTENSIONS or not suffix:
-        return _load_delimited_table(path, min_columns)
+        return _load_delimited_table(path, min_columns, encoding=encoding)
 
-    raise ValueError(
-        f"Unsupported table format: {path.suffix}. Use CSV, TSV, XLSX, XLSM, or XLS."
-    )
+    raise ValueError(f"Unsupported table format: {path.suffix}. Use CSV, TSV, XLSX, XLSM, or XLS.")
 
 
-def load_csv_safe(path: Path) -> pd.DataFrame:
+def load_csv_safe(path: Path, encoding: str | None = None) -> pd.DataFrame:
     """Load an input table.
 
     Kept for backward compatibility; despite the name, XLSX/XLSM/XLS are accepted.
     """
-    return load_table_safe(path)
+    return load_table_safe(path, encoding=encoding)
 
 
-def read_result_table(path: Path) -> pd.DataFrame:
+def read_result_table(path: Path, encoding: str | None = None) -> pd.DataFrame:
     """Read a result file exported by FastSLR."""
-    return load_table_safe(path, min_columns=1)
+    return load_table_safe(path, min_columns=1, encoding=encoding)
 
 
 # ── export helpers ───────────────────────────────────────────────────────────
@@ -205,9 +256,13 @@ def get_export_opts(cfg: dict) -> dict:
     """Extract export options from the configuration dict."""
     root = cfg or {}
     out = root.get("output") or {}
+    # Defaults aligned with the shipped template / generate_config and
+    # default_config.json (csv:false, xlsx:true). A minimal hand-written config
+    # without an ``output`` block therefore behaves like the documented default
+    # instead of silently producing CSV-only output.
     return {
-        "export_csv": bool(out.get("csv", True)),
-        "export_xlsx": bool(out.get("xlsx", False)),
+        "export_csv": bool(out.get("csv", False)),
+        "export_xlsx": bool(out.get("xlsx", True)),
         "csv_sep": out.get("csv_sep", root.get("sep", ";")),
         "csv_decimal": out.get("csv_decimal", root.get("decimal", ",")),
         "csv_float_fmt": out.get("csv_float_format", "%.2f"),
@@ -312,8 +367,12 @@ def pack_highlights(evaluation) -> str:
     for sec_name in SECTION_NAMES:
         for m in evaluation.matches.get(sec_name, []):
             comp_str = f" comps={'+'.join(m.components)}" if m.components else ""
+            # json.dumps escapes embedded double quotes/backslashes so a term such
+            # as 'pipe 5" diameter' stays parseable by the coverage regex and does
+            # not get mis-classified as a dead-term.
+            term_field = json.dumps(m.term)
             items.append(
-                f'term="{m.term}" sec={sec_name} L={m.level} '
+                f"term={term_field} sec={sec_name} L={m.level} "
                 f"row={m.source_row} type={m.match_type}{comp_str}"
             )
     return " | ".join(items)
@@ -517,17 +576,63 @@ def validate_protocol_snapshot(snapshot: dict) -> list[str]:
     return errors
 
 
+# Source protocol versions that ``migrate_protocol_snapshot`` knows how to
+# upgrade to ``PROTOCOL_VERSION_CURRENT``. The current version is accepted as a
+# no-op upgrade target so re-migrating an already-current snapshot is safe.
+_MIGRATABLE_SOURCE_VERSIONS = frozenset({"1.0", "2.0", PROTOCOL_VERSION_CURRENT})
+
+
+def _default_root_value(key: str) -> object:
+    """Return a safe placeholder for a missing required root key."""
+    if key == "protocol_version":
+        return PROTOCOL_VERSION_CURRENT
+    if key == "schema_id":
+        return PROTOCOL_SCHEMA_ID
+    if key == "execution_id":
+        return f"run_migrated_{uuid.uuid4().hex[:12]}"
+    if key == "generated_at":
+        return datetime.now().isoformat()
+    if key == "triage_version":
+        return VERSION
+    # Remaining structural keys (inputs/configuration/processing/artifacts/
+    # reproducibility) are objects.
+    return {}
+
+
 def migrate_protocol_snapshot(old_snapshot: dict) -> dict:
-    """Migrate a protocol snapshot from an older version to the current one."""
+    """Migrate a protocol snapshot from a known older version to the current one.
+
+    Refuses unknown/future source versions (raises ``ValueError``), fills any
+    missing required root keys with safe defaults, and validates the result so
+    the returned snapshot is guaranteed to pass ``validate_protocol_snapshot``.
+    """
+    source_version = old_snapshot.get("protocol_version")
+    if source_version not in _MIGRATABLE_SOURCE_VERSIONS:
+        raise ValueError(
+            f"Cannot migrate protocol snapshot: unknown source version "
+            f"{source_version!r}. Known versions: "
+            f"{', '.join(sorted(_MIGRATABLE_SOURCE_VERSIONS))}."
+        )
+
     migrated = deepcopy(old_snapshot)
     migrated["protocol_version"] = PROTOCOL_VERSION_CURRENT
     migrated["schema_id"] = PROTOCOL_SCHEMA_ID
+
+    # Backfill required root keys that an older/minimal snapshot may omit so the
+    # migrated snapshot is self-consistent rather than merely re-tagged as 2.1.
+    for key in _PROTOCOL_ROOT_KEYS:
+        if key not in migrated:
+            migrated[key] = _default_root_value(key)
 
     if "methodology" not in migrated:
         migrated["methodology"] = {
             "scoring": "weighted section scores with level-based thresholds",
             "normalization": "rule-based with LRU cache",
         }
+
+    errors = validate_protocol_snapshot(migrated)
+    if errors:
+        raise ValueError("Migrated protocol snapshot failed validation: " + "; ".join(errors))
 
     return migrated
 

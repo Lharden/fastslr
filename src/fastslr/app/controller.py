@@ -217,15 +217,21 @@ def _prepare_config(config_path: Path, terms_path: Path | None = None) -> dict:
     for block_name in get_domain_blocks(config):
         if block_name in config:
             config[block_name] = precompile_patterns(
-                config[block_name], norm_engine, global_params,
-                block_name=block_name, warnings=compile_warnings,
+                config[block_name],
+                norm_engine,
+                global_params,
+                block_name=block_name,
+                warnings=compile_warnings,
             )
             config[block_name]["normalization_engine"] = norm_engine
 
     if "T0" in config:
         config["T0"] = precompile_patterns(
-            config["T0"], norm_engine, global_params,
-            block_name="T0", warnings=compile_warnings,
+            config["T0"],
+            norm_engine,
+            global_params,
+            block_name="T0",
+            warnings=compile_warnings,
         )
 
     config["_parse_warnings"] = compile_warnings
@@ -325,9 +331,22 @@ def run_triage(
     output_dir: Path | None = None,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> TriageResult:
-    """Execute a full triage run."""
+    """Execute a full triage run.
+
+    Raises ``ValueError`` when the input corpus has zero data rows (e.g. a
+    header-only CSV). Producing an empty academic package / report with
+    ``TOTAL ARTICLES: 0`` while reporting success silently misleads a user who
+    exported the wrong corpus, so the run is aborted with a clear message
+    before any artifact is written.
+    """
     config = _prepare_config(config_path, terms_path)
     df = load_table_safe(input_path)
+
+    if len(df) == 0:
+        raise ValueError(
+            f"O corpus de entrada nao contem nenhum artigo (0 linhas): "
+            f"{input_path}. Verifique se o arquivo exportado esta correto."
+        )
 
     if output_dir is None:
         output_dir = input_path.parent / "output"
@@ -459,7 +478,18 @@ def diff_results(path_a: Path, path_b: Path) -> DiffReport:
             break
 
     if id_col is None:
-        id_col = df_a.columns[0]
+        # No shared canonical ID column. Fall back to the first column of A,
+        # but only if it also exists in B; otherwise the merge would raise a
+        # raw KeyError on a column missing from B.
+        fallback = df_a.columns[0] if len(df_a.columns) else None
+        if fallback is not None and fallback in df_b.columns:
+            id_col = fallback
+        else:
+            raise ValueError(
+                "Nenhuma coluna de ID comum encontrada entre os dois arquivos "
+                "(esperado uma de: ID, id, Key, key). "
+                f"Colunas de A: {list(df_a.columns)}; colunas de B: {list(df_b.columns)}."
+            )
 
     report = DiffReport(total_a=len(df_a), total_b=len(df_b))
 
@@ -470,6 +500,12 @@ def diff_results(path_a: Path, path_b: Path) -> DiffReport:
         suffixes=("_a", "_b"),
         how="outer",
     )
+
+    # An outer merge introduces NaN for IDs that exist in only one file. The
+    # decision columns always exist after the merge, so `.get(..., "MISSING")`
+    # never triggers its default; fill the NaNs explicitly so exclusive rows
+    # report "MISSING" instead of the string "nan".
+    merged = merged.fillna("MISSING")
 
     for _, row in merged.iterrows():
         old = str(row.get("Final_Decision_a", "MISSING"))
@@ -501,10 +537,35 @@ def create_project(
     blocks: list[dict],
     preset: str = "standard",
     output_dir: Path | None = None,
+    force: bool = False,
 ) -> Path:
-    """Create a new project with config.json and terms template."""
+    """Create a new project with config.json and terms template.
+
+    Refuses to overwrite an existing project (a directory already containing
+    ``config.json`` or a ``terms`` template) unless ``force=True`` is passed.
+    """
     if output_dir is None:
         output_dir = Path.cwd() / name
+
+    # Guard against silently clobbering an existing project. The previous
+    # behavior (``mkdir(exist_ok=True)`` + unconditional writes) overwrote any
+    # config/terms files already present in the target directory.
+    if not force:
+        existing = [
+            candidate
+            for candidate in (
+                output_dir / "config.json",
+                output_dir / "terms.xlsx",
+                output_dir / "terms.csv",
+            )
+            if candidate.exists()
+        ]
+        if existing:
+            names = ", ".join(sorted(p.name for p in existing))
+            raise FileExistsError(
+                f"O diretorio de projeto '{output_dir}' ja contem arquivos de "
+                f"projeto ({names}). Use force=True para sobrescrever."
+            )
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -588,7 +649,21 @@ def export_academic_package(
     output_dir: Path,
     config_path: Path | None = None,
 ) -> Path:
-    """Create an academic package ZIP from existing results."""
+    """Create an academic package ZIP from existing results.
+
+    Raises ``ValueError`` when ``result_path`` is not a FastSLR result table
+    (i.e. it lacks the ``Final_Decision`` column). Without this guard, pointing
+    at any arbitrary CSV produced a ZIP "successfully", yielding an invalid
+    academic package that contains raw data instead of triage decisions.
+    """
+    result_df = read_result_table(result_path)
+    if "Final_Decision" not in result_df.columns:
+        raise ValueError(
+            f"O arquivo '{result_path}' nao parece ser um resultado do FastSLR: "
+            f"falta a coluna 'Final_Decision'. Rode 'fastslr run' primeiro para "
+            f"gerar um resultado de triagem antes de exportar o pacote academico."
+        )
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     artifacts: dict[str, Path] = {"results": result_path}
@@ -626,6 +701,7 @@ class TermsView:
     terms: list[dict] = field(default_factory=list)
     total: int = 0
     blocks: list[str] = field(default_factory=list)
+    parse_warnings: list[str] = field(default_factory=list)
 
 
 def browse_terms(
@@ -691,7 +767,17 @@ def browse_terms(
                 }
             )
 
-    return TermsView(terms=all_terms, total=len(all_terms), blocks=domain_blocks)
+    # Propagate parse warnings (invalid kind, empty term, out-of-range level,
+    # skipped rows) so callers can surface which CSV rows were not accepted.
+    # Without this, the user assumes every row was loaded.
+    parse_warnings: list[str] = list(config.get("_parse_warnings", []))
+
+    return TermsView(
+        terms=all_terms,
+        total=len(all_terms),
+        blocks=domain_blocks,
+        parse_warnings=parse_warnings,
+    )
 
 
 __all__ = [

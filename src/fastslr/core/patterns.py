@@ -11,6 +11,25 @@ from .normalization import NormalizationEngine
 logger = logging.getLogger(__name__)
 
 
+def _conditional_boundaries(term: str, body: str) -> str:
+    """Wrap *body* with boundary anchors conditional on *term*'s edge chars.
+
+    ``\\b`` only asserts a boundary between a word char and a non-word char,
+    so anchoring a term whose edge is a non-word char (``C++``, ``.NET``)
+    either never matches or matches the wrong span. Instead we use
+    lookarounds that only constrain the edge when it is a word char:
+
+    * leading edge is a word char  -> prefix ``(?<!\\w)``
+    * trailing edge is a word char -> suffix ``(?!\\w)``
+
+    When an edge is a non-word char the constraint is relaxed on that side,
+    allowing e.g. ``C++`` to match inside ``C++ language``.
+    """
+    prefix = r"(?<!\w)" if term[:1].isalnum() or term[:1] == "_" else ""
+    suffix = r"(?!\w)" if term[-1:].isalnum() or term[-1:] == "_" else ""
+    return f"{prefix}{body}{suffix}"
+
+
 def compile_pattern(term: str, is_regex: bool = False) -> re.Pattern | None:
     """Compile a search term into a case-insensitive regex pattern.
 
@@ -32,7 +51,7 @@ def compile_pattern(term: str, is_regex: bool = False) -> re.Pattern | None:
     escaped = re.escape(term)
     # Restore wildcard: re.escape turns '*' into '\\*'
     escaped = escaped.replace(r"\*", r"\w*")
-    pattern_str = rf"\b{escaped}\b"
+    pattern_str = _conditional_boundaries(term, escaped)
 
     try:
         return re.compile(pattern_str, re.IGNORECASE)
@@ -41,25 +60,78 @@ def compile_pattern(term: str, is_regex: bool = False) -> re.Pattern | None:
         return None
 
 
+# Separator allowed between proximity terms. Beyond plain whitespace this
+# admits hyphen, slash, dot and comma so that hyphenated/compound forms such
+# as 'machine-learning', 'input/output' or 'machine,learning' are matched in
+# addition to the space-separated forms ('machine learning', 'A and B').
+_PROXIMITY_SEP = r"[\s\-/.,]+"
+
+# Default intervening-token unit. Used as fallback when a caller-supplied
+# token_unit is not a valid regex fragment.
+_DEFAULT_TOKEN_UNIT = r"\S+"
+
+
+def _safe_token_unit(token_unit: str) -> str:
+    """Validate *token_unit* as a regex fragment, falling back to ``\\S+``.
+
+    The token unit is interpolated verbatim into the proximity gap. An
+    invalid fragment (e.g. ``'(['``) would either silently disable proximity
+    (pattern fails to compile) or, for a greedy fragment like ``'.*'``, cause
+    over-matching. We compile it in isolation and fall back to the safe
+    default with a warning when it is invalid.
+    """
+    try:
+        re.compile(token_unit)
+    except re.error:
+        logger.warning(
+            "Invalid token_unit for proximity gap: %r; falling back to %r",
+            token_unit,
+            _DEFAULT_TOKEN_UNIT,
+        )
+        return _DEFAULT_TOKEN_UNIT
+    return token_unit
+
+
 def compile_proximity_pattern(
     term_a: str,
     term_b: str,
     max_gap: int = 3,
-    token_unit: str = r"\S+",
+    token_unit: str = _DEFAULT_TOKEN_UNIT,
 ) -> re.Pattern | None:
     """Create a bidirectional proximity pattern for two terms.
 
-    Matches ``term_a ... term_b`` or ``term_b ... term_a`` with at most
-    *max_gap* intervening tokens.
+    Matches ``term_a <sep> term_b`` or ``term_b <sep> term_a`` with at most
+    *max_gap* intervening tokens, where ``<sep>`` is one or more whitespace,
+    hyphen, slash, dot or comma characters (see ``_PROXIMITY_SEP``).
+
+    A negative *max_gap* is clamped to ``0`` (with a warning): the historical
+    behaviour produced a regex quantifier ``{0,-1}`` which Python silently
+    treats as a literal, so proximity never matched. *token_unit* is validated
+    as a regex fragment and falls back to ``\\S+`` when invalid.
     """
     if not term_a or not term_a.strip() or not term_b or not term_b.strip():
         return None
 
-    a = re.escape(term_a.strip())
-    b = re.escape(term_b.strip())
-    gap = rf"(?:\s+{token_unit}){{0,{max_gap}}}\s+"
+    if max_gap < 0:
+        logger.warning("max_gap %d is negative; clamping to 0", max_gap)
+        max_gap = 0
 
-    pattern_str = rf"\b{a}{gap}{b}\b|\b{b}{gap}{a}\b"
+    token_unit = _safe_token_unit(token_unit)
+
+    term_a_s = term_a.strip()
+    term_b_s = term_b.strip()
+    a = re.escape(term_a_s)
+    b = re.escape(term_b_s)
+    gap = rf"(?:{_PROXIMITY_SEP}{token_unit}){{0,{max_gap}}}{_PROXIMITY_SEP}"
+
+    # Conditional boundary on the outer edges of each alternative; the inner
+    # edges are separated by the gap, so they need no anchor.
+    a_lead = r"(?<!\w)" if term_a_s[:1].isalnum() or term_a_s[:1] == "_" else ""
+    a_tail = r"(?!\w)" if term_a_s[-1:].isalnum() or term_a_s[-1:] == "_" else ""
+    b_lead = r"(?<!\w)" if term_b_s[:1].isalnum() or term_b_s[:1] == "_" else ""
+    b_tail = r"(?!\w)" if term_b_s[-1:].isalnum() or term_b_s[-1:] == "_" else ""
+
+    pattern_str = rf"{a_lead}{a}{gap}{b}{b_tail}|{b_lead}{b}{gap}{a}{a_tail}"
 
     try:
         return re.compile(pattern_str, re.IGNORECASE)
@@ -68,8 +140,12 @@ def compile_proximity_pattern(
         return None
 
 
-_COMPOUND_RE = re.compile(
-    r"^(.+?)\s+(?:and|&|or)\s+(.+)$|^(.+?)\s*/\s*(.+)$",
+# Splits a compound term on every 'and' / '&' / 'or' connector (whitespace
+# delimited) or '/' separator, not just the first one. ``and``/``or`` require
+# surrounding whitespace so they are not stripped from inside words (e.g.
+# 'brand', 'category'); '&' and '/' are recognised with or without spaces.
+_COMPOUND_SPLIT_RE = re.compile(
+    r"\s+(?:and|or)\s+|\s*&\s*|\s*/\s*",
     re.IGNORECASE,
 )
 
@@ -77,16 +153,18 @@ _COMPOUND_RE = re.compile(
 def detect_compound_terms(term: str) -> list[tuple[str, str]]:
     """Detect compound terms connected by 'and', '&', 'or', or '/'.
 
-    Returns a list of ``(part_a, part_b)`` tuples.
+    Splits on *every* connector (not only the first) and returns sequential
+    adjacent ``(part_a, part_b)`` pairs. For two components this yields a
+    single pair (``'oil and gas'`` -> ``[('oil', 'gas')]``); for three or more
+    it yields one pair per adjacent component (``'A and B and C'`` ->
+    ``[('A', 'B'), ('B', 'C')]``) so each part becomes a real proximity term
+    instead of an unmatchable literal like ``'B and C'``.
     """
-    results: list[tuple[str, str]] = []
-    m = _COMPOUND_RE.match(term.strip())
-    if m:
-        a = (m.group(1) or m.group(3) or "").strip()
-        b = (m.group(2) or m.group(4) or "").strip()
-        if a and b:
-            results.append((a, b))
-    return results
+    parts = [p.strip() for p in _COMPOUND_SPLIT_RE.split(term.strip())]
+    parts = [p for p in parts if p]
+    if len(parts) < 2:
+        return []
+    return [(parts[i], parts[i + 1]) for i in range(len(parts) - 1)]
 
 
 def _compile_term_entry(
@@ -168,8 +246,10 @@ def precompile_patterns(
     compiled_positives = []
     for entry in block.get("positives", []):
         compiled = _compile_term_entry(
-            entry, normalization_engine=normalization_engine,
-            warnings=warnings, block_name=block_name,
+            entry,
+            normalization_engine=normalization_engine,
+            warnings=warnings,
+            block_name=block_name,
         )
         if compiled is not None:
             compiled_positives.append(compiled)
@@ -180,8 +260,11 @@ def precompile_patterns(
     compiled_exclude = []
     for entry in anti.get("exclude", []):
         compiled = _compile_term_entry(
-            entry, is_anti=True, normalization_engine=normalization_engine,
-            warnings=warnings, block_name=block_name,
+            entry,
+            is_anti=True,
+            normalization_engine=normalization_engine,
+            warnings=warnings,
+            block_name=block_name,
         )
         if compiled is not None:
             compiled_exclude.append(compiled)
@@ -190,8 +273,11 @@ def precompile_patterns(
     compiled_flag = []
     for entry in anti.get("flag", []):
         compiled = _compile_term_entry(
-            entry, is_anti=True, normalization_engine=normalization_engine,
-            warnings=warnings, block_name=block_name,
+            entry,
+            is_anti=True,
+            normalization_engine=normalization_engine,
+            warnings=warnings,
+            block_name=block_name,
         )
         if compiled is not None:
             compiled_flag.append(compiled)

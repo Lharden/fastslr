@@ -29,7 +29,7 @@ from textual.widgets import (
 )
 
 from ..i18n import _ as t
-from ..i18n import set_locale
+from ..i18n import get_locale, set_locale
 from . import controller
 
 APP_VERSION = controller.get_version()
@@ -184,7 +184,13 @@ class RunTriageScreen(Screen):
 
     @on(Button.Pressed, "#btn_run")
     def start_triage(self) -> None:
-        self._run_triage()
+        # Read inputs on the UI thread (query_one is not thread-safe) and pass
+        # them as arguments to the worker — finding tui-worker-ui-access-from-thread.
+        input_path = self.query_one("#input_file", Input).value.strip()
+        config_path = self.query_one("#config_file", Input).value.strip()
+        terms_path = self.query_one("#terms_file", Input).value.strip()
+        output_dir = self.query_one("#output_dir", Input).value.strip()
+        self._run_triage(input_path, config_path, terms_path, output_dir)
 
     @on(Button.Pressed, "#btn_check")
     def check_setup(self) -> None:
@@ -233,12 +239,9 @@ class RunTriageScreen(Screen):
         results.update("\n  " + "\n  ".join(lines) + "\n")
 
     @work(thread=True)
-    def _run_triage(self) -> None:
-        input_path = self.query_one("#input_file", Input).value.strip()
-        config_path = self.query_one("#config_file", Input).value.strip()
-        terms_path = self.query_one("#terms_file", Input).value.strip()
-        output_dir = self.query_one("#output_dir", Input).value.strip()
-
+    def _run_triage(
+        self, input_path: str, config_path: str, terms_path: str, output_dir: str
+    ) -> None:
         status = self.query_one("#status", Static)
         progress = self.query_one("#progress", ProgressBar)
         results = self.query_one("#results", Static)
@@ -425,6 +428,7 @@ class BrowseTermsScreen(Screen):
         terms_path = self.query_one("#terms_path", Input).value.strip()
 
         if not config_path:
+            self.notify("Please provide a config file path.", severity="warning")
             return
 
         try:
@@ -500,14 +504,22 @@ class ResultsScreen(Screen):
         filter_val = self.query_one("#filter_decision", Select).value
 
         if not results_path:
+            self.notify("Please provide a results file path.", severity="warning")
             return
 
         try:
             path = Path(results_path)
             df = controller.read_results_table(path)
 
-            if filter_val != "all" and "Final_Decision" in df.columns:
-                df = df[df["Final_Decision"] == filter_val]
+            if filter_val != "all":
+                if "Final_Decision" in df.columns:
+                    df = df[df["Final_Decision"] == filter_val]
+                else:
+                    self.notify(
+                        "This file has no 'Final_Decision' column — cannot filter by "
+                        "decision. Showing all rows.",
+                        severity="warning",
+                    )
 
             show_cols = []
             for col in df.columns:
@@ -791,6 +803,7 @@ class EditConfigScreen(Screen):
     def load_config(self) -> None:
         config_path = self.query_one("#config_path", Input).value.strip()
         if not config_path:
+            self.notify("Please provide a config file path.", severity="warning")
             return
 
         try:
@@ -917,7 +930,7 @@ class SettingsScreen(Screen):
                     ("Portugues (Brasil)", "pt_BR"),
                     ("Espanol", "es"),
                 ],
-                value="en",
+                value=get_locale(),
                 id="lang_select",
             )
             yield Static("")
@@ -932,10 +945,15 @@ class SettingsScreen(Screen):
     @on(Button.Pressed, "#btn_apply")
     def apply_settings(self) -> None:
         lang = self.query_one("#lang_select", Select).value
-        if lang:
-            set_locale(str(lang))
-            msg = self.query_one("#settings_msg", Static)
+        msg = self.query_one("#settings_msg", Static)
+        # Select.BLANK is a NoSelection sentinel (falsy, not a str); only a real
+        # locale string should trigger a change — finding
+        # tui-settings-locale-empty-no-feedback.
+        if isinstance(lang, str) and lang:
+            set_locale(lang)
             msg.update(f"\n  [green]Language set to: {lang}[/green]\n")
+        else:
+            msg.update("\n  [yellow]Please select a valid language first.[/yellow]\n")
 
     def action_go_back(self) -> None:
         self.app.pop_screen()

@@ -24,6 +24,19 @@ from .normalization import extract_normalization_rules
 logger = logging.getLogger(__name__)
 
 
+def _is_nan_scalar(value: object) -> bool:
+    """Return True if ``value`` is a NaN/NA scalar cell.
+
+    ``pd.isna`` is typed to return ``bool | NDArray | NDFrame``; for the single
+    cell values produced by ``row.get`` it is always a scalar. We only need the
+    float-NaN and ``None`` cases here, which a self-inequality test captures
+    without tripping ``NDFrame.__bool__`` (a non-scalar would not be a float).
+    """
+    if value is None:
+        return True
+    return isinstance(value, float) and value != value
+
+
 def load_config(path: str | Path) -> dict:
     """Load a JSON configuration file."""
     config_path = Path(path)
@@ -71,6 +84,17 @@ def get_domain_blocks(config: dict) -> list[str]:
 
 def load_global_params(global_cfg: dict) -> GlobalParams:
     """Construct a GlobalParams instance from the global configuration dict."""
+    raw_max_gap = int(global_cfg.get("MAX_GAP_BETWEEN_TERMS", 2))
+    # Clamp to >= 0: a negative gap interpolates into the proximity regex as
+    # ``{0,-1}``, which Python treats as a *literal* (no re.error), silently
+    # disabling all proximity matching. See proximity-negative-gap finding.
+    max_gap = max(0, raw_max_gap)
+    if raw_max_gap < 0:
+        logger.warning(
+            "MAX_GAP_BETWEEN_TERMS=%d is invalid (must be >= 0); clamped to 0.",
+            raw_max_gap,
+        )
+
     raw_levels = global_cfg.get("PONTUACAO_NIVEIS", {})
     level_scores = (
         {int(k): int(v) for k, v in raw_levels.items()}
@@ -129,7 +153,7 @@ def load_global_params(global_cfg: dict) -> GlobalParams:
                 "SPECIAL_APPROVAL_THRESHOLD", global_cfg.get("THRESHOLD_APROVACAO_ESPECIAL", 40.0)
             )
         ),
-        max_gap_between_terms=int(global_cfg.get("MAX_GAP_BETWEEN_TERMS", 2)),
+        max_gap_between_terms=max_gap,
         token_unit_for_gaps=str(global_cfg.get("TOKEN_UNIT_FOR_GAPS", r"\S+")),
         enable_proximity_detection=bool(global_cfg.get("ENABLE_PROXIMITY_DETECTION", True)),
         level_order=level_order,
@@ -165,9 +189,19 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
 
     config = dict(base_config)
 
+    # Normalize headers (strip + lower) so semantically valid headers such as
+    # 'Block', 'TERM' or 'term ' are accepted. Downstream code reads the
+    # canonical lowercase names (block/kind/term/level/section_scope/is_regex).
+    df.columns = pd.Index([str(col).strip().lower() for col in df.columns])
+
+    found_cols = set(df.columns)
     required_cols = {"block", "kind", "term"}
-    if not required_cols.issubset(set(df.columns)):
-        raise ValueError(f"Terms CSV missing required columns: {required_cols - set(df.columns)}")
+    if not required_cols.issubset(found_cols):
+        missing = required_cols - found_cols
+        found_list = ", ".join(sorted(found_cols)) if found_cols else "(none)"
+        raise ValueError(
+            f"Terms CSV missing required columns: {sorted(missing)}. Columns found: {found_list}."
+        )
 
     # Resolve configured level range for validation
     global_cfg = base_config.get("global", {})
@@ -177,6 +211,13 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
         configured_levels = {int(k) for k in raw_level_scores}
 
     _VALID_IS_REGEX = frozenset({"0", "1", "true", "false", "yes", "no", ""})
+
+    # Rows that carry a normalization rule (normalization_type filled) but no
+    # block/kind/term are valid BY DESIGN: their content was already consumed by
+    # ``extract_normalization_rules`` above. Detect the column once so the main
+    # parse loop can skip such rows silently instead of emitting a spurious
+    # "empty kind" warning for each one.
+    has_norm_type_col = "normalization_type" in df.columns
 
     parse_warnings: list[str] = []
 
@@ -195,17 +236,34 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
             block = str(row.get("block", "")).strip()
             kind = str(row.get("kind", "")).strip().lower()
             term = str(row.get("term", "")).strip()
-            row_num = int(idx) + 2 if idx is not None else None  # +2: header + 0-indexed
+            # ``idx`` is typed Hashable by pandas; for the default RangeIndex it
+            # is an int. Cast via str() to satisfy the type checker and stay
+            # robust to non-int labels.
+            row_idx = int(str(idx)) if idx is not None else None
+            row_num = row_idx + 2 if row_idx is not None else None  # +2: header + 0-indexed
 
             # ── empty fields ──────────────────────────────────────────
+            # block/kind/term are already coerced to str above (a missing cell
+            # becomes ""), so a truthiness check is sufficient. A pd.isna() here
+            # would be dead code — it never receives a NaN scalar — and confuses
+            # static typing (NDFrame.__bool__ is NoReturn).
             empty_fields: list[str] = []
-            if not block or pd.isna(block):
+            if not block:
                 empty_fields.append("block")
-            if not kind or pd.isna(kind):
+            if not kind:
                 empty_fields.append("kind")
-            if not term or pd.isna(term):
+            if not term:
                 empty_fields.append("term")
             if empty_fields:
+                # Normalization-only rows have block/kind/term empty on purpose
+                # (the rule lives in normalization_type/target, parsed earlier).
+                # Skip them silently rather than warning about a missing kind.
+                if has_norm_type_col:
+                    norm_type = str(row.get("normalization_type", "")).strip().lower()
+                    # A genuinely empty cell stringifies to "" / "nan"; treat both
+                    # as absent so only real normalization rows are skipped.
+                    if norm_type and norm_type != "nan":
+                        continue
                 parse_warnings.append(
                     f"Row {row_num}: empty {', '.join(empty_fields)}. Row skipped."
                 )
@@ -222,7 +280,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
 
             # ── level validation ──────────────────────────────────────
             level = row.get("level", "")
-            if pd.isna(level):
+            if _is_nan_scalar(level):
                 level = ""
             level = str(level).strip()
 
@@ -247,6 +305,10 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                                 f"({', '.join(str(lv) for lv in sorted(configured_levels))}). "
                                 f"Score contribution will be 0."
                             )
+                            # Neutralise the term: an out-of-range level scores 0
+                            # and would otherwise set best_level to a value with
+                            # no thresholds, producing a spurious FLAGGED block.
+                            level = ""
                     except (ValueError, TypeError):
                         examples = (
                             ", ".join(str(lv) for lv in sorted(configured_levels))
@@ -279,7 +341,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
 
             # ── is_regex validation ───────────────────────────────────
             is_regex_raw = row.get("is_regex", "0")
-            if pd.isna(is_regex_raw):
+            if _is_nan_scalar(is_regex_raw):
                 is_regex_raw = "0"
             is_regex_str = str(is_regex_raw).strip().lower()
             if is_regex_str not in _VALID_IS_REGEX:
@@ -316,7 +378,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                 "level": level if level else None,
                 "scope": scope,
                 "regex": is_regex,
-                "source_row": int(idx) if idx is not None else None,
+                "source_row": row_idx,
             }
 
             if kind == "pos":
@@ -336,11 +398,24 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
     # ── block-level validation ────────────────────────────────────────
     block_order = global_cfg.get("BLOCK_ORDER")
 
-    # Warn about blocks in CSV that are not in BLOCK_ORDER
+    def _norm_block(name: str) -> str:
+        """Canonical key for case/whitespace-insensitive block matching."""
+        return name.strip().upper()
+
+    # Map each CSV block to its normalized key so 'ctx' matches BLOCK_ORDER
+    # 'CTX'. The CSV name is already stripped at parse time, but normalize again
+    # defensively. GLOBAL is excluded (it is handled separately as T0).
+    csv_blocks_by_norm = {
+        _norm_block(csv_block): csv_block
+        for csv_block in block_terms
+        if csv_block != GLOBAL_BLOCK_NAME
+    }
+
+    # Warn about blocks in CSV that are not in BLOCK_ORDER (case-insensitive).
     if block_order:
-        ordered_set = set(block_order)
-        for csv_block in sorted(block_terms):
-            if csv_block != GLOBAL_BLOCK_NAME and csv_block not in ordered_set:
+        ordered_norm = {_norm_block(str(b)) for b in block_order}
+        for norm_key, csv_block in sorted(csv_blocks_by_norm.items()):
+            if norm_key not in ordered_norm:
                 term_count = (
                     len(block_terms[csv_block].get("positives", []))
                     + len(block_terms[csv_block].get("anti", {}).get("exclude", []))
@@ -359,12 +434,8 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
             continue
 
         pos_terms = {e["term"].lower() for e in blk_data.get("positives", [])}
-        anti_excl_terms = {
-            e["term"].lower() for e in blk_data.get("anti", {}).get("exclude", [])
-        }
-        anti_flag_terms = {
-            e["term"].lower() for e in blk_data.get("anti", {}).get("flag", [])
-        }
+        anti_excl_terms = {e["term"].lower() for e in blk_data.get("anti", {}).get("exclude", [])}
+        anti_flag_terms = {e["term"].lower() for e in blk_data.get("anti", {}).get("flag", [])}
 
         # #15: positive + anti-exclude conflict → BLOCKS RUN
         for conflict in sorted(pos_terms & anti_excl_terms):
@@ -385,8 +456,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
             t = entry["term"].strip()
             if t in ("*", "?") or (len(t) == 1 and t.isalpha()):
                 parse_warnings.append(
-                    f"Block '{blk_name}': term '{t}' is too broad — "
-                    f"will match nearly everything."
+                    f"Block '{blk_name}': term '{t}' is too broad — will match nearly everything."
                 )
 
         # #17: block with anti-terms but no positives
@@ -412,7 +482,8 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
         return isinstance(value, dict) and "positives" in value
 
     inline_block_names = {
-        name for name, value in base_config.items()
+        name
+        for name, value in base_config.items()
         if name not in {GLOBAL_BLOCK_NAME, T0_BLOCK_NAME} and _is_inline_block(value)
     }
 
@@ -425,7 +496,12 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
     for block_name in ordered:
         if block_name == GLOBAL_BLOCK_NAME:
             continue
-        csv_block = block_terms.get(block_name)
+        # Match CSV blocks case/whitespace-insensitively against the canonical
+        # BLOCK_ORDER name, but keep ``block_name`` as the config key so the rest
+        # of the pipeline uses the canonical identifier. See
+        # csv-block-case-sensitive-silent-ignore finding.
+        csv_key = csv_blocks_by_norm.get(_norm_block(str(block_name)))
+        csv_block = block_terms.get(csv_key) if csv_key is not None else None
         base_entry = base_config.get(block_name)
         inline = base_entry if _is_inline_block(base_entry) else None
 
@@ -439,8 +515,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                 "anti": {
                     "exclude": list(inline_anti.get("exclude", []))
                     + list(csv_anti.get("exclude", [])),
-                    "flag": list(inline_anti.get("flag", []))
-                    + list(csv_anti.get("flag", [])),
+                    "flag": list(inline_anti.get("flag", [])) + list(csv_anti.get("flag", [])),
                 },
             }
             domain_blocks.append(block_name)

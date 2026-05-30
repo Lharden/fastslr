@@ -48,6 +48,22 @@ _COLUMN_ALIASES: dict[str, list[str]] = {
 }
 
 
+def _is_missing_scalar(value: object) -> bool:
+    """Return whether a scalar cell value is missing (NaN/None).
+
+    ``pd.isna`` is typed as possibly returning an array (for array-like inputs),
+    which makes it an invalid conditional operand under static typing. The cell
+    values here come from ``Series.get`` and are scalars, so the result is a
+    plain bool; we coerce defensively for the array-like edge case.
+    """
+    result = pd.isna(value)
+    if isinstance(result, bool):
+        return result
+    # Array-like input (not expected for scalar cells): treat as missing only if
+    # every element is missing.
+    return bool(getattr(result, "all", lambda: result)())
+
+
 def _normalize_column_label(label: str) -> str:
     """Normalize a column label for tolerant matching."""
     no_accents = unicodedata.normalize("NFKD", str(label))
@@ -107,9 +123,24 @@ def resolve_field_columns(df: pd.DataFrame, fields: dict) -> dict[str, str | Non
 
 
 def collect_statistics(df_result: pd.DataFrame) -> dict:
-    """Compute summary statistics from the result DataFrame."""
+    """Compute summary statistics from the result DataFrame.
+
+    Error rows (emitted under ``ERROR_POLICY='flag'``) carry only an id, a
+    decision and a reason -- they have no ``Status_*``/``FinalScore_*`` columns.
+    They are still counted in ``decision_distribution`` (their total matches
+    ``n_total``), but per-block status counts and score aggregates skip their
+    ``NaN`` cells. To keep every metric on a coherent, explicit denominator the
+    stats expose ``n_total`` (all rows), ``n_error`` (rows that were never
+    evaluated) and ``n_valid`` (rows with at least one block status), plus a
+    per-block ``n_valid``. Score means therefore have a documented denominator
+    instead of an implicit, smaller one.
+    """
+    n_total = len(df_result)
     stats: dict = {
-        "total_articles": len(df_result),
+        "total_articles": n_total,
+        "n_total": n_total,
+        "n_valid": n_total,
+        "n_error": 0,
         "processing_time": 0,
         "articles_per_second": 0,
         "decision_distribution": {},
@@ -121,33 +152,51 @@ def collect_statistics(df_result: pd.DataFrame) -> dict:
     if df_result.empty:
         return stats
 
+    # A row is "valid" (genuinely evaluated) iff it has a non-NaN value in at
+    # least one Status_* column. Error rows lack every Status_* column.
+    status_cols = [c for c in df_result.columns if c.startswith("Status_")]
+    if status_cols:
+        # Per-row "any non-NaN status" computed on the numpy mask to avoid the
+        # ambiguous DataFrame.any overload (pyright cannot narrow its bool|Series
+        # return). A row is valid if at least one Status_* cell is present.
+        present = df_result[status_cols].notna().to_numpy()
+        n_valid = int(present.any(axis=1).sum())
+    else:
+        # No Status_* columns at all: nothing was evaluated successfully.
+        n_valid = 0
+    stats["n_valid"] = n_valid
+    stats["n_error"] = n_total - n_valid
+
     if "Final_Decision" in df_result.columns:
         stats["decision_distribution"] = df_result["Final_Decision"].value_counts().to_dict()
 
-    for col in df_result.columns:
-        if col.startswith("Status_"):
-            block = col.replace("Status_", "")
-            score_col = f"FinalScore_{block}" if block != "T0" else None
+    for col in status_cols:
+        block = col.replace("Status_", "")
+        score_col = f"FinalScore_{block}" if block != "T0" else None
 
-            stats["block_performance"][block] = {
-                "status_distribution": df_result[col].value_counts().to_dict()
-            }
-            if score_col and score_col in df_result.columns:
-                stats["block_performance"][block].update(
-                    {
-                        "avg_score": df_result[score_col].mean(),
-                        "max_score": df_result[score_col].max(),
-                    }
-                )
+        block_valid = int(df_result[col].notna().sum())
+        stats["block_performance"][block] = {
+            "status_distribution": df_result[col].value_counts().to_dict(),
+            "n_valid": block_valid,
+        }
+        if score_col and score_col in df_result.columns:
+            scores = df_result[score_col].dropna()
+            stats["block_performance"][block].update(
+                {
+                    "avg_score": scores.mean(),
+                    "max_score": scores.max(),
+                }
+            )
 
     for col in df_result.columns:
         if col.startswith("FinalScore_"):
-            scores = df_result[col].astype(float)
+            scores = df_result[col].dropna().astype(float)
             stats["score_distribution"][col] = {
                 "mean": scores.mean(),
                 "std": scores.std(),
                 "min": scores.min(),
                 "max": scores.max(),
+                "n_valid": int(scores.size),
             }
 
     return stats
@@ -155,6 +204,57 @@ def collect_statistics(df_result: pd.DataFrame) -> dict:
 
 def _create_not_evaluated(reason: str = "Fail-fast") -> BlockEvaluation:
     return BlockEvaluation(status="NOT_EVALUATED", reason=reason)
+
+
+# Fixed (non per-block) output columns generated for every result row.
+_FIXED_OUTPUT_COLUMNS: frozenset[str] = frozenset(
+    {
+        "Title_Highlighted",
+        "Abstract_Highlighted",
+        "Tags_Highlighted",
+        "Final_Decision",
+        "Decision_Reason",
+        "triage_version",
+        "run_timestamp",
+        "Status_T0",
+        "Reason_T0",
+        "Scope_T0",
+        "AntiHighlights_T0",
+        "Flags_T0",
+    }
+)
+
+# Per-block column prefixes generated for each domain block.
+_BLOCK_OUTPUT_PREFIXES: tuple[str, ...] = (
+    "RawScore_",
+    "FinalScore_",
+    "BestLevel_",
+    "Status_",
+    "Highlights_",
+    "AntiHighlights_",
+    "Flags_",
+)
+
+
+def _validate_id_output(id_output: str, domain_blocks: list[str]) -> None:
+    """Reject an ``id_output`` name that collides with a generated column.
+
+    The result row is built as ``{id_output: article_id}`` and then updated with
+    every generated column. If ``id_output`` equals one of those names, the
+    article id would be silently overwritten. We surface a clear error instead.
+    """
+    generated: set[str] = set(_FIXED_OUTPUT_COLUMNS)
+    for block_name in domain_blocks:
+        for prefix in _BLOCK_OUTPUT_PREFIXES:
+            generated.add(f"{prefix}{block_name}")
+
+    if id_output in generated:
+        raise ValueError(
+            f"fields.id_output={id_output!r} collides with a generated output "
+            "column and would overwrite the article id. Choose a distinct name "
+            "(reserved/generated names include Final_Decision, Decision_Reason, "
+            "Status_<block>, FinalScore_<block>, *_Highlighted, etc.)."
+        )
 
 
 def process_articles(
@@ -177,6 +277,9 @@ def process_articles(
     global_params = load_global_params(config.get("global", {}))
     fields = config.get("fields", {})
     domain_blocks = get_domain_blocks(config)
+
+    id_output = fields.get("id_output", "ID")
+    _validate_id_output(id_output, domain_blocks)
 
     id_col = fields.get("id", "key")
     title_col = fields.get("title", "title")
@@ -219,14 +322,14 @@ def process_articles(
             abstract_value = row.get(abstract_col)
             tags_value = row.get(tags_col) if tags_col else None
 
-            article_id = "NO_ID" if pd.isna(id_value) else str(id_value)
-            title = "" if pd.isna(title_value) else str(title_value)
-            abstract = "" if pd.isna(abstract_value) else str(abstract_value)
+            article_id = "NO_ID" if _is_missing_scalar(id_value) else str(id_value)
+            title = "" if _is_missing_scalar(title_value) else str(title_value)
+            abstract = "" if _is_missing_scalar(abstract_value) else str(abstract_value)
 
             manual_tags = ""
-            if tags_value is not None and not pd.isna(tags_value):
+            if tags_value is not None and not _is_missing_scalar(tags_value):
                 if isinstance(tags_value, (list, tuple)):
-                    manual_tags = ", ".join(str(x) for x in tags_value if not pd.isna(x))
+                    manual_tags = ", ".join(str(x) for x in tags_value if not _is_missing_scalar(x))
                 else:
                     manual_tags = str(tags_value)
 
@@ -266,7 +369,6 @@ def process_articles(
             final_decision, final_reason = make_final_decision(evaluations, eval_t0, global_params)
 
             # Build output row
-            id_output = fields.get("id_output", "ID")
             row_output: dict = {
                 id_output: article_id,
                 "Title_Highlighted": highlight_text(title, all_terms, "title"),
@@ -316,7 +418,6 @@ def process_articles(
                 raise
             logger.debug("Error processing article %d: %s", count, exc)
             # Under "flag" policy, keep the article as FLAGGED
-            id_output = fields.get("id_output", "ID")
             row_output = {
                 id_output: f"ERR_{count}",
                 "Final_Decision": "FLAGGED_FINAL",

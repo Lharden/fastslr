@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -11,12 +12,32 @@ logger = logging.getLogger(__name__)
 
 PROFILES_DIR_NAME = "profiles"
 
+_UNSAFE_NAME_CHARS = re.compile(r"[^a-z0-9_-]+")
+
 
 def _profiles_dir() -> Path:
     """Return the cross-platform profiles directory (~/.fastslr/profiles/)."""
     base = Path.home() / ".fastslr" / PROFILES_DIR_NAME
     base.mkdir(parents=True, exist_ok=True)
     return base
+
+
+def _safe_profile_path(name: str, profiles_dir: Path) -> Path:
+    """Sanitize ``name`` into a profile path confined to ``profiles_dir``.
+
+    Strips path separators and unsafe characters, rejects names that sanitize
+    to empty, and verifies the resolved path stays inside ``profiles_dir`` to
+    prevent path-traversal escapes.
+    """
+    safe_name = _UNSAFE_NAME_CHARS.sub("_", name.strip().lower()).strip("_")
+    if not safe_name:
+        raise ValueError(f"Invalid profile name: {name!r}")
+
+    profile_path = profiles_dir / f"{safe_name}.json"
+    if not profile_path.resolve().is_relative_to(profiles_dir.resolve()):
+        raise ValueError(f"Invalid profile name (path escape): {name!r}")
+
+    return profile_path
 
 
 @dataclass
@@ -31,8 +52,7 @@ class ProfileInfo:
 def save_profile(name: str, config: dict, description: str = "") -> Path:
     """Save a configuration as a named profile."""
     profiles_dir = _profiles_dir()
-    safe_name = name.replace(" ", "_").lower()
-    profile_path = profiles_dir / f"{safe_name}.json"
+    profile_path = _safe_profile_path(name, profiles_dir)
 
     payload = {
         "_profile_name": name,
@@ -52,8 +72,7 @@ def save_profile(name: str, config: dict, description: str = "") -> Path:
 def load_profile(name: str) -> dict:
     """Load a named profile and return the configuration dict."""
     profiles_dir = _profiles_dir()
-    safe_name = name.replace(" ", "_").lower()
-    profile_path = profiles_dir / f"{safe_name}.json"
+    profile_path = _safe_profile_path(name, profiles_dir)
 
     if not profile_path.exists():
         raise FileNotFoundError(f"Profile not found: '{name}' (looked at {profile_path})")
@@ -92,8 +111,7 @@ def list_profiles() -> list[ProfileInfo]:
 def delete_profile(name: str) -> bool:
     """Delete a named profile. Returns True if deleted."""
     profiles_dir = _profiles_dir()
-    safe_name = name.replace(" ", "_").lower()
-    profile_path = profiles_dir / f"{safe_name}.json"
+    profile_path = _safe_profile_path(name, profiles_dir)
 
     if profile_path.exists():
         profile_path.unlink()
