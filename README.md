@@ -33,24 +33,25 @@ FastSLR processa artigos academicos atraves de um pipeline de filtragem multi-es
 
 - Python >= 3.10
 
-### Instalacao a partir do GitHub (recomendado)
-
-O FastSLR ainda nao esta publicado no PyPI. Instale direto do repositorio:
+### Via pip (recomendado)
 
 ```bash
-pip install git+https://github.com/Lharden/fastslr.git
-```
-
-Para instalar uma versao/tag especifica:
-
-```bash
-pip install git+https://github.com/Lharden/fastslr.git@v3.0.0
+pip install fastslr
 ```
 
 Confirme a instalacao:
 
 ```bash
 fastslr version
+```
+
+### Versao de desenvolvimento (GitHub)
+
+Para a versao mais recente do repositorio, ou uma tag especifica:
+
+```bash
+pip install git+https://github.com/Lharden/fastslr.git
+pip install git+https://github.com/Lharden/fastslr.git@v3.0.0
 ```
 
 ### Desenvolvimento local
@@ -66,15 +67,7 @@ pip install -e ".[dev]"
 Opcional — o FastSLR ja tenta automaticamente uma cadeia de codificacoes (utf-8 / cp1252 / latin-1). Para ativar a deteccao via `chardet`:
 
 ```bash
-pip install "fastslr[chardet] @ git+https://github.com/Lharden/fastslr.git"
-```
-
-### Via PyPI (futuro)
-
-Quando publicado, a instalacao sera simplesmente:
-
-```bash
-pip install fastslr   # ainda nao disponivel
+pip install "fastslr[chardet]"
 ```
 
 ---

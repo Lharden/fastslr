@@ -51,18 +51,16 @@ O FastSLR automatiza a fase de **triagem (screening)** de uma RSL: avaliar cente
 
 - **Python 3.10 ou superior**. Verifique com `python --version`.
 
-### Instalação a partir do GitHub (recomendado)
-
-O FastSLR ainda não está publicado no PyPI, então a instalação é feita direto do repositório:
+### Instalação via pip (recomendado)
 
 ```bash
-pip install git+https://github.com/Lharden/fastslr.git
+pip install fastslr
 ```
 
-Para fixar uma versão específica (recomendado para reprodutibilidade da sua RSL):
+Para fixar uma versão específica (recomendado para a reprodutibilidade da sua RSL — garante que colaboradores e revisores usem exatamente o mesmo código):
 
 ```bash
-pip install git+https://github.com/Lharden/fastslr.git@v3.0.0
+pip install fastslr==3.0.0
 ```
 
 Confirme a instalação:
@@ -72,15 +70,22 @@ fastslr version
 ```
 
 > Em alguns sistemas o comando pode ser invocado como `python -m fastslr` em vez de `fastslr`. Ambos funcionam.
->
-> **Quando o FastSLR for publicado no PyPI**, a instalação será simplesmente `pip install fastslr`.
+
+### Versão de desenvolvimento (GitHub)
+
+Para a versão mais recente do repositório, ou uma tag específica:
+
+```bash
+pip install git+https://github.com/Lharden/fastslr.git
+pip install git+https://github.com/Lharden/fastslr.git@v3.0.0
+```
 
 ### Dependência opcional (detecção de encoding)
 
 Para detecção automática de codificação em CSVs problemáticos:
 
 ```bash
-pip install "fastslr[chardet] @ git+https://github.com/Lharden/fastslr.git"
+pip install "fastslr[chardet]"
 ```
 
 Isto é **opcional**: o FastSLR já tenta automaticamente uma cadeia de codificações (`utf-8-sig → utf-8 → cp1252 → latin-1`), então arquivos exportados de Excel/Scopus/Web of Science em codificações europeias carregam mesmo sem o `chardet`.
