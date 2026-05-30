@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -22,7 +24,37 @@ class TermCoverageReport:
     total_terms: int = 0
 
 
-_HIGHLIGHT_TERM_RE = re.compile(r'term="([^"]+)"\s+sec=(\w+)')
+# The term is serialized via ``json.dumps`` (see io.pack_highlights), so it is a
+# JSON string literal: double-quoted with embedded quotes/backslashes escaped as
+# ``\"`` / ``\\``. The capture group grabs the whole literal (including its quotes
+# and any escape sequences); ``_decode_term`` turns it back into the raw term.
+# Anchored by ``\s+sec=(\w+)`` so the term body is delimited unambiguously.
+_HIGHLIGHT_TERM_RE = re.compile(r'term=("(?:[^"\\]|\\.)*")\s+sec=(\w+)')
+
+# Minimum corpus size for the broad-term heuristic to be meaningful. With a tiny
+# corpus a single hit trivially exceeds the 80% threshold (e.g. total=1 →
+# threshold 0.8 → any matched term is "broad" at 100%). Below this floor the
+# percentage is statistically meaningless, so broad-term detection is skipped.
+_MIN_CORPUS_FOR_BROAD_TERMS = 10
+
+
+def _decode_term(raw_literal: str) -> str:
+    """Decode a captured JSON string literal back to the raw term.
+
+    Falls back to stripping the surrounding quotes if the literal is not valid
+    JSON (defensive: tolerate legacy/hand-edited highlight strings).
+    """
+    try:
+        decoded = json.loads(raw_literal)
+    except (json.JSONDecodeError, ValueError):
+        return raw_literal.strip('"')
+    return decoded if isinstance(decoded, str) else raw_literal.strip('"')
+
+
+def _iter_term_sections(raw: str) -> Iterator[tuple[str, str]]:
+    """Yield ``(term, section)`` pairs parsed from a packed highlight string."""
+    for match in _HIGHLIGHT_TERM_RE.finditer(raw):
+        yield _decode_term(match.group(1)), match.group(2)
 
 
 def _extract_term_hits(
@@ -39,8 +71,7 @@ def _extract_term_hits(
             continue
 
         for article_idx, raw in result_df[col].dropna().items():
-            for match in _HIGHLIGHT_TERM_RE.finditer(str(raw)):
-                term, section = match.group(1), match.group(2)
+            for term, section in _iter_term_sections(str(raw)):
                 if term not in term_hits:
                     term_hits[term] = {
                         "title": 0,
@@ -92,11 +123,13 @@ def analyze_term_coverage(
         report.dead_terms.append({"term": term})
         report.suggestions.append(f"Term '{term}' had 0 matches - check spelling or remove")
 
-    # Broad terms (matched >80% of articles)
+    # Broad terms (matched >80% of articles). Skipped for tiny corpora where the
+    # percentage is meaningless (a single hit would otherwise flag every term).
     broad_threshold = total_articles * 0.8 if total_articles > 0 else 0
+    broad_terms_enabled = total_articles >= _MIN_CORPUS_FOR_BROAD_TERMS
     for term, hits in sorted(term_hits.items(), key=lambda x: -x[1]["_articles"]):
         article_count = hits["_articles"]
-        if article_count > broad_threshold:
+        if broad_terms_enabled and article_count > broad_threshold:
             pct = article_count / max(total_articles, 1) * 100
             report.broad_terms.append(
                 {

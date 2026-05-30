@@ -81,7 +81,13 @@ def find_positive_terms(
                 if pattern.search(sec_norm):
                     level = term.get("level")
                     if level is not None:
-                        found_levels.add(int(level))
+                        try:
+                            found_levels.add(int(level))
+                        except (ValueError, TypeError):
+                            # Non-numeric level (reachable via the public API,
+                            # e.g. a hand-built term dict): ignore the invalid
+                            # level but still record the match below.
+                            pass
 
                     match_type = "proximity" if term.get("is_proximity") else "exact"
                     components = term.get("components", ())
@@ -169,7 +175,12 @@ def _compute_section_scores(
         found_levels_in_section: set[int] = set()
         for m in sec_matches:
             if m.level is not None:
-                found_levels_in_section.add(int(m.level))
+                try:
+                    found_levels_in_section.add(int(m.level))
+                except (ValueError, TypeError):
+                    # Defensive: a TermMatch carrying a non-numeric level
+                    # contributes no score rather than crashing.
+                    continue
 
         sec_raw = sum(global_params.level_scores.get(lvl, 0) for lvl in found_levels_in_section)
         sec_raw = min(sec_raw, global_params.max_section_score)
@@ -294,7 +305,7 @@ def evaluate_block(
         if approval_threshold is not None and final_score >= approval_threshold:
             status = "APPROVED"
             reason = f"Score {final_score:.2f} >= threshold {approval_threshold} (L{best_level})"
-        elif final_score >= flagging_threshold:
+        elif final_score > 0 and final_score >= flagging_threshold:
             status = "FLAGGED"
             reason = (
                 f"Score {final_score:.2f} >= flag threshold {flagging_threshold} (L{best_level})"
@@ -451,6 +462,7 @@ def make_final_decision(
     if (
         global_params.enable_special_approval_rule
         and len(score_flagged) == 1
+        and len(approved_blocks) >= 1
         and len(approved_blocks) == total_blocks - 1
     ):
         approved_scores = [block_scores[b] for b in approved_blocks]

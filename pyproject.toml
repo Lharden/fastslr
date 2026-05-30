@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fastslr"
-version = "3.0.0"
+dynamic = ["version"]
 description = "FastSLR - Universal deterministic triage for Systematic Literature Reviews"
 readme = "README.md"
 license = {text = "MIT"}
@@ -29,8 +29,14 @@ chardet = ["chardet>=5.0"]
 [project.scripts]
 fastslr = "fastslr.app.cli:app"
 
+[tool.setuptools.dynamic]
+version = { attr = "fastslr.core.constants.VERSION" }
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+fastslr = ["py.typed", "i18n/locales/*.json", "core/*.json"]
 
 [tool.ruff]
 line-length = 100
@@ -42,6 +48,15 @@ select = ["E", "F", "W", "I", "UP"]
 [tool.pyright]
 pythonVersion = "3.10"
 typeCheckingMode = "standard"
+include = ["src", "tests"]
+exclude = [
+    "build",
+    "dist",
+    "teste",
+    "**/__pycache__",
+    "**/.ruff_cache",
+    "**/.pytest_cache",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

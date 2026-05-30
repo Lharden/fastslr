@@ -6,8 +6,17 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
-from fastslr.app.controller import diff_results, inspect_run_setup, run_triage, validate_config
+from fastslr.app.controller import (
+    browse_terms,
+    create_project,
+    diff_results,
+    export_academic_package,
+    inspect_run_setup,
+    run_triage,
+    validate_config,
+)
 from fastslr.core.config import load_global_params
 from fastslr.core.coverage import analyze_term_coverage
 from fastslr.core.io import export_results, load_table_safe
@@ -93,8 +102,7 @@ def test_load_table_safe_accepts_xlsx_terms(tmp_path: Path) -> None:
 def test_load_table_safe_prefers_separator_with_known_headers(tmp_path: Path) -> None:
     input_path = tmp_path / "zotero.csv"
     input_path.write_text(
-        "Key,Title,Abstract Note\n"
-        'A1,"AI in drilling","Uses sensors; optimization; and planning"\n',
+        'Key,Title,Abstract Note\nA1,"AI in drilling","Uses sensors; optimization; and planning"\n',
         encoding="utf-8",
     )
 
@@ -242,3 +250,182 @@ def test_inspect_run_setup_reports_detected_columns(tmp_path: Path) -> None:
     assert inspection.field_mapping["title"] == "Article Title"
     assert inspection.field_mapping["abstract"] == "Abstract Note"
     assert inspection.run_command is not None
+
+
+def test_diff_exclusive_ids_report_missing_not_nan(tmp_path: Path) -> None:
+    # Finding (a): outer merge introduces NaN for IDs present in only one file.
+    # Exclusive rows must report 'MISSING', never the string 'nan'.
+    path_a = tmp_path / "a.csv"
+    path_b = tmp_path / "b.csv"
+    pd.DataFrame(
+        {
+            "ID": ["1", "2", "3"],
+            "Final_Decision": ["APPROVED_FINAL", "REJECTED_FINAL", "APPROVED_FINAL"],
+        }
+    ).to_csv(path_a, sep=";", index=False)
+    pd.DataFrame(
+        {
+            "ID": ["1", "2", "4"],
+            "Final_Decision": ["APPROVED_FINAL", "REJECTED_FINAL", "APPROVED_FINAL"],
+        }
+    ).to_csv(path_b, sep=";", index=False)
+
+    report = diff_results(path_a, path_b)
+
+    decisions = {
+        entry.article_id: (entry.old_decision, entry.new_decision) for entry in report.changed
+    }
+    # ID 3 only in A -> new decision MISSING; ID 4 only in B -> old MISSING.
+    assert decisions["3"] == ("APPROVED_FINAL", "MISSING")
+    assert decisions["4"] == ("MISSING", "APPROVED_FINAL")
+    for entry in report.changed:
+        assert "nan" not in (entry.old_decision, entry.new_decision)
+
+
+def test_diff_without_common_id_column_raises_friendly_valueerror(tmp_path: Path) -> None:
+    # Finding (b): when no shared canonical ID column exists and the first
+    # column of A is absent from B, a friendly ValueError is raised instead of
+    # a raw KeyError from the merge.
+    path_a = tmp_path / "a.csv"
+    path_b = tmp_path / "b.csv"
+    pd.DataFrame(
+        {"Code_A": ["1", "2"], "Final_Decision": ["APPROVED_FINAL", "REJECTED_FINAL"]}
+    ).to_csv(path_a, sep=";", index=False)
+    pd.DataFrame(
+        {"Code_B": ["1", "2"], "Final_Decision": ["APPROVED_FINAL", "REJECTED_FINAL"]}
+    ).to_csv(path_b, sep=";", index=False)
+
+    with pytest.raises(ValueError, match="Nenhuma coluna de ID comum"):
+        diff_results(path_a, path_b)
+
+
+def test_create_project_refuses_silent_overwrite(tmp_path: Path) -> None:
+    # Finding (c): creating a project twice in the same directory must not
+    # silently overwrite the existing project.
+    out = tmp_path / "proj"
+    blocks = [{"name": "TECH"}]
+
+    create_project("proj", blocks, output_dir=out)
+
+    with pytest.raises(FileExistsError, match="ja contem arquivos de projeto"):
+        create_project("proj", blocks, output_dir=out)
+
+    # force=True allows overwriting an existing project.
+    assert create_project("proj", blocks, output_dir=out, force=True) == out
+
+
+def _write_minimal_config_and_terms(tmp_path: Path) -> tuple[Path, Path]:
+    """Write a minimal valid config.json + terms.xlsx and return their paths."""
+    config = {
+        "global": {
+            "BLOCK_ORDER": ["TECH"],
+            "PONTUACAO_NIVEIS": {"1": 10},
+            "LIMITES_APROVADO": {"1": 10},
+            "LIMITES_SINALIZADO": {"1": 6},
+            "WEIGHTS": {"title": 2.0, "abstract": 1.0, "manual_tags": 1.5},
+            "DECISION_POLICY": "special",
+        },
+        "fields": {
+            "id": "key",
+            "id_output": "ID",
+            "title": "title",
+            "abstract": "abstract",
+            "manual_tags": "manual_tags",
+        },
+        "output": {"csv": False, "xlsx": True, "academic_package": True},
+    }
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+
+    terms_path = tmp_path / "terms.xlsx"
+    pd.DataFrame(
+        {
+            "block": ["TECH"],
+            "kind": ["pos"],
+            "term": ["AI"],
+            "level": ["1"],
+            "section_scope": ["any"],
+            "is_regex": ["0"],
+        }
+    ).to_excel(terms_path, index=False, engine="openpyxl")
+
+    return config_path, terms_path
+
+
+def test_run_triage_aborts_on_header_only_corpus(tmp_path: Path) -> None:
+    # Finding empty-corpus-silent-success: a CSV with only a header row (0 data
+    # rows) used to produce empty artifacts (TOTAL ARTICLES: 0) while reporting
+    # success. The run must now abort with a clear message before writing any
+    # artifact, and no output files may be created.
+    input_path = tmp_path / "header_only.csv"
+    input_path.write_text("key,title,abstract,manual_tags\n", encoding="utf-8")
+
+    config_path, terms_path = _write_minimal_config_and_terms(tmp_path)
+    output_dir = tmp_path / "out"
+
+    with pytest.raises(ValueError, match="nenhum artigo"):
+        run_triage(input_path, config_path, terms_path, output_dir=output_dir)
+
+    # No artifacts may be written for an empty corpus.
+    assert not (output_dir / "triage_report.txt").exists()
+    assert not (output_dir / "academic_package.zip").exists()
+
+
+def test_export_academic_package_rejects_table_without_final_decision(tmp_path: Path) -> None:
+    # Finding export-academic-no-validation-empty-package: pointing export at an
+    # arbitrary CSV (no Final_Decision column) used to produce a ZIP
+    # "successfully". It must now abort with a clear error and write nothing.
+    raw_path = tmp_path / "articles_brutos.csv"
+    pd.DataFrame({"ID": ["A1", "A2"], "Title": ["Some paper", "Another paper"]}).to_csv(
+        raw_path, index=False
+    )
+
+    output_dir = tmp_path / "out"
+
+    with pytest.raises(ValueError, match="Final_Decision"):
+        export_academic_package(raw_path, output_dir)
+
+    assert not (output_dir / "academic_package.zip").exists()
+
+
+def test_export_academic_package_accepts_valid_result(tmp_path: Path) -> None:
+    # A genuine FastSLR result table (with Final_Decision) must still export.
+    result_path = tmp_path / "triage_results.csv"
+    pd.DataFrame({"ID": ["A1"], "Final_Decision": ["APPROVED_FINAL"]}).to_csv(
+        result_path, sep=";", index=False
+    )
+
+    output_dir = tmp_path / "out"
+    zip_path = export_academic_package(result_path, output_dir)
+
+    assert zip_path == output_dir / "academic_package.zip"
+    assert zip_path.exists()
+
+
+def test_browse_terms_exposes_parse_warnings(tmp_path: Path) -> None:
+    # Finding browse-terms-shows-precompiled-mismatch-note: parse warnings
+    # (skipped rows, invalid kind, etc.) must be propagated onto TermsView so
+    # the CLI can show which rows were not accepted.
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        json.dumps({"global": {"BLOCK_ORDER": ["TECH"]}}),
+        encoding="utf-8",
+    )
+
+    # A row with an empty term is skipped by parse_terms_csv with a warning.
+    terms_path = tmp_path / "terms.csv"
+    pd.DataFrame(
+        {
+            "block": ["TECH", "TECH"],
+            "kind": ["pos", "pos"],
+            "term": ["AI", ""],
+            "level": ["1", "1"],
+            "section_scope": ["any", "any"],
+            "is_regex": ["0", "0"],
+        }
+    ).to_csv(terms_path, sep=";", index=False, encoding="utf-8-sig")
+
+    view = browse_terms(config_path, terms_path)
+
+    assert view.parse_warnings, "expected parse warnings to be propagated"
+    assert any("term" in w.lower() or "row" in w.lower() for w in view.parse_warnings)

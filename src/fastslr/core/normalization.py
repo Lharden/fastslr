@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections import OrderedDict
 
 import pandas as pd
 
@@ -17,16 +18,32 @@ class NormalizationEngine:
     def __init__(self, rules: dict) -> None:
         self.rules = rules
         self.enabled = rules.get("enabled", False)
-        self._abbreviations = {
-            k.lower(): v.lower() for k, v in rules.get("abbreviations", {}).items()
-        }
-        self._compounds = {
-            k.lower(): v.lower() for k, v in rules.get("compound_variants", {}).items()
-        }
-        self._symbols = rules.get("symbol_replacements", {})
+        self._abbreviations = self._order_by_key_length(
+            {k.lower(): v.lower() for k, v in rules.get("abbreviations", {}).items()}
+        )
+        self._compounds = self._order_by_key_length(
+            {k.lower(): v.lower() for k, v in rules.get("compound_variants", {}).items()}
+        )
+        # ``symbol_replacements`` values are lowercased here so casefolding is
+        # consistent: the symbol pass runs after the global ``.lower()`` and
+        # would otherwise re-inject uppercase characters.
+        self._symbols = self._order_by_key_length(
+            {k.lower(): v.lower() for k, v in rules.get("symbol_replacements", {}).items()}
+        )
         self._cache_maxsize = 2000
-        self._cache: dict[str, str] = {}
-        self._cache_order: list[str] = []
+        # ``OrderedDict`` gives O(1) LRU bookkeeping via ``move_to_end`` and
+        # ``popitem(last=False)`` for eviction.
+        self._cache: OrderedDict[str, str] = OrderedDict()
+
+    @staticmethod
+    def _order_by_key_length(mapping: dict[str, str]) -> dict[str, str]:
+        """Return *mapping* ordered by descending key length.
+
+        Overlapping rules (where one key is a substring of another) must be
+        applied most-specific-first so the output is independent of the CSV
+        row order. Ties break on the key itself for full determinism.
+        """
+        return {k: mapping[k] for k in sorted(mapping, key=lambda key: (-len(key), key))}
 
     def normalize(self, text: str) -> str:
         """Normalize *text* with per-instance LRU caching."""
@@ -35,18 +52,15 @@ class NormalizationEngine:
 
         cache_key = str(text)
         if cache_key in self._cache:
-            self._cache_order.remove(cache_key)
-            self._cache_order.append(cache_key)
+            self._cache.move_to_end(cache_key)
             return self._cache[cache_key]
 
         normalized = self._normalize_uncached(cache_key)
 
-        if len(self._cache_order) >= self._cache_maxsize:
-            oldest_key = self._cache_order.pop(0)
-            self._cache.pop(oldest_key, None)
+        if len(self._cache) >= self._cache_maxsize:
+            self._cache.popitem(last=False)
 
         self._cache[cache_key] = normalized
-        self._cache_order.append(cache_key)
         return normalized
 
     def _normalize_uncached(self, text: str) -> str:
@@ -70,7 +84,13 @@ class NormalizationEngine:
 
         for symbol, replacement in self._symbols.items():
             if re.search(r"[A-Za-z]", symbol):
-                normalized = re.sub(rf"\b{re.escape(symbol)}\b", replacement, normalized)
+                # ``\b`` only asserts a boundary between a word and non-word
+                # char, so anchoring a symbol whose edge is non-word ('c#',
+                # 'c++', '.net') breaks. Anchor each edge conditionally.
+                prefix = r"(?<!\w)" if symbol[:1].isalnum() or symbol[:1] == "_" else ""
+                suffix = r"(?!\w)" if symbol[-1:].isalnum() or symbol[-1:] == "_" else ""
+                pattern = rf"{prefix}{re.escape(symbol)}{suffix}"
+                normalized = re.sub(pattern, replacement, normalized, flags=re.IGNORECASE)
             else:
                 normalized = normalized.replace(symbol, replacement)
 
@@ -111,7 +131,7 @@ def extract_normalization_rules(
             norm_target = str(row.get("normalization_target", "")).strip()
             term = str(row.get("term", "")).strip()
 
-            row_num = int(_idx) + 2 if _idx is not None else None
+            row_num = int(str(_idx)) + 2 if _idx is not None else None
 
             # #2: normalization_target filled but type empty
             if (not norm_type or pd.isna(norm_type)) and norm_target:
@@ -155,7 +175,10 @@ def extract_normalization_rules(
             elif norm_type == "compound_variant":
                 existing = rules["compound_variants"].get(term.lower())
             elif norm_type == "symbol_replacement":
-                existing = rules["symbol_replacements"].get(term)
+                # Use the lowercased key + lowercased value for symmetry with
+                # abbreviation/compound, so 'C#'/'c#' collapse to one rule and
+                # identical rows do not trigger a false-positive warning.
+                existing = rules["symbol_replacements"].get(term.lower())
 
             if existing is not None and existing != norm_target.lower():
                 if warnings is not None:
@@ -170,7 +193,7 @@ def extract_normalization_rules(
             elif norm_type == "compound_variant":
                 rules["compound_variants"][term.lower()] = norm_target.lower()
             elif norm_type == "symbol_replacement":
-                rules["symbol_replacements"][term] = norm_target
+                rules["symbol_replacements"][term.lower()] = norm_target.lower()
 
             processed_count += 1
         except (KeyError, TypeError, ValueError):

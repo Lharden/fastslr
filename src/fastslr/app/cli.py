@@ -17,6 +17,8 @@ Usage:
 
 from __future__ import annotations
 
+import json
+import sys
 from pathlib import Path
 
 import typer
@@ -47,6 +49,31 @@ def _setup_lang(lang: str | None) -> None:
     """Configure locale from --lang flag if provided."""
     if lang:
         set_locale(lang)
+
+
+def _require_input(input_file: Path) -> None:
+    """Abort with a friendly message if the input articles file is missing."""
+    if not input_file.exists():
+        console.print(f"[red]{t('file_not_found', path=input_file)}[/red]")
+        raise typer.Exit(1)
+
+
+def _require_config(config: Path) -> None:
+    """Abort with a friendly message if the config file is missing."""
+    if not config.exists():
+        console.print(f"[red]{t('config_not_found', path=config)}[/red]")
+        raise typer.Exit(1)
+
+
+def _require_terms(terms: Path | None) -> None:
+    """Abort with a friendly message if a provided terms file is missing.
+
+    ``terms`` is optional, so ``None`` is accepted silently; only a non-existent
+    path triggers the error.
+    """
+    if terms is not None and not terms.exists():
+        console.print(f"[red]{t('file_not_found', path=terms)}[/red]")
+        raise typer.Exit(1)
 
 
 def _rich_progress_callback(progress: Progress, task_id: object):
@@ -94,44 +121,46 @@ def _print_stats(stats: dict) -> None:
 def _print_setup_inspection(inspection) -> None:
     """Print a setup inspection returned by the controller."""
     if inspection.messages:
-        console.print("\n[bold]FastSLR quick start[/bold]")
+        console.print(f"\n[bold]{t('doctor_quick_start')}[/bold]")
         for msg in inspection.messages:
             console.print(f"  - {msg}")
 
     if inspection.errors:
-        console.print("\n[red bold]Setup errors[/red bold]")
+        console.print(f"\n[red bold]{t('doctor_setup_errors')}[/red bold]")
         for msg in inspection.errors:
             console.print(f"  [red]- {msg}[/red]")
 
     if inspection.warnings:
-        console.print("\n[yellow bold]Setup warnings[/yellow bold]")
+        console.print(f"\n[yellow bold]{t('doctor_setup_warnings')}[/yellow bold]")
         for msg in inspection.warnings:
             console.print(f"  [yellow]- {msg}[/yellow]")
 
     if inspection.input_rows is not None:
-        console.print(f"\n[bold]Input articles[/bold]: {inspection.input_rows}")
+        console.print(f"\n[bold]{t('doctor_input_articles')}[/bold]: {inspection.input_rows}")
         if inspection.input_columns:
-            console.print("Columns: " + ", ".join(inspection.input_columns[:20]))
+            console.print(t("doctor_columns") + ": " + ", ".join(inspection.input_columns[:20]))
 
     if inspection.field_mapping:
-        table = Table(title="Detected field mapping", show_header=True)
-        table.add_column("Field", style="cyan")
-        table.add_column("Column")
+        table = Table(title=t("doctor_field_mapping"), show_header=True)
+        table.add_column(t("doctor_field"), style="cyan")
+        table.add_column(t("doctor_column"))
         for field, column in inspection.field_mapping.items():
-            table.add_row(field, column or "[yellow]not found[/yellow]")
+            table.add_row(field, column or f"[yellow]{t('doctor_not_found')}[/yellow]")
         console.print(table)
 
     if inspection.domain_blocks:
-        console.print("\n[bold]Domain blocks[/bold]: " + ", ".join(inspection.domain_blocks))
+        console.print(
+            f"\n[bold]{t('doctor_domain_blocks')}[/bold]: " + ", ".join(inspection.domain_blocks)
+        )
 
     if inspection.terms_count is not None:
-        console.print(f"[bold]Valid terms[/bold]: {inspection.terms_count}")
+        console.print(f"[bold]{t('doctor_valid_terms')}[/bold]: {inspection.terms_count}")
 
     if inspection.output_dir is not None:
-        console.print(f"[bold]Output directory[/bold]: {inspection.output_dir}")
+        console.print(f"[bold]{t('doctor_output_directory')}[/bold]: {inspection.output_dir}")
 
     if inspection.run_command:
-        console.print("\n[bold green]Run command[/bold green]")
+        console.print(f"\n[bold green]{t('doctor_run_command')}[/bold green]")
         console.print(f"  {inspection.run_command}")
 
 
@@ -183,18 +212,17 @@ def run(
     output: Path | None = typer.Option(None, "--output", "-o", help="Output directory."),
     lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Suppress output."),
+    yes: bool = typer.Option(
+        False, "--yes", "-y", help="Proceed past configuration warnings without prompting."
+    ),
 ) -> None:
     """Run triage on an articles file."""
     _setup_lang(lang)
     from . import controller
 
-    if not input_file.exists():
-        console.print(f"[red]{t('file_not_found', path=input_file)}[/red]")
-        raise typer.Exit(1)
-
-    if not config.exists():
-        console.print(f"[red]{t('config_not_found', path=config)}[/red]")
-        raise typer.Exit(1)
+    _require_input(input_file)
+    _require_config(config)
+    _require_terms(terms)
 
     # Validate config first
     prepared = controller._prepare_config(config, terms)
@@ -211,8 +239,15 @@ def run(
         for i, issue in enumerate(warnings, 1):
             console.print(f"  [yellow]{i}. {issue.message}[/yellow]")
         console.print()
-        if not typer.confirm(t("continue_with_warnings"), default=False):
-            raise typer.Exit(0)
+        # Only prompt when running interactively. In a pipe/CI context (no TTY)
+        # or with --yes there is nobody to answer [y/N]; aborting there would
+        # silently fail the run, so proceed by default instead.
+        interactive = sys.stdin.isatty()
+        if interactive and not yes:
+            if not typer.confirm(t("continue_with_warnings"), default=False):
+                raise typer.Exit(0)
+        else:
+            console.print(f"[dim]{t('proceeding_with_warnings')}[/dim]")
         console.print()
 
     with Progress(
@@ -251,9 +286,13 @@ def preview(
     _setup_lang(lang)
     from . import controller
 
-    if not input_file.exists():
-        console.print(f"[red]{t('file_not_found', path=input_file)}[/red]")
+    if sample < 1:
+        console.print(f"[red]{t('sample_must_be_positive', value=sample)}[/red]")
         raise typer.Exit(1)
+
+    _require_input(input_file)
+    _require_config(config)
+    _require_terms(terms)
 
     result = controller.preview_triage(
         input_path=input_file,
@@ -278,6 +317,10 @@ def coverage(
     _setup_lang(lang)
     from . import controller
 
+    _require_input(input_file)
+    _require_config(config)
+    _require_terms(terms)
+
     report = controller.analyze_coverage(
         input_path=input_file,
         config_path=config,
@@ -297,6 +340,11 @@ def diff(
     """Compare two triage result files."""
     _setup_lang(lang)
     from . import controller
+
+    for result_file in (result_a, result_b):
+        if not result_file.exists():
+            console.print(f"[red]{t('file_not_found', path=result_file)}[/red]")
+            raise typer.Exit(1)
 
     report = controller.diff_results(result_a, result_b)
 
@@ -338,6 +386,12 @@ def new_project(
         help="Level preset: binary, simple, standard.",
     ),
     output: Path | None = typer.Option(None, "--output", "-o", help="Output directory."),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite an existing project directory instead of refusing.",
+    ),
     lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Create a new triage project with config and terms template."""
@@ -352,12 +406,17 @@ def new_project(
         console.print(f"[red]{t('blocks_required')}[/red]")
         raise typer.Exit(1)
 
-    project_dir = controller.create_project(
-        name=name,
-        blocks=block_list,
-        preset=preset,
-        output_dir=output,
-    )
+    try:
+        project_dir = controller.create_project(
+            name=name,
+            blocks=block_list,
+            preset=preset,
+            output_dir=output,
+            force=force,
+        )
+    except FileExistsError as exc:
+        console.print(f"[red]{t('project_exists', message=exc)}[/red]")
+        raise typer.Exit(1) from exc
 
     console.print(f"[green]{t('project_created', path=project_dir)}[/green]")
     console.print(t("project_config_hint"))
@@ -400,6 +459,9 @@ def terms_cmd(
     """Browse configured terms."""
     _setup_lang(lang)
     from . import controller
+
+    _require_config(config)
+    _require_terms(terms)
 
     view = controller.browse_terms(
         config_path=config,
@@ -455,6 +517,8 @@ def profile_save(
     _setup_lang(lang)
     from . import controller
 
+    _require_config(config)
+
     path = controller.save_profile_config(name, config, description)
     console.print(f"[green]{t('profile_saved', name=name, path=path)}[/green]")
 
@@ -509,5 +573,21 @@ def profile_list(
     console.print(table)
 
 
+def main() -> None:
+    """Entry point that wraps the Typer app with a friendly error handler.
+
+    Commands raise plain exceptions (``FileNotFoundError``, ``ValueError``,
+    ``json.JSONDecodeError``) deep in the core engine. Without this wrapper they
+    surface as raw tracebacks. Here we translate the common ones into a localized
+    one-line message and exit with status 1, while letting ``typer.Exit`` /
+    ``SystemExit`` (and ``KeyboardInterrupt``) propagate untouched.
+    """
+    try:
+        app()
+    except (FileNotFoundError, json.JSONDecodeError, ValueError) as exc:
+        console.print(f"[red]{t('error_generic', message=exc)}[/red]")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
-    app()
+    main()
