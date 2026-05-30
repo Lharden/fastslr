@@ -4,6 +4,8 @@
 
 FastSLR processa artigos academicos atraves de um pipeline de filtragem multi-estagio, permitindo selecao rapida, reproduzivel e auditavel para sua RSL. Sem machine learning — resultados 100% deterministicos.
 
+> 📖 **Novo por aqui?** Comece pelo [**Guia do Usuário completo**](docs/GUIA_DO_USUARIO.md) — manual passo-a-passo com instalacao, configuracao, todas as opcoes, exemplos por area e troubleshooting.
+
 ---
 
 ## Indice

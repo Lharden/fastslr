@@ -439,56 +439,6 @@ def export_config_audit(config: dict, output_path: Path) -> None:
         json.dump(config_clean, f, indent=2, ensure_ascii=False, default=str)
 
 
-def export_raw_subset(
-    original_df: pd.DataFrame,
-    result_df: pd.DataFrame,
-    config: dict,
-    output_path: Path,
-) -> None:
-    """Export a subset with approved/flagged articles (original text)."""
-    fields = config.get("fields", {})
-    col_id_input = fields.get("id", "key")
-    col_title_input = fields.get("title", "title")
-    col_abs_input = fields.get("abstract", "abstract")
-    col_id_output = fields.get("id_output", "ID")
-
-    target_decisions = {"APPROVED_FINAL", "FLAGGED_FINAL"}
-
-    if "Final_Decision" not in result_df.columns:
-        return
-
-    subset_results = result_df[result_df["Final_Decision"].isin(target_decisions)].copy()
-
-    if subset_results.empty:
-        return
-
-    decision_map = dict(
-        zip(
-            subset_results[col_id_output].astype(str),
-            subset_results["Final_Decision"],
-            strict=True,
-        )
-    )
-    valid_ids = set(subset_results[col_id_output].astype(str))
-
-    df_export = original_df.copy()
-    df_export["_temp_id_str"] = df_export[col_id_input].astype(str)
-    df_final = df_export[df_export["_temp_id_str"].isin(valid_ids)].copy()
-    df_final["Final_Decision"] = df_final["_temp_id_str"].map(decision_map)
-
-    cols_to_keep = [col_id_input, col_title_input, col_abs_input, "Final_Decision"]
-    cols_existing = [c for c in cols_to_keep if c in df_final.columns]
-    df_final = df_final[cols_existing]
-
-    subset_path = output_path.with_stem(output_path.stem + "_filtered_raw").with_suffix(".xlsx")
-
-    try:
-        opts = get_export_opts(config)
-        df_final.to_excel(subset_path, index=False, engine=opts.get("xlsx_engine", "openpyxl"))
-    except Exception:
-        logger.warning("Failed to export raw subset to %s", subset_path, exc_info=True)
-
-
 # ── protocol snapshot ────────────────────────────────────────────────────────
 
 
@@ -764,7 +714,6 @@ __all__ = [
     "pack_anti_hits",
     "generate_report",
     "export_config_audit",
-    "export_raw_subset",
     "build_protocol_snapshot",
     "validate_protocol_snapshot",
     "migrate_protocol_snapshot",
