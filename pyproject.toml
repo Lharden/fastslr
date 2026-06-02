@@ -9,6 +9,32 @@ description = "FastSLR - Universal deterministic triage for Systematic Literatur
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
+authors = [{ name = "Leonardo Harden", email = "harden.leo@gmail.com" }]
+maintainers = [{ name = "Leonardo Harden", email = "harden.leo@gmail.com" }]
+keywords = [
+    "systematic-literature-review",
+    "slr",
+    "screening",
+    "triage",
+    "academic",
+    "research",
+    "deterministic",
+    "bibliometrics",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Text Processing :: Linguistic",
+    "Typing :: Typed",
+]
 dependencies = [
     "pandas>=2.0",
     "openpyxl>=3.1",
@@ -28,6 +54,13 @@ chardet = ["chardet>=5.0"]
 
 [project.scripts]
 fastslr = "fastslr.app.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/Lharden/fastslr"
+Repository = "https://github.com/Lharden/fastslr"
+Documentation = "https://github.com/Lharden/fastslr/blob/master/docs/GUIA_DO_USUARIO.md"
+Issues = "https://github.com/Lharden/fastslr/issues"
+Changelog = "https://github.com/Lharden/fastslr/blob/master/CHANGELOG.md"
 
 [tool.setuptools.dynamic]
 version = { attr = "fastslr.core.constants.VERSION" }
