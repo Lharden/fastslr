@@ -48,6 +48,7 @@ dev = [
     "pytest>=7.0",
     "ruff>=0.1",
     "pyright>=1.1",
+    "pandas-stubs>=2.0",
     "coverage>=7.0",
 ]
 chardet = ["chardet>=5.0"]

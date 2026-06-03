@@ -11,6 +11,7 @@ import time
 import unicodedata
 from collections.abc import Callable
 from datetime import datetime
+from typing import cast
 
 import pandas as pd
 
@@ -51,17 +52,12 @@ _COLUMN_ALIASES: dict[str, list[str]] = {
 def _is_missing_scalar(value: object) -> bool:
     """Return whether a scalar cell value is missing (NaN/None).
 
-    ``pd.isna`` is typed as possibly returning an array (for array-like inputs),
-    which makes it an invalid conditional operand under static typing. The cell
-    values here come from ``Series.get`` and are scalars, so the result is a
-    plain bool; we coerce defensively for the array-like edge case.
+    Cell values come from ``Series.get`` and are always scalars. ``pd.isna`` is
+    overloaded; its scalar overload expects ``Scalar | None``, so we narrow
+    ``value`` (typed ``object`` for caller convenience) for the type checker.
+    The scalar overload returns a plain ``bool`` at runtime.
     """
-    result = pd.isna(value)
-    if isinstance(result, bool):
-        return result
-    # Array-like input (not expected for scalar cells): treat as missing only if
-    # every element is missing.
-    return bool(getattr(result, "all", lambda: result)())
+    return bool(pd.isna(cast("float", value)))
 
 
 def _normalize_column_label(label: str) -> str:
