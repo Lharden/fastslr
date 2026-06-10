@@ -9,8 +9,14 @@
   "continue_with_warnings": "Desea continuar de todos modos?",
   "proceeding_with_warnings": "Sesion no interactiva: continuando a pesar de las advertencias.",
   "error_generic": "Error: {message}",
+  "error_empty_corpus": "El corpus de entrada no contiene articulos (0 filas): {path}",
+  "error_no_common_id": "No se encontro una columna de ID comun entre los dos archivos.",
+  "error_invalid_result": "El archivo '{path}' no parece ser un resultado de FastSLR.",
 
   "triage_complete": "Resultados guardados en: {path}",
+  "progress_triage": "Triaje",
+  "tui_running_triage": "Ejecutando triaje...",
+  "tui_triage_complete": "Triaje completado!",
   "preview_note": "Vista previa basada en {count} articulos muestreados.",
   "no_profiles": "No hay perfiles guardados.",
   "profile_saved": "Perfil '{name}' guardado en: {path}",
@@ -62,6 +68,7 @@
   "table_level": "Nivel",
   "table_scope": "Alcance",
   "terms_truncated": "Mostrando los primeros {shown} de {total} terminos.",
+  "terms_parse_warnings": "Advertencias de analisis",
 
   "table_profiles_title": "Perfiles Guardados",
   "table_name": "Nombre",

@@ -267,7 +267,7 @@ class RunTriageScreen(Screen):
             )
             return
 
-        self.app.call_from_thread(status.update, "  [cyan]Running triage...[/cyan]")
+        self.app.call_from_thread(status.update, f"  [cyan]{t('tui_running_triage')}[/cyan]")
         self.app.call_from_thread(progress.update, total=100, progress=0)
 
         def on_progress(current: int, total: int) -> None:
@@ -294,7 +294,7 @@ class RunTriageScreen(Screen):
             time_s = stats.get("processing_time", 0)
 
             summary = (
-                f"\n  [bold green]Triage complete![/bold green]\n\n"
+                f"\n  [bold green]{t('tui_triage_complete')}[/bold green]\n\n"
                 f"  {t('table_total_articles')}: {total}\n"
                 f"  {t('table_processing_time')}: {time_s:.2f}s\n\n"
                 f"  [green]APPROVED: {approved}[/green]  "
@@ -826,7 +826,7 @@ class EditConfigScreen(Screen):
             status.update(f"  [red]Invalid JSON: {e}[/red]")
             return
 
-        issues = controller.validate_config(cfg)
+        issues = controller.validate_config(cfg, require_resolved_blocks=False)
         if not issues:
             status.update("  [green]Configuration looks valid.[/green]")
             return
@@ -851,7 +851,11 @@ class EditConfigScreen(Screen):
             content = editor.text
             # Validate JSON
             cfg = json.loads(content)
-            errors = [issue for issue in controller.validate_config(cfg) if issue.level == "error"]
+            errors = [
+                issue
+                for issue in controller.validate_config(cfg, require_resolved_blocks=False)
+                if issue.level == "error"
+            ]
             if errors:
                 self.query_one("#config_status", Static).update(
                     "  [red]Cannot save with validation errors. Use Validate for details.[/red]"

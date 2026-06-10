@@ -10,6 +10,10 @@ from .normalization import NormalizationEngine
 
 logger = logging.getLogger(__name__)
 
+_UNSAFE_NESTED_QUANTIFIER_RE = re.compile(
+    r"\((?:[^()\\]|\\.)*[*+](?:[^()\\]|\\.)*\)\s*(?:[*+]|\{\d*,?\d*\})"
+)
+
 
 def _conditional_boundaries(term: str, body: str) -> str:
     """Wrap *body* with boundary anchors conditional on *term*'s edge chars.
@@ -42,6 +46,9 @@ def compile_pattern(term: str, is_regex: bool = False) -> re.Pattern | None:
     term = term.strip()
 
     if is_regex:
+        if _UNSAFE_NESTED_QUANTIFIER_RE.search(term):
+            logger.warning("Rejected unsafe regex with nested quantifiers: %r", term)
+            return None
         try:
             return re.compile(term, re.IGNORECASE)
         except re.error:
@@ -67,24 +74,22 @@ def compile_pattern(term: str, is_regex: bool = False) -> re.Pattern | None:
 _PROXIMITY_SEP = r"[\s\-/.,]+"
 
 # Default intervening-token unit. Used as fallback when a caller-supplied
-# token_unit is not a valid regex fragment.
+# token_unit is not explicitly allowlisted.
 _DEFAULT_TOKEN_UNIT = r"\S+"
+_ALLOWED_TOKEN_UNITS = frozenset({_DEFAULT_TOKEN_UNIT, r"\w+"})
 
 
 def _safe_token_unit(token_unit: str) -> str:
-    """Validate *token_unit* as a regex fragment, falling back to ``\\S+``.
+    """Allowlist *token_unit*, falling back to ``\\S+``.
 
     The token unit is interpolated verbatim into the proximity gap. An
-    invalid fragment (e.g. ``'(['``) would either silently disable proximity
-    (pattern fails to compile) or, for a greedy fragment like ``'.*'``, cause
-    over-matching. We compile it in isolation and fall back to the safe
-    default with a warning when it is invalid.
+    arbitrary fragment can disable proximity, over-match, or introduce
+    catastrophic backtracking after composition. Only reviewed exact values
+    are accepted; all others fall back to the safe default with a warning.
     """
-    try:
-        re.compile(token_unit)
-    except re.error:
+    if token_unit not in _ALLOWED_TOKEN_UNITS:
         logger.warning(
-            "Invalid token_unit for proximity gap: %r; falling back to %r",
+            "token_unit for proximity gap is not allowlisted: %r; falling back to %r",
             token_unit,
             _DEFAULT_TOKEN_UNIT,
         )
@@ -107,7 +112,7 @@ def compile_proximity_pattern(
     A negative *max_gap* is clamped to ``0`` (with a warning): the historical
     behaviour produced a regex quantifier ``{0,-1}`` which Python silently
     treats as a literal, so proximity never matched. *token_unit* is validated
-    as a regex fragment and falls back to ``\\S+`` when invalid.
+    against an allowlist and falls back to ``\\S+`` when rejected.
     """
     if not term_a or not term_a.strip() or not term_b or not term_b.strip():
         return None
@@ -196,7 +201,7 @@ def _compile_term_entry(
             row_num = int(row) + 2 if row is not None else "?"
             warnings.append(
                 f"Row {row_num}, block '{block_name}', term '{term}': "
-                f"invalid regex pattern. Term excluded from analysis."
+                f"invalid or unsafe regex pattern. Term excluded from analysis."
             )
         return None
 

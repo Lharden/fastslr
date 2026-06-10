@@ -7,7 +7,13 @@ name = "fastslr"
 dynamic = ["version"]
 description = "FastSLR - Universal deterministic triage for Systematic Literature Reviews"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
+authors = [
+    { name = "Leonardo Harden", email = "leonardo.harden@pucpr.edu.br" },
+]
+maintainers = [
+    { name = "Leonardo Harden", email = "leonardo.harden@pucpr.edu.br" },
+]
 requires-python = ">=3.10"
 dependencies = [
     "pandas>=2.0",
@@ -27,7 +33,12 @@ dev = [
 chardet = ["chardet>=5.0"]
 
 [project.scripts]
-fastslr = "fastslr.app.cli:app"
+fastslr = "fastslr.app.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Lharden/fastslr"
+Repository = "https://github.com/Lharden/fastslr"
+Issues = "https://github.com/Lharden/fastslr/issues"
 
 [tool.setuptools.dynamic]
 version = { attr = "fastslr.core.constants.VERSION" }

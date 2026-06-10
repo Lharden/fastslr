@@ -316,6 +316,7 @@ def process_articles(
     total = len(df)
 
     for count, (_idx, row) in enumerate(df.iterrows(), start=1):
+        article_id = f"ERR_{count}"
         try:
             id_value = row.get(id_col)
             title_value = row.get(title_col)
@@ -416,10 +417,10 @@ def process_articles(
             error_count += 1
             if error_policy == "fail":
                 raise
-            logger.debug("Error processing article %d: %s", count, exc)
+            logger.warning("Error processing article %s: %s", article_id, exc, exc_info=True)
             # Under "flag" policy, keep the article as FLAGGED
             row_output = {
-                id_output: f"ERR_{count}",
+                id_output: article_id,
                 "Final_Decision": "FLAGGED_FINAL",
                 "Decision_Reason": f"Processing error: {exc}",
                 "triage_version": VERSION,

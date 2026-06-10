@@ -101,6 +101,28 @@ def compute_file_hash(file_path: str) -> str:
 _ENCODING_FALLBACK_CHAIN = ("utf-8-sig", "utf-8", "cp1252", "latin-1")
 
 
+def _bom_encoding(path: Path) -> str | None:
+    """Detect Unicode BOMs or a strong UTF-16 NUL-byte signature."""
+    with open(path, "rb") as f:
+        prefix = f.read(1000)
+    if prefix.startswith(b"\xff\xfe\x00\x00") or prefix.startswith(b"\x00\x00\xfe\xff"):
+        return "utf-32"
+    if prefix.startswith(b"\xff\xfe") or prefix.startswith(b"\xfe\xff"):
+        return "utf-16"
+    if prefix.startswith(b"\xef\xbb\xbf"):
+        return "utf-8-sig"
+    if len(prefix) >= 8:
+        even_bytes = prefix[0::2]
+        odd_bytes = prefix[1::2]
+        even_nul_ratio = even_bytes.count(0) / len(even_bytes)
+        odd_nul_ratio = odd_bytes.count(0) / len(odd_bytes)
+        if odd_nul_ratio > 0.3 and even_nul_ratio < 0.1:
+            return "utf-16-le"
+        if even_nul_ratio > 0.3 and odd_nul_ratio < 0.1:
+            return "utf-16-be"
+    return None
+
+
 def _candidate_encodings(path: Path, preferred: str | None = None) -> list[str]:
     """Return an ordered, de-duplicated list of encodings to try.
 
@@ -109,6 +131,9 @@ def _candidate_encodings(path: Path, preferred: str | None = None) -> list[str]:
     then the deterministic fallback chain that ends with ``latin-1``.
     """
     ordered: list[str] = []
+    bom_encoding = _bom_encoding(path)
+    if bom_encoding:
+        ordered.append(bom_encoding)
     if preferred:
         ordered.append(preferred)
 
@@ -117,7 +142,7 @@ def _candidate_encodings(path: Path, preferred: str | None = None) -> list[str]:
             with open(path, "rb") as f:
                 raw_data = f.read(10000)
             guess = chardet.detect(raw_data).get("encoding")
-        except (OSError, ValueError):
+        except ValueError:
             guess = None
         if guess:
             ordered.append(guess)
@@ -132,6 +157,14 @@ def _candidate_encodings(path: Path, preferred: str | None = None) -> list[str]:
             seen.add(key)
             deduped.append(enc)
     return deduped
+
+
+def _contains_nul(df: pd.DataFrame) -> bool:
+    """Reject mojibake candidates that decoded UTF-16/32 as a single-byte codec."""
+    if any("\x00" in str(column) for column in df.columns):
+        return True
+    sample = df.head(20)
+    return any("\x00" in str(value) for value in sample.to_numpy().flat)
 
 
 def _header_score(columns: list[object]) -> int:
@@ -169,6 +202,7 @@ def _load_delimited_table(
     separators = ("\t", ";", ",") if path.suffix.lower() == ".tsv" else (";", ",", "\t")
     encodings = _candidate_encodings(path, preferred=encoding)
     tried_encodings: list[str] = []
+    last_parse_error: Exception | None = None
 
     for enc in encodings:
         candidates: list[tuple[int, int, pd.DataFrame]] = []
@@ -180,8 +214,13 @@ def _load_delimited_table(
                 # This encoding cannot decode the bytes; advance to the next one.
                 decode_failed = True
                 break
-            except Exception:
+            except OSError:
+                raise
+            except Exception as exc:
                 # Parsing/separator issue specific to this separator; try the next sep.
+                last_parse_error = exc
+                continue
+            if _contains_nul(df):
                 continue
             if len(df.columns) >= min_columns:
                 candidates.append((_header_score(list(df.columns)), len(df.columns), df))
@@ -196,9 +235,12 @@ def _load_delimited_table(
         if decode_failed:
             continue
 
-    raise ValueError(
+    error = ValueError(
         f"Unable to load delimited table: {path} (tried encodings: {', '.join(tried_encodings)})"
     )
+    if last_parse_error is not None:
+        raise error from last_parse_error
+    raise error
 
 
 def _load_spreadsheet_table(path: Path, min_columns: int) -> pd.DataFrame:

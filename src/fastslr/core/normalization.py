@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import html
 import re
 from collections import OrderedDict
 
 import pandas as pd
+
+_SCIENTIFIC_MARKUP_RE = re.compile(r"</?(?:inf|sub|sup)\s*>", re.IGNORECASE)
 
 
 class NormalizationEngine:
@@ -71,10 +74,11 @@ class NormalizationEngine:
         if not text:
             return ""
 
-        if not self.enabled:
-            return re.sub(r"\s+", " ", text.lower().strip())
+        normalized = html.unescape(str(text).strip())
+        normalized = _SCIENTIFIC_MARKUP_RE.sub("", normalized)
 
-        normalized = str(text).strip()
+        if not self.enabled:
+            return re.sub(r"\s+", " ", normalized.lower()).strip()
 
         for abbr, expanded in self._abbreviations.items():
             pattern = rf"\b{re.escape(abbr)}\b"

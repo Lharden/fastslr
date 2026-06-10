@@ -147,15 +147,24 @@ class SetupInspection:
 # ── Configuration & Validation ───────────────────────────────────────────────
 
 
-def validate_config(config: dict) -> list[ValidationIssue]:
-    """Check configuration for common issues."""
+def validate_config(
+    config: dict,
+    *,
+    require_resolved_blocks: bool = True,
+) -> list[ValidationIssue]:
+    """Check configuration for common issues.
+
+    Document editors may set ``require_resolved_blocks=False`` because a
+    canonical project template resolves its blocks only after loading terms.
+    Execution paths keep the stricter default.
+    """
     issues: list[ValidationIssue] = []
 
     if "global" not in config:
         issues.append(ValidationIssue("error", "Missing 'global' section"))
 
     domain_blocks = get_domain_blocks(config)
-    if not domain_blocks:
+    if require_resolved_blocks and not domain_blocks:
         issues.append(
             ValidationIssue(
                 "error",
@@ -239,6 +248,51 @@ def _prepare_config(config_path: Path, terms_path: Path | None = None) -> dict:
     return config
 
 
+def _validate_execution_config(config: dict) -> None:
+    """Raise when a prepared configuration is not safe to execute."""
+    errors = [
+        issue.message
+        for issue in validate_config(config, require_resolved_blocks=True)
+        if issue.level == "error"
+    ]
+    if errors:
+        raise ValueError("Invalid execution configuration: " + " | ".join(errors))
+
+
+def _duplicate_id_warning(df: pd.DataFrame, id_col: str | None) -> str | None:
+    """Return a surfaceable warning when the resolved ID column has duplicates."""
+    if id_col is None:
+        return None
+    values = df[id_col].dropna().astype(str)
+    duplicates = sorted(values[values.duplicated(keep=False)].unique())
+    if not duplicates:
+        return None
+    preview = ", ".join(duplicates[:10])
+    suffix = f" (+{len(duplicates) - 10} more)" if len(duplicates) > 10 else ""
+    return f"Duplicate article IDs detected in '{id_col}': {preview}{suffix}."
+
+
+def _load_execution_input(input_path: Path, config: dict) -> pd.DataFrame:
+    """Load and preflight an input corpus before any execution artifacts exist."""
+    df = load_table_safe(input_path, encoding=config.get("encoding"))
+    mapping = resolve_field_columns(df, config.get("fields", {}))
+    missing = [field_name for field_name in ("id", "title", "abstract") if not mapping[field_name]]
+    if missing:
+        raise ValueError(
+            "Could not resolve required input columns: "
+            + ", ".join(missing)
+            + ". Configure fields.id, fields.title and fields.abstract."
+        )
+
+    duplicate_warning = _duplicate_id_warning(df, mapping["id"])
+    if duplicate_warning:
+        warnings = config.setdefault("_parse_warnings", [])
+        if duplicate_warning not in warnings:
+            warnings.append(duplicate_warning)
+        logger.warning(duplicate_warning)
+    return df
+
+
 def _cmd_path(path: Path) -> str:
     text = str(path)
     if " " in text:
@@ -288,7 +342,7 @@ def inspect_run_setup(
             inspection.errors.append(f"Input file not found: {input_path}")
         else:
             try:
-                df = load_table_safe(input_path)
+                df = load_table_safe(input_path, encoding=config.get("encoding"))
                 inspection.input_rows = len(df)
                 inspection.input_columns = [str(c) for c in df.columns]
                 fields = config.get("fields", {}) if config else {}
@@ -300,6 +354,9 @@ def inspect_run_setup(
                             f"Could not identify the '{required}' column. "
                             f"Set fields.{required} in config.json."
                         )
+                duplicate_warning = _duplicate_id_warning(df, inspection.field_mapping.get("id"))
+                if duplicate_warning:
+                    inspection.warnings.append(duplicate_warning)
             except Exception as exc:
                 inspection.errors.append(f"Could not load input table: {exc}")
 
@@ -340,7 +397,8 @@ def run_triage(
     before any artifact is written.
     """
     config = _prepare_config(config_path, terms_path)
-    df = load_table_safe(input_path)
+    _validate_execution_config(config)
+    df = _load_execution_input(input_path, config)
 
     if len(df) == 0:
         raise ValueError(
@@ -425,7 +483,8 @@ def preview_triage(
 ) -> PreviewResult:
     """Run triage on a sample for validation."""
     config = _prepare_config(config_path, terms_path)
-    df = load_table_safe(input_path)
+    _validate_execution_config(config)
+    df = _load_execution_input(input_path, config)
     sample_df = sample_articles(df, sample_size, seed=seed)
     result_df, stats = process_articles(sample_df, config)
     return PreviewResult(
@@ -446,7 +505,8 @@ def analyze_coverage(
 ) -> TermCoverageReport:
     """Run triage and analyze term coverage."""
     config = _prepare_config(config_path, terms_path)
-    df = load_table_safe(input_path)
+    _validate_execution_config(config)
+    df = _load_execution_input(input_path, config)
     result_df, _ = process_articles(df, config)
     report = analyze_term_coverage(result_df, config)
 

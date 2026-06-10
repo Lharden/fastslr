@@ -85,6 +85,11 @@ def _rich_progress_callback(progress: Progress, task_id: object):
     return _on_progress
 
 
+def _ascii_spinner_column() -> SpinnerColumn:
+    """Return a spinner that remains renderable on legacy Windows consoles."""
+    return SpinnerColumn(spinner_name="line")
+
+
 def _print_stats(stats: dict) -> None:
     """Print triage statistics as a rich table."""
     table = Table(title=t("table_triage_results"), show_header=True)
@@ -251,14 +256,14 @@ def run(
         console.print()
 
     with Progress(
-        SpinnerColumn(),
+        _ascii_spinner_column(),
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
         TaskProgressColumn(),
         console=console,
         disable=quiet,
     ) as progress:
-        task_id = progress.add_task("Triage", total=None)
+        task_id = progress.add_task(t("progress_triage"), total=None)
         callback = _rich_progress_callback(progress, task_id)
 
         result = controller.run_triage(
@@ -493,6 +498,10 @@ def terms_cmd(
         console.print(f"[dim]{t('terms_truncated', shown=200, total=view.total)}[/dim]")
 
     console.print(table)
+    if view.parse_warnings:
+        console.print(f"\n[yellow bold]{t('terms_parse_warnings')}[/yellow bold]")
+        for warning in view.parse_warnings:
+            console.print(f"  [yellow]- {warning}[/yellow]")
 
 
 @app.command()

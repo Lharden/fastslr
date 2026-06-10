@@ -9,8 +9,14 @@
   "continue_with_warnings": "Continue with these warnings?",
   "proceeding_with_warnings": "Non-interactive session: proceeding despite warnings.",
   "error_generic": "Error: {message}",
+  "error_empty_corpus": "The input corpus contains no articles (0 rows): {path}",
+  "error_no_common_id": "No common ID column was found between the two files.",
+  "error_invalid_result": "The file '{path}' does not appear to be a FastSLR result.",
 
   "triage_complete": "Results saved to: {path}",
+  "progress_triage": "Triage",
+  "tui_running_triage": "Running triage...",
+  "tui_triage_complete": "Triage complete!",
   "preview_note": "Preview based on {count} sampled articles.",
   "no_profiles": "No profiles saved yet.",
   "profile_saved": "Profile '{name}' saved: {path}",
@@ -62,6 +68,7 @@
   "table_level": "Level",
   "table_scope": "Scope",
   "terms_truncated": "Showing first {shown} of {total} terms.",
+  "terms_parse_warnings": "Parse warnings",
 
   "table_profiles_title": "Saved Profiles",
   "table_name": "Name",

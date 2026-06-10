@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from .config import get_domain_blocks
+
 
 @dataclass
 class TermCoverageReport:
@@ -98,7 +100,7 @@ def analyze_term_coverage(
 ) -> TermCoverageReport:
     """Analyze term coverage after a triage run."""
     if domain_blocks is None:
-        domain_blocks = list(config.get("_domain_blocks") or [])
+        domain_blocks = get_domain_blocks(config)
 
     total_articles = len(result_df)
     report = TermCoverageReport(total_articles=total_articles)
@@ -239,9 +241,8 @@ def export_coverage_csv(report: TermCoverageReport, output_path: Path) -> None:
             }
         )
 
-    df = pd.DataFrame(rows)
-    if not df.empty:
-        df.to_csv(output_path, index=False)
+    columns = ["term", "status", "articles", "section_hits", "hits", "pct"]
+    pd.DataFrame(rows, columns=columns).to_csv(output_path, index=False)
 
 
 __all__ = [

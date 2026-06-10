@@ -206,9 +206,9 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
     # Resolve configured level range for validation
     global_cfg = base_config.get("global", {})
     raw_level_scores = global_cfg.get("PONTUACAO_NIVEIS", {})
-    configured_levels: set[int] = set()
-    if raw_level_scores:
-        configured_levels = {int(k) for k in raw_level_scores}
+    configured_levels = (
+        {int(k) for k in raw_level_scores} if raw_level_scores else set(DEFAULT_LEVEL_SCORES)
+    )
 
     _VALID_IS_REGEX = frozenset({"0", "1", "true", "false", "yes", "no", ""})
 
@@ -275,6 +275,13 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                     f"Row {row_num}, block '{block}', term '{term}': "
                     f"invalid kind '{kind}' (valid: {', '.join(sorted(TERM_KINDS))}). "
                     f"Row skipped."
+                )
+                continue
+
+            if block == GLOBAL_BLOCK_NAME and kind == "pos":
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': "
+                    f"positive GLOBAL terms do not affect T0. Row skipped."
                 )
                 continue
 
