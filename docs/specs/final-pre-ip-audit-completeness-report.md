@@ -130,14 +130,39 @@ Implementados com teste de regressão (TDD), agrupados nos arquivos `tests/test_
 - **Purga de histórico dos `data/*.csv`:** não aplicada. `git archive v3.1.0` já sai limpo; purga total (`filter-repo`/BFG + force-push) só se a universidade exigir. Documentado em `data-provenance.md`.
 - **13 itens de backlog + 5 refutados:** documentados em `final-pre-ip-audit-triage.md`, não corrigidos (decisão do Checkpoint #1).
 
+## Fase 7 (adendo) — Revisão de qualidade da execução (G4, 2026-06-10)
+
+Auditoria independente da implementação (Fable 5 revisando Codex/Opus): todas as
+alegações objetivas re-verificadas (suite, lints, golden gate 0-diff com decisões
+253/178/74, conteúdo de wheel/sdist, tag sem `data/`). O code review do commit
+`a6499dc` + cruzamento dos 58 findings contra a triagem encontrou 8 falhas de
+execução, todas corrigidas com TDD (17 testes novos em `tests/test_final_audit_g4.py`):
+
+| Falha | Correção |
+|---|---|
+| C1: 4 erros do controller hardcoded em PT (chaves i18n criadas mas não usadas) | controller conectado ao i18n via `t()`; chave `error_project_dir_exists` criada |
+| I3: guard de corpus vazio só no `run` | movido a `_load_execution_input` (run/preview/coverage) |
+| I2: ReDoS — `(a{2,})+`/`(a{2,4})+` bypassavam o detector | detector cobre intervalos com vírgula; `{n}` exato aceito |
+| I1: testes T0-FLAGGED omitiam policy `special` | parametrize ampliado (guard já existia) |
+| B1: locale vazava entre testes | fixture autouse `_restore_locale` |
+| B2: assert fraco no fallback de token_unit | reforçado (`\S+` presente) |
+| `setuptools>=68` incompatível com `license` PEP 639 | floor `setuptools>=77.0.3` |
+| classifiers/keywords/links README ausentes (F9 parcial) | aplicados; METADATA com 11 classifiers |
+
+Triagem atualizada (adendo G4): duplicata `untrusted-input-no-resource-limits`
+resolvida (mantido só em wont-fix); 6 findings com disposição implícita agora explícita.
+**Gates pós-correção:** 269 passed · ruff/format limpos · pyright 0 · golden gate
+0 divergências · build+twine PASSED.
+
 ## Snapshot de depósito (registro de IP)
 
 ```
 Tag:        v3.1.0  (local, sem release)
-Tree:       ea78d19b18165225f63dfe7d284db8eb6fe2b511   ← identidade ESTÁVEL do depósito
-Tag commit: 69b65869ba8b50839a1cfb6d10d266008568da7c   (atual; ver nota)
-Arquivos versionados: 92   |   src/*.py: 6222 LoC
+Tree:       2ff343f794f2ab602c188c7378c12cadc6e0233e   ← identidade ESTÁVEL do depósito
+Tag commit: 4a9161b353fa6a335bd7c8f78be4b1437442fde0   (atual; ver nota)
+Arquivos versionados: 94   |   suite: 269 testes
 git ls-tree -r v3.1.0 → sem data/ (snapshot somente-código)
+Tree anterior (pré-revisão G4): ea78d19b18165225f63dfe7d284db8eb6fe2b511
 ```
 
 > [!note] Sobre os SHAs de commit
