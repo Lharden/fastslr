@@ -16,7 +16,18 @@ maintainers = [
     { name = "Leonardo Harden", email = "leonardo.harden@pucpr.edu.br" },
 ]
 requires-python = ">=3.10"
-keywords = ["systematic-literature-review", "slr", "screening", "triage", "research", "bibliometrics"]
+keywords = [
+    "systematic-literature-review",
+    "slr",
+    "screening",
+    "triage",
+    "academic",
+    "research",
+    "deterministic",
+    "bibliometrics",
+]
+# NOTE: no "License ::" classifier — forbidden alongside the PEP 639
+# license expression above (setuptools >= 77 rejects the combination).
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
@@ -29,6 +40,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Text Processing :: Indexing",
+    "Typing :: Typed",
 ]
 dependencies = [
     "pandas>=2.0",
@@ -53,7 +65,9 @@ fastslr = "fastslr.app.cli:main"
 [project.urls]
 Homepage = "https://github.com/Lharden/fastslr"
 Repository = "https://github.com/Lharden/fastslr"
+Documentation = "https://github.com/Lharden/fastslr/blob/master/docs/GUIA_DO_USUARIO.md"
 Issues = "https://github.com/Lharden/fastslr/issues"
+Changelog = "https://github.com/Lharden/fastslr/blob/master/CHANGELOG.md"
 
 [tool.setuptools.dynamic]
 version = { attr = "fastslr.core.constants.VERSION" }
