@@ -38,6 +38,7 @@ Bateria **final** de auditoria profunda antes da vinculação à propriedade int
 | Gate | Resultado |
 |------|-----------|
 | `pytest -q` | **252 passed** |
+| Cobertura (`coverage`) | **80% total**; core forte (engine 97%, cli 93%, controller 90%, io 89%, patterns 93%, scoring 83%). Gaps pré-existentes: `tui.py` 43% (Textual interativo, fora de escopo), `i18n` 62% (fallbacks) — rastreados em backlog `decision-critical-paths-lack-regression-coverage` |
 | `ruff check` / `format --check` | limpo / 44 arquivos formatados |
 | `pyright` (standard) | 0 errors, 0 warnings |
 | Gate golden (corpus oficial, 505 artigos) | **0 diferenças** em 33 colunas não-voláteis; Final_Decision REJECTED 253 / FLAGGED 178 / APPROVED 74 idêntico |

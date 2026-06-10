@@ -19,18 +19,19 @@ não fazem parte do produto distribuível e **são excluídos do wheel e do sdis
 | `data/Final_Corpus_Raw.csv` | Não | Não | Versão bruta do corpus |
 | `data/terms_final.csv` | **Sim** | Não | Termos de busca ponderados (autoria do pesquisador) |
 
-## Risco em aberto (decisão Leonardo/universidade)
+## Decisão aplicada (2026-06-10)
 
-`Final_Corpus.csv` e `terms_final.csv` estão **versionados no git e presentes no histórico**.
-O corpus contém abstracts/metadados bibliográficos de terceiros (titularidade dos
-editores/autores originais). Para um snapshot de depósito **somente-código**:
+Leonardo decidiu manter esses insumos (corpus da RSL + termos, com abstracts de
+terceiros) **fora do git**, preservados em disco.
 
-1. **Going-forward:** `git rm --cached data/Final_Corpus.csv data/terms_final.csv`
-   (mantém os arquivos em disco, remove do índice; `.gitignore` já cobre `data/`).
-2. **Histórico:** purga via `git filter-repo`/BFG se o depósito exigir ausência total.
-3. **Manter:** se a universidade considerar uso acadêmico de fair use/citação suficiente.
-
-Nenhuma ação foi aplicada nesta sessão; aguarda decisão formal.
+- **Executado:** `git rm --cached data/Final_Corpus.csv data/terms_final.csv` (commit de
+  untrack). Arquivos mantidos em disco; `.gitignore` já cobre `data/`. A tag **v3.1.0 foi
+  re-apontada** para a árvore limpa — o snapshot de depósito é **somente-código** (sem
+  `data/` em `git ls-tree -r v3.1.0`).
+- **Resíduo de histórico:** commits anteriores ainda contêm os CSVs. Um *archive* da tag
+  (`git archive v3.1.0`) já sai limpo. Purga total do histórico (`git filter-repo`/BFG +
+  force-push) só é necessária se o depósito exigir ausência absoluta no histórico — não
+  aplicada (remoto público já contém o histórico; decisão da universidade).
 
 ## Licenças de dependências (runtime)
 
