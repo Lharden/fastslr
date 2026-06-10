@@ -158,12 +158,25 @@ resolvida (mantido só em wont-fix); 6 findings com disposição implícita agor
 
 ```
 Tag:        v3.1.0  (local, sem release)
-Tree:       2ff343f794f2ab602c188c7378c12cadc6e0233e   ← identidade ESTÁVEL do depósito
-Tag commit: 4a9161b353fa6a335bd7c8f78be4b1437442fde0   (atual; ver nota)
-Arquivos versionados: 94   |   suite: 269 testes
+Tree:       050ff2088dde7354f77d3f0deb1b525bc5d049bb   ← identidade ESTÁVEL do depósito
+Tag commit: 2247fe18d952f25df9156dd2aaeeaea7ead0a944   (atual; ver nota)
+Arquivos versionados: 96   |   suite: 293 testes
 git ls-tree -r v3.1.0 → sem data/ (snapshot somente-código)
-Tree anterior (pré-revisão G4): ea78d19b18165225f63dfe7d284db8eb6fe2b511
+Trees anteriores: ea78d19 (pré-G4) → 2ff343f (G4) → 050ff20 (G4 + merge PR #7)
 ```
+
+### Adendo — reconciliação com o remoto (2026-06-10, pré-push)
+
+`origin/master` continha o PR #7 (`16b909f`, 2026-06-02: CHANGELOG, README com
+acentuação, metadados no pyproject, +24 smoke tests de TUI com cobertura
+40%→76%, remoção de `data/`) — linha de trabalho paralela que o master local
+não tinha. Mergeado com resolução manual: pyproject manteve e-mail oficial
+PUCPR + `setuptools>=77.0.3` + união de keywords/classifiers (SEM o classifier
+`License ::`, proibido junto à expressão SPDX PEP 639) + `[project.urls]`
+deduplicado; README adotou a versão acentuada do PR #7 + links absolutos;
+2 smoke tests atualizados para a assinatura nova de `validate_config`.
+CHANGELOG ganhou a entrada [3.1.0]. Gates pós-merge: 293 passed · ruff/format/
+pyright limpos · golden gate 0 divergências · build+twine PASSED.
 
 > [!note] Sobre os SHAs de commit
 > O ambiente (harness) reescreve hashes de **commit** após a criação (post-commit),
