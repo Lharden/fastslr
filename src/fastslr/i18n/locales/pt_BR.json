@@ -11,7 +11,8 @@
   "error_generic": "Erro: {message}",
   "error_empty_corpus": "O corpus de entrada nao contem artigos (0 linhas): {path}",
   "error_no_common_id": "Nenhuma coluna de ID comum foi encontrada entre os dois arquivos.",
-  "error_invalid_result": "O arquivo '{path}' nao parece ser um resultado do FastSLR.",
+  "error_invalid_result": "O arquivo '{path}' nao parece ser um resultado do FastSLR: falta a coluna 'Final_Decision'. Rode 'fastslr run' primeiro para gerar um resultado de triagem.",
+  "error_project_dir_exists": "O diretorio de projeto '{path}' ja contem arquivos de projeto ({names}). Use --force para sobrescrever.",
 
   "triage_complete": "Resultados salvos em: {path}",
   "progress_triage": "Triagem",

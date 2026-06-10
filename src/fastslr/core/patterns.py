@@ -10,8 +10,11 @@ from .normalization import NormalizationEngine
 
 logger = logging.getLogger(__name__)
 
+# An inner variable quantifier (*, + or an interval WITH a comma such as
+# {2,} / {2,4}) inside a repeated group is exponentially ambiguous; an exact
+# count like {2} partitions unambiguously and stays allowed.
 _UNSAFE_NESTED_QUANTIFIER_RE = re.compile(
-    r"\((?:[^()\\]|\\.)*[*+](?:[^()\\]|\\.)*\)\s*(?:[*+]|\{\d*,?\d*\})"
+    r"\((?:[^()\\]|\\.)*(?:[*+]|\{\d*,\d*\})(?:[^()\\]|\\.)*\)\s*(?:[*+]|\{\d*,?\d*\})"
 )
 
 

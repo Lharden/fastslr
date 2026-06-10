@@ -11,7 +11,8 @@
   "error_generic": "Error: {message}",
   "error_empty_corpus": "The input corpus contains no articles (0 rows): {path}",
   "error_no_common_id": "No common ID column was found between the two files.",
-  "error_invalid_result": "The file '{path}' does not appear to be a FastSLR result.",
+  "error_invalid_result": "The file '{path}' does not appear to be a FastSLR result: missing the 'Final_Decision' column. Run 'fastslr run' first to generate a triage result.",
+  "error_project_dir_exists": "Project directory '{path}' already contains project files ({names}). Use --force to overwrite.",
 
   "triage_complete": "Results saved to: {path}",
   "progress_triage": "Triage",

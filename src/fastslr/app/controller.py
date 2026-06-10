@@ -45,6 +45,7 @@ from ..core.io import (
 from ..core.normalization import NormalizationEngine
 from ..core.patterns import precompile_patterns
 from ..core.presets import generate_config
+from ..i18n import _ as t
 
 logger = logging.getLogger(__name__)
 
@@ -273,8 +274,15 @@ def _duplicate_id_warning(df: pd.DataFrame, id_col: str | None) -> str | None:
 
 
 def _load_execution_input(input_path: Path, config: dict) -> pd.DataFrame:
-    """Load and preflight an input corpus before any execution artifacts exist."""
+    """Load and preflight an input corpus before any execution artifacts exist.
+
+    Raises ``ValueError`` for a 0-row corpus so that run, preview AND coverage
+    all abort before processing: ``TOTAL ARTICLES: 0`` reported as success
+    silently misleads a user who exported the wrong corpus.
+    """
     df = load_table_safe(input_path, encoding=config.get("encoding"))
+    if len(df) == 0:
+        raise ValueError(t("error_empty_corpus", path=input_path))
     mapping = resolve_field_columns(df, config.get("fields", {}))
     missing = [field_name for field_name in ("id", "title", "abstract") if not mapping[field_name]]
     if missing:
@@ -399,12 +407,6 @@ def run_triage(
     config = _prepare_config(config_path, terms_path)
     _validate_execution_config(config)
     df = _load_execution_input(input_path, config)
-
-    if len(df) == 0:
-        raise ValueError(
-            f"O corpus de entrada nao contem nenhum artigo (0 linhas): "
-            f"{input_path}. Verifique se o arquivo exportado esta correto."
-        )
 
     if output_dir is None:
         output_dir = input_path.parent / "output"
@@ -546,9 +548,8 @@ def diff_results(path_a: Path, path_b: Path) -> DiffReport:
             id_col = fallback
         else:
             raise ValueError(
-                "Nenhuma coluna de ID comum encontrada entre os dois arquivos "
-                "(esperado uma de: ID, id, Key, key). "
-                f"Colunas de A: {list(df_a.columns)}; colunas de B: {list(df_b.columns)}."
+                t("error_no_common_id") + f" (expected one of: ID, id, Key, key) "
+                f"A: {list(df_a.columns)}; B: {list(df_b.columns)}."
             )
 
     report = DiffReport(total_a=len(df_a), total_b=len(df_b))
@@ -622,10 +623,7 @@ def create_project(
         ]
         if existing:
             names = ", ".join(sorted(p.name for p in existing))
-            raise FileExistsError(
-                f"O diretorio de projeto '{output_dir}' ja contem arquivos de "
-                f"projeto ({names}). Use force=True para sobrescrever."
-            )
+            raise FileExistsError(t("error_project_dir_exists", path=output_dir, names=names))
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -718,11 +716,7 @@ def export_academic_package(
     """
     result_df = read_result_table(result_path)
     if "Final_Decision" not in result_df.columns:
-        raise ValueError(
-            f"O arquivo '{result_path}' nao parece ser um resultado do FastSLR: "
-            f"falta a coluna 'Final_Decision'. Rode 'fastslr run' primeiro para "
-            f"gerar um resultado de triagem antes de exportar o pacote academico."
-        )
+        raise ValueError(t("error_invalid_result", path=result_path))
 
     output_dir.mkdir(parents=True, exist_ok=True)
 

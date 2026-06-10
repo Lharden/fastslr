@@ -53,11 +53,12 @@ arquivo vazio de `coverage -o` e localizacao de strings.
 - `app-layer-broad-except-without-logging`
 - `regex-matching-lacks-literal-prefilter`
 - `normalizacao-resub-sequencial-padroes-reconstruidos`
-- `untrusted-input-no-resource-limits`
 - `decision-critical-paths-lack-regression-coverage`
 - `terms-parse-warning-paths-sem-cobertura`
 - `diff-fallback-id-primeira-coluna-sem-teste`
 - `package-metadata-and-pypi-onboarding-incomplete`
+- `cli-run-double-prepare-config-private-api` (config preparada/validada 2x no
+  caminho `run` da CLI; redundância de desempenho, sem efeito funcional)
 
 ### Refutados / Wont-Fix
 
@@ -68,6 +69,31 @@ arquivo vazio de `coverage -o` e localizacao de strings.
 - `load-delimited-parse-triplo-todos-separadores`: trade-off de robustez; otimizar apenas
   com benchmark e equivalencia.
 - `untrusted-input-no-resource-limits`: hardening amplo sem contrato ou repro especifica.
+
+## Adendo — Revisão de execução (G4, 2026-06-10)
+
+Auditoria de qualidade da execução (Fable 5 revisando a implementação
+Codex/Opus) encontrou e corrigiu, com regressão em `tests/test_final_audit_g4.py`:
+
+| ID | Problema na execução | Correção |
+|---|---|---|
+| `controller-errors-hardcoded-pt` (C1) | Fix i18n criou as chaves mas o controller seguiu com 4 mensagens hardcoded em PT | controller usa `t()` em empty-corpus/diff/export/new-project; nova chave `error_project_dir_exists` nas 3 locales |
+| `empty-corpus-guard-run-only` (I3) | Guard de corpus vazio só em `run_triage` | movido para `_load_execution_input` (cobre run/preview/coverage) |
+| `redos-interval-quantifier-bypass` (I2) | `(a{2,})+`/`(a{2,4})+` passavam pelo detector | detector amplia quantificador interno para intervalos com vírgula; `{n}` exato segue aceito |
+| `t0-flagged-special-sem-cobertura` (I1) | Testes "all policies" omitiam `special` | parametrize ampliado (guard já existia) |
+| `locale-leak-entre-testes` (B1) | `set_locale` vazava entre testes | fixture autouse `_restore_locale` no conftest |
+| `token-unit-fallback-assert-fraco` (B2) | Assert não verificava o fallback `\S+` | assert reforçado |
+| `setuptools-floor-pep639` | `license = "MIT"` (PEP 639) com `setuptools>=68` quebraria rebuild | floor elevado a `setuptools>=77.0.3` |
+| `classifiers-keywords-readme-links` | Itens de F9 sem aplicação | classifiers+keywords no pyproject; links absolutos no README |
+
+Disposições esclarecidas (estavam implícitas): `alias-configurado-case-sensitive-assimetrico`
+e `progress-label-triage-hardcoded-english` foram CORRIGIDOS na Fase 4 (testes
+`test_configured_alias_matching_is_case_and_accent_insensitive` e
+`test_run_uses_localized_progress_label`); `project-authors-maintainers-ausentes` e a
+parte de URLs de `project-urls-classifiers-keywords-ausentes` foram corrigidos na Fase 6;
+`readme-links-relativos-quebrados-na-pagina-pypi` e classifiers/keywords corrigidos neste adendo.
+Nota de contagem: `untrusted-input-no-resource-limits` constava em backlog E em
+wont-fix; mantido apenas em wont-fix.
 
 ## Evidencias Chave
 

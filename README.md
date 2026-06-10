@@ -2,14 +2,14 @@
 
 [![PyPI](https://img.shields.io/pypi/v/fastslr.svg)](https://pypi.org/project/fastslr/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Lharden/fastslr/blob/master/LICENSE)
 [![Downloads](https://img.shields.io/pypi/dm/fastslr.svg)](https://pypi.org/project/fastslr/)
 
 **Triagem deterministica universal para Revisoes Sistematicas de Literatura**
 
 FastSLR processa artigos academicos atraves de um pipeline de filtragem multi-estagio, permitindo selecao rapida, reproduzivel e auditavel para sua RSL. Sem machine learning — resultados 100% deterministicos.
 
-> 📖 **Novo por aqui?** Comece pelo [**Guia do Usuário completo**](docs/GUIA_DO_USUARIO.md) — manual passo-a-passo com instalacao, configuracao, todas as opcoes, exemplos por area e troubleshooting.
+> 📖 **Novo por aqui?** Comece pelo [**Guia do Usuário completo**](https://github.com/Lharden/fastslr/blob/master/docs/GUIA_DO_USUARIO.md) — manual passo-a-passo com instalacao, configuracao, todas as opcoes, exemplos por area e troubleshooting.
 
 ---
 

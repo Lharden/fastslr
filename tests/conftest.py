@@ -67,3 +67,16 @@ def normalization_engine_enabled() -> NormalizationEngine:
             "symbol_replacements": {"&": "and"},
         }
     )
+
+
+@pytest.fixture(autouse=True)
+def _restore_locale():
+    """Keep i18n locale state isolated between tests.
+
+    Tests that call ``set_locale`` would otherwise leak the locale into
+    subsequent tests, making assertions on user-visible strings order-dependent.
+    """
+    yield
+    from fastslr.i18n import detect_locale, set_locale
+
+    set_locale(detect_locale())

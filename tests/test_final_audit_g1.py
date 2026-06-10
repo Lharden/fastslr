@@ -23,7 +23,7 @@ def _t0_flagged() -> T0Evaluation:
     return T0Evaluation(status="FLAGGED", reason="global review term", scope="global")
 
 
-@pytest.mark.parametrize("policy", ["strict", "k_of_n"])
+@pytest.mark.parametrize("policy", ["special", "strict", "k_of_n"])
 def test_t0_flagged_prevents_approval_for_all_policies(
     default_global_params: GlobalParams,
     policy: str,
@@ -36,7 +36,7 @@ def test_t0_flagged_prevents_approval_for_all_policies(
     assert reason == "T0: global review term"
 
 
-@pytest.mark.parametrize("policy", ["strict", "k_of_n"])
+@pytest.mark.parametrize("policy", ["special", "strict", "k_of_n"])
 def test_rejected_block_keeps_precedence_over_t0_flagged(
     default_global_params: GlobalParams,
     policy: str,
@@ -125,5 +125,6 @@ def test_unsafe_token_unit_falls_back_to_allowlisted_default(
 
     assert pattern is not None
     assert r"(\w+)+" not in pattern.pattern
+    assert r"\S+" in pattern.pattern
     assert pattern.search("oil from gas")
     assert "not allowlisted" in caplog.text
