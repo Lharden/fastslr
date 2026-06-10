@@ -530,7 +530,7 @@ def test_edit_config_load_validate_save(monkeypatch, tmp_path):
     captured = _silence_notify(monkeypatch)
     cfg_file = tmp_path / "config.json"
     cfg_file.write_text(json.dumps({"blocks": []}), encoding="utf-8")
-    monkeypatch.setattr(controller, "validate_config", lambda _cfg: [])
+    monkeypatch.setattr(controller, "validate_config", lambda _cfg, **_kw: [])
 
     async def scenario() -> dict:
         app = tui.FastSLRApp()
@@ -571,7 +571,7 @@ def test_edit_config_validate_reports_issues(monkeypatch):
         controller.ValidationIssue("error", "missing field"),
         controller.ValidationIssue("warning", "odd value"),
     ]
-    monkeypatch.setattr(controller, "validate_config", lambda _cfg: issues)
+    monkeypatch.setattr(controller, "validate_config", lambda _cfg, **_kw: issues)
 
     async def scenario() -> str:
         app = tui.FastSLRApp()
