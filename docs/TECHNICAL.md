@@ -1,4 +1,4 @@
-# FastSLR v3.0.0 — Descritivo Tecnico do Sistema
+# FastSLR v3.0.1 — Descritivo Tecnico do Sistema
 
 ## 1. Visao Geral
 
@@ -545,7 +545,7 @@ Estrutura completa para reprodutibilidade academica:
   "protocol_version": "2.1",
   "schema_id": "rsl-triage-protocol-v2.1",
   "execution_id": "run_abc123def456",
-  "triage_version": "3.0.0",
+  "triage_version": "3.0.1",
   "inputs": { "input_hash": "...", "terms_hash": "...", "config_hash": "..." },
   "configuration": { "decision_policy": "...", "domain_blocks": [...] },
   "processing": { "total_articles": 500, "processing_time_seconds": 1.2 },
@@ -582,7 +582,7 @@ Prioridade: `FASTSLR_LANG` env var → locale do sistema → `en`
 ```python
 from fastslr.i18n import _
 
-_("version_info", version="3.0.0")  # → "FastSLR v3.0.0"
+_("version_info", version="3.0.1")  # → "FastSLR v3.0.1"
 ```
 
 Fallback chain: locale ativo → ingles → chave literal.

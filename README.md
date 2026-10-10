@@ -1,4 +1,4 @@
-# FastSLR v3.0.0
+# FastSLR v3.0.1
 
 [![PyPI](https://img.shields.io/pypi/v/fastslr.svg)](https://pypi.org/project/fastslr/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
@@ -56,7 +56,7 @@ Para a versão mais recente do repositório, ou uma tag específica:
 
 ```bash
 pip install git+https://github.com/Lharden/fastslr.git
-pip install git+https://github.com/Lharden/fastslr.git@v3.0.0
+pip install git+https://github.com/Lharden/fastslr.git@v3.0.1
 ```
 
 ### Desenvolvimento local

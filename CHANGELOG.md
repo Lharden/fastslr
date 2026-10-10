@@ -5,7 +5,7 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
-## [3.0.1] - não publicado
+## [3.0.1] - 2026-10-10
 
 Correções da auditoria pré-congelamento da v3.0.0 (2026-10-10), achados F01–F10.
 Os defeitos de normalização rejeitavam registros elegíveis. A regressão nos 505
@@ -88,4 +88,5 @@ PyPI (`pip install fastslr`).
   determinística, sem qualquer dependência de inteligência artificial.
 - Código morto identificado durante a auditoria e a limpeza de pré-publicação.
 
+[3.0.1]: https://github.com/Lharden/fastslr/releases/tag/v3.0.1
 [3.0.0]: https://github.com/Lharden/fastslr/releases/tag/v3.0.0
