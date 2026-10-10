@@ -10,6 +10,7 @@ that callable in a subprocess.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -18,6 +19,8 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+
+from fastslr.core.presets import generate_config
 
 
 def _console_script_target() -> str:
@@ -79,3 +82,76 @@ def test_help_and_exit_codes_unchanged() -> None:
     proc = _run_entrypoint("preview", "nope.csv", "-c", "nope.json", "--lang", "en")
     assert proc.returncode == 1
     assert "Traceback" not in proc.stderr
+
+
+@pytest.fixture
+def setup_files(tmp_path: Path) -> tuple[Path, Path]:
+    """Valid config.json and terms.csv shared by the record-ID tests."""
+    config = tmp_path / "config.json"
+    cfg = generate_config(preset_name="standard", blocks=[{"name": "TECH", "label": "Technique"}])
+    config.write_text(json.dumps(cfg), encoding="utf-8")
+    terms = tmp_path / "terms.csv"
+    pd.DataFrame(
+        [
+            {
+                "block": "TECH",
+                "kind": "pos",
+                "term": "machine learning",
+                "level": "1",
+                "section_scope": "any",
+                "is_regex": "0",
+            }
+        ]
+    ).to_csv(terms, sep=";", index=False, encoding="utf-8-sig")
+    return config, terms
+
+
+def _articles(path: Path, keys: list[str]) -> Path:
+    pd.DataFrame(
+        {
+            "key": keys,
+            "title": [f"Machine learning {i}" for i in range(len(keys))],
+            "abstract": ["machine learning here"] * len(keys),
+            "manual_tags": [""] * len(keys),
+        }
+    ).to_csv(path, sep=";", index=False, encoding="utf-8-sig")
+    return path
+
+
+@pytest.mark.parametrize("command", ["run", "doctor", "preview", "coverage"])
+@pytest.mark.parametrize(
+    ("keys", "fragment"),
+    [(["A1", "A1"], "duplicate record ID"), (["A1", ""], "blank ID")],
+    ids=["duplicate-id", "empty-id"],
+)
+def test_invalid_record_ids_are_one_line_exit_1(
+    command: str,
+    keys: list[str],
+    fragment: str,
+    tmp_path: Path,
+    setup_files: tuple[Path, Path],
+) -> None:
+    config, terms = setup_files
+    articles = _articles(tmp_path / "articles.csv", keys)
+    if command == "doctor":
+        args = ["doctor", "-i", str(articles), "-c", str(config), "-t", str(terms)]
+    elif command == "run":
+        args = [
+            "run",
+            str(articles),
+            "-c",
+            str(config),
+            "-t",
+            str(terms),
+            "-o",
+            str(tmp_path / "out"),
+            "--yes",
+            "--quiet",
+        ]
+    else:
+        args = [command, str(articles), "-c", str(config), "-t", str(terms)]
+    proc = _run_entrypoint(*args, "--lang", "en")
+    out = proc.stdout + proc.stderr
+    assert proc.returncode == 1, out
+    assert "Traceback" not in out
+    assert fragment in out
