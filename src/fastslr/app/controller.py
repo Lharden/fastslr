@@ -27,7 +27,13 @@ from ..core.coverage import (
     export_coverage_csv,
     format_coverage_report,
 )
-from ..core.engine import process_articles, resolve_field_columns, sample_articles
+from ..core.engine import (
+    find_record_id_problems,
+    missing_keywords_warning,
+    process_articles,
+    resolve_field_columns,
+    sample_articles,
+)
 from ..core.io import (
     build_protocol_snapshot,
     compute_config_hash,
@@ -294,12 +300,26 @@ def inspect_run_setup(
                 fields = config.get("fields", {}) if config else {}
                 inspection.field_mapping = resolve_field_columns(df, fields)
 
-                for required in ("id", "title", "abstract"):
+                for required in ("title", "abstract"):
                     if inspection.field_mapping.get(required) is None:
                         inspection.warnings.append(
                             f"Could not identify the '{required}' column. "
                             f"Set fields.{required} in config.json."
                         )
+
+                # The run refuses a missing, blank or duplicate record ID, so
+                # doctor reports it as an error, not a warning.
+                id_col = inspection.field_mapping.get("id") or str(fields.get("id", "key"))
+                inspection.errors.extend(find_record_id_problems(df, id_col))
+
+                if config:
+                    keywords_warning = missing_keywords_warning(
+                        inspection.field_mapping.get("manual_tags") or fields.get("manual_tags"),
+                        df,
+                        load_global_params(config.get("global", {})).no_tags_uplift,
+                    )
+                    if keywords_warning:
+                        inspection.warnings.append(keywords_warning)
             except Exception as exc:
                 inspection.errors.append(f"Could not load input table: {exc}")
 

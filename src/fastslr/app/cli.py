@@ -261,13 +261,28 @@ def run(
         task_id = progress.add_task("Triage", total=None)
         callback = _rich_progress_callback(progress, task_id)
 
-        result = controller.run_triage(
-            input_path=input_file,
-            config_path=config,
-            terms_path=terms,
-            output_dir=output,
-            on_progress=callback,
+        try:
+            result = controller.run_triage(
+                input_path=input_file,
+                config_path=config,
+                terms_path=terms,
+                output_dir=output,
+                on_progress=callback,
+            )
+        except ValueError as exc:
+            # Invalid input (blank/duplicate record IDs, empty corpus): refuse
+            # the run with the reason instead of a traceback.
+            progress.stop()
+            console.print(f"[red]{t('error_generic', message=exc)}[/red]")
+            raise typer.Exit(1) from exc
+
+    input_warnings = result.stats.get("input_warnings", [])
+    if input_warnings and not quiet:
+        console.print(
+            f"\n[yellow bold]{t('warnings_found', count=len(input_warnings))}[/yellow bold]"
         )
+        for i, message in enumerate(input_warnings, 1):
+            console.print(f"  [yellow]{i}. {message}[/yellow]")
 
     if not quiet:
         _print_stats(result.stats)
