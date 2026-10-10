@@ -38,6 +38,7 @@ classifiers = [
 dependencies = [
     "pandas>=2.0",
     "openpyxl>=3.1",
+    "xlsxwriter>=3.0",
     "typer>=0.12",
     "rich>=13.0",
     "textual>=0.80",
