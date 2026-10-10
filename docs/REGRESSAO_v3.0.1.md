@@ -175,7 +175,7 @@ Quando F01 ou F02 faz um bloco aprovar, o bloco seguinte passa a ser avaliado. E
 
 F02 vale para todos os termos. Nos 505, as palavras-chave "Case-studies" passaram a acionar o sinalizador global `case studies` (6 registros) e "Cross value-chain" o sinalizador `value chain` de T1C (NH9XDV2K). Nenhum desses casamentos mudou status. É o comportamento pretendido: a grafia com hífen é a mesma expressão.
 
-## 5. Versão proposta: 3.0.1
+## 5. Versão: 3.0.1 (aprovada por Leonardo em 2026-10-10)
 
 `VERSION` neste ramo já está em `3.0.1`, para que todo artefato gerado (`triage_version`, `protocol.json`) se distinga da v3.0.0 auditada. Nada foi marcado com tag nem publicado.
 
@@ -190,6 +190,6 @@ F02 vale para todos os termos. Nos 505, as palavras-chave "Case-studies" passara
 | Item | Situação | Ação |
 |---|---|---|
 | `tests/test_tui_smoke.py::test_dashboard_button_press_navigates` intermitente | Já existia no `HEAD` sem estas mudanças (1 falha em 5 execuções). Causa: corrida interna do `textual` 8.2.8, `Header.set_title` consulta `HeaderTitle` durante a troca de tela e levanta `NoMatches` | Tarefa separada; não toca o motor |
-| Fixtures `tests/fixtures/historical/` | `config_v8.json` e `terms_final.csv` entram no repositório, que é público. O commit #7 tirou `data/*.csv` por ser corpus de terceiros; estes dois arquivos são a configuração da RSL, sem texto de terceiros | Leonardo decide antes do push |
+| Fixtures `tests/fixtures/historical/` | `config_v8.json` e `terms_final.csv` entram no repositório, que é público. O commit #7 tirou `data/*.csv` por ser corpus de terceiros; estes dois arquivos são a configuração da RSL, sem texto de terceiros | Mantidas (decisão de Leonardo, 2026-10-10) |
 | Notas do vault (`Algoritmo - Normalização`, `Algoritmo - Padrões e Proximidade`) | Descrevem o comportamento da v3.0.0 (abreviatura sem caixa, separador com vírgula) | Não editadas aqui: o vault é junção do Obsidian |
 | Ponto de entrada `fastslr = fastslr.app.cli:app` | Não passa por `cli.main()`, que traduz `ValueError` em mensagem curta. `run` e `doctor` tratam F08 por conta própria; `preview` e `coverage` com ID repetido saem com código 1 e traceback | Item separado |
