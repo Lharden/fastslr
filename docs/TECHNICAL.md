@@ -1,4 +1,4 @@
-# FastSLR v3.0.0 — Descritivo Tecnico do Sistema
+# FastSLR v3.0.1 — Descritivo Tecnico do Sistema
 
 ## 1. Visao Geral
 
@@ -311,17 +311,28 @@ Cada termo e compilado para um `re.Pattern`:
 | Exato | `supply chain` | `\bsupply\ chain\b` |
 | Wildcard | `optim*` | `\boptim\w*\b` |
 | Regex | `ML\|AI\|DL` | `ML\|AI\|DL` (case-insensitive) |
-| Proximidade | `supply and chain` | `\bsupply(?:\s+\S+){0,2}\s+chain\b \| \bchain(?:\s+\S+){0,2}\s+supply\b` |
+| Proximidade | `oil and gas` | `(?<!\w)oil(?:[\s\-/]+\S+){0,2}[\s\-/]+gas(?!\w) \| (?<!\w)gas(?:[\s\-/]+\S+){0,2}[\s\-/]+oil(?!\w)` |
+
+O separador da proximidade (`_PROXIMITY_SEP`) e `[\s\-/]+`: espaco, hifen ou barra.
+Ponto e virgula **nao** separam, para a proximidade nao atravessar frase
+(`engine oil. Gas turbines`) nem lista (`food, oil, natural gas`). Consequencia
+medida nos 505 registros historicos: listas com virgula como `exploration, production`
+deixam de casar `exploration and production` (ver `docs/REGRESSAO_v3.0.1.md`).
+Um `*` dentro de um componente da proximidade e curinga (`\w*`), como no termo exato.
 
 ### 5.2 Deteccao de Termos Compostos
 
-O regex `_COMPOUND_RE` detecta padroes como:
+O regex `_COMPOUND_SPLIT_RE` detecta padroes como:
 - `"oil and gas"` → `(oil, gas)`
 - `"supply & demand"` → `(supply, demand)`
 - `"risk or hazard"` → `(risk, hazard)`
 - `"input/output"` → `(input, output)`
 
-Para cada par detectado, um padrao de proximidade bidirecional e gerado automaticamente.
+Para cada par detectado, um padrao de proximidade bidirecional e gerado automaticamente, com duas excecoes:
+- **termo regex** (`is_regex=1`): nao gera proximidade, porque um padrao nao e uma frase;
+- **componente de uma letra**: nao gera proximidade. As siglas `O&G` e `E&P` normalizam para
+  `o and g` e `e and p` e casam so como frase exata; uma proximidade `e`..`p` casaria quaisquer
+  duas letras soltas proximas (`p = 0.01 e.g.`).
 
 ---
 
@@ -334,21 +345,37 @@ Pipeline de transformacao deterministica com cache LRU (2000 entradas):
 ```
 Texto bruto
     │
-    ▼  1. Expansao de abreviaturas (case-insensitive, word-boundary)
+    ▼  1. Expansao de abreviaturas (sensivel a caixa, word-boundary)
+    │     Casa a sigla como escrita na lista e em maiusculas: "ML" expande,
+    │     "5 ml" nao; "IoT" casa "IoT" e "IOT", nao "iot".
     │     Ex: "AI" → "artificial intelligence"
     │
     ▼  2. Lowercase
     │
     ▼  3. Substituicao de simbolos
-    │     Ex: "&" → "and"
+    │     Simbolo que representa palavra vira a palavra entre espacos:
+    │     "oil&gas" → "oil and gas", "AI/ML" → "... or ...".
+    │     Simbolo que e letra (ligadura "ﬁ" → "fi") ou alvo que e pontuacao
+    │     ("–" → "-") e trocado no lugar.
     │
     ▼  4. Unificacao de variantes compostas (word-boundary)
     │     Ex: "supply-chain" → "supply chain"
     │
-    ▼  5. Colapso de whitespace + trim
+    ▼  5. Hifen entre caracteres de palavra vira espaco
+    │     Ex: "machine-learning" → "machine learning". Roda depois das
+    │     variantes, para "e-procurement" → "procurement" continuar valendo.
+    │     Hifen fora de palavra ("pre- and post-") fica.
+    │
+    ▼  6. Colapso de whitespace + trim
     │
     Texto normalizado
 ```
+
+O mesmo pipeline normaliza o texto do artigo e cada termo nao-regex, entao
+`on-time deliver*` casa "on-time delivery" e "on time delivery". Termos regex
+nao sao normalizados: um termo regex com hifen entre letras (`covid-19`) nunca
+casaria e gera aviso na carga da lista (use `covid[\s-]19`). Com normalizacao
+desativada (lista sem regras), so as etapas 2, 5 e 6 rodam.
 
 ### 6.2 Extracao de Regras
 
@@ -359,6 +386,17 @@ Regras sao extraidas automaticamente do CSV de termos via colunas `normalization
 | `abbreviation` | AI | artificial intelligence |
 | `compound_variant` | supply-chain | supply chain |
 | `symbol_replacement` | & | and |
+
+A chave de `abbreviation` guarda a caixa em que foi escrita (a expansao e
+sensivel a caixa). O alvo de `symbol_replacement` guarda os espacos escritos
+em volta (`" and "`).
+
+### 6.3 Linha de origem (`source_row`)
+
+Cada termo guarda `source_row`, a linha do arquivo de termos (cabecalho = linha 1),
+o mesmo numero que os avisos imprimem. Ele aparece nas colunas `Highlights_*`
+(`row=53`), `AntiHighlights_*` e `Flags_*`. Linhas em branco puladas pelo leitor
+de CSV ou celulas com quebra de linha deslocam essa contagem.
 
 ---
 
@@ -470,7 +508,15 @@ GLOBAL;flag;conference abstract;0;any;0;;
 1. Aceita CSV, TSV, TXT, XLSX, XLSM e XLS
 2. Detecta encoding via `chardet` para arquivos delimitados (ou assume UTF-8)
 3. Escolhe o separador com maior reconhecimento de cabecalhos conhecidos
-4. Auto-mapeia colunas por aliases (ex: "Abstract Note" → "abstract")
+4. Auto-mapeia colunas por aliases (ex: "Abstract Note" → "abstract"). Para o ID,
+   `UT` vem antes de `ID`: no Web of Science, `UT` e o numero de acesso e `ID` sao
+   as palavras-chave Keywords Plus
+5. Recusa (erro, exit 1) entrada com ID de registro vazio ou repetido, ou sem a coluna
+   de ID; `doctor` reporta o mesmo como erro
+6. Avisa quando falta a coluna de palavras-chave: todo registro conta como "sem
+   palavras-chave" e recebe o uplift. O aviso vai para o terminal, para
+   `triage_report.txt` (secao `INPUT WARNINGS`) e para `protocol.json`
+   (`processing.input_warnings`)
 
 ### 9.2 Artefatos de Saida
 
@@ -499,7 +545,7 @@ Estrutura completa para reprodutibilidade academica:
   "protocol_version": "2.1",
   "schema_id": "rsl-triage-protocol-v2.1",
   "execution_id": "run_abc123def456",
-  "triage_version": "3.0.0",
+  "triage_version": "3.0.1",
   "inputs": { "input_hash": "...", "terms_hash": "...", "config_hash": "..." },
   "configuration": { "decision_policy": "...", "domain_blocks": [...] },
   "processing": { "total_articles": 500, "processing_time_seconds": 1.2 },
@@ -536,7 +582,7 @@ Prioridade: `FASTSLR_LANG` env var → locale do sistema → `en`
 ```python
 from fastslr.i18n import _
 
-_("version_info", version="3.0.0")  # → "FastSLR v3.0.0"
+_("version_info", version="3.0.1")  # → "FastSLR v3.0.1"
 ```
 
 Fallback chain: locale ativo → ingles → chave literal.

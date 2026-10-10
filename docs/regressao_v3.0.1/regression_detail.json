@@ -1,0 +1,2715 @@
+{
+ "kw": {
+  "distribution_before": {
+   "REJECTED_FINAL": 253,
+   "FLAGGED_FINAL": 178,
+   "APPROVED_FINAL": 74
+  },
+  "distribution_after": {
+   "REJECTED_FINAL": 251,
+   "FLAGGED_FINAL": 179,
+   "APPROVED_FINAL": 75
+  },
+  "instrument_check": {
+   "audit_rows": 505,
+   "compared_cols": [
+    "Status_T0",
+    "Status_T1A",
+    "Status_T1B",
+    "Status_T1C",
+    "Final_Decision"
+   ],
+   "mismatched_records": 0
+  },
+  "f05_rows_checked": 2595,
+  "f05_row_violations": [],
+  "f05_row_violation_count": 0,
+  "records_changed": 32,
+  "by_kind": {
+   "score_only": 13,
+   "matches_only": 11,
+   "decision_or_status": 8
+  },
+  "unexplained_fields": [],
+  "records": [
+   {
+    "ID": "EXI7PNPH",
+    "changed": {
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('neural network*', 'abstract', '1', 'exact', '')",
+       "('neural network*', 'title', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "IGRIBGAI",
+    "changed": {
+     "Highlights_T1A": {
+      "removed": [],
+      "added": [
+       "('oil and gas', 'manual_tags', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "6DQBDDHY",
+    "changed": {
+     "Flags_T0": {
+      "removed": [],
+      "added": [
+       "('case studies', 'manual_tags')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "8AQNUNGQ",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "42",
+      "after": "57",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "42",
+      "after": "57",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'manual_tags', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "VJR9Y35T",
+    "changed": {
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'manual_tags', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "VVAYMR24",
+    "changed": {
+     "Flags_T0": {
+      "removed": [],
+      "added": [
+       "('case studies', 'manual_tags')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "A4S5QRJZ",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "11",
+      "after": "29",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "11",
+      "after": "29",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "FLAGGED",
+      "after": "APPROVED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('digital twin*', 'abstract', '3', 'exact', '')",
+       "('digital twin*', 'title', '3', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Flagged blocks: T1B, T1C",
+      "after": "Flagged blocks: T1C",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "EIKXVHD4",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "45",
+      "after": "53",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "45",
+      "after": "53",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [],
+      "added": [
+       "('E&P', 'abstract', '2', 'exact', '')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "2MFBMTMD",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "22",
+      "after": "24",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "22",
+      "after": "24",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [],
+      "added": [
+       "('flow assurance', 'abstract', '5', 'exact', '')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "MVZ2VK5D",
+    "changed": {
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'manual_tags', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "PJUVYGVX",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "35",
+      "after": "45",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "35",
+      "after": "45",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "AGDQ4M6K",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "25",
+      "after": "45",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "25",
+      "after": "45",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'title', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "4Z6UT3WQ",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "58",
+      "after": "52",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "58",
+      "after": "52",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [
+       "('exploration and production', 'abstract', '3', 'proximity', 'exploration+production')"
+      ],
+      "added": [],
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "SIU99MSW",
+    "changed": {
+     "Flags_T0": {
+      "removed": [],
+      "added": [
+       "('case studies', 'manual_tags')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "583FSDBK",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('artificial intelligence', 'abstract', '1', 'exact', '')",
+       "('machine learning', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1C": {
+      "before": "0",
+      "after": "25",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1C": {
+      "before": "0",
+      "after": "25",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1C": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "APPROVED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1C": {
+      "removed": [],
+      "added": [
+       "('supply chain*', 'abstract', '1', 'exact', '')",
+       "('supply chain*', 'manual_tags', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Final_Decision": {
+      "before": "REJECTED_FINAL",
+      "after": "APPROVED_FINAL",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "All blocks approved",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "KBC56IP8",
+    "changed": {
+     "Highlights_T1A": {
+      "removed": [],
+      "added": [
+       "('oil and gas', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "H4BYTH8R",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "24",
+      "after": "42",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "24",
+      "after": "42",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('digital twin*', 'abstract', '3', 'exact', '')",
+       "('digital twin*', 'title', '3', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "847Z9MYF",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1C": {
+      "before": "0",
+      "after": "6",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1C": {
+      "before": "0",
+      "after": "6",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1C": {
+      "before": "",
+      "after": "3",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "FLAGGED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1C": {
+      "removed": [],
+      "added": [
+       "('logistic*', 'abstract', '3', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Final_Decision": {
+      "before": "REJECTED_FINAL",
+      "after": "FLAGGED_FINAL",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "T0: Global flag: case study",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "PAJ2CN35",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "51",
+      "after": "45",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "51",
+      "after": "45",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [
+       "('exploration and production', 'abstract', '3', 'proximity', 'exploration+production')"
+      ],
+      "added": [],
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "MR5HT2NH",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "15",
+      "after": "45",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "15",
+      "after": "45",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'abstract', '1', 'exact', '')",
+       "('machine learning', 'title', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Flags_T0": {
+      "removed": [],
+      "added": [
+       "('case studies', 'manual_tags')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "SFJ2IP4I",
+    "changed": {
+     "Flags_T0": {
+      "removed": [],
+      "added": [
+       "('case studies', 'manual_tags')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "W5KLZV5H",
+    "changed": {
+     "Flags_T0": {
+      "removed": [],
+      "added": [
+       "('case studies', 'manual_tags')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "2VGENLN3",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "10",
+      "after": "25",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "10",
+      "after": "25",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [],
+      "added": [
+       "('oil and gas', 'manual_tags', '1', 'exact', '')",
+       "('oil and gas', 'manual_tags', '1', 'proximity', 'oil+gas')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "3RF6PZ3F",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "10",
+      "after": "25",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "10",
+      "after": "25",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'manual_tags', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "NVCBUH9R",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "65",
+      "after": "55",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "65",
+      "after": "55",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [
+       "('oil and gas', 'abstract', '1', 'proximity', 'oil+gas')"
+      ],
+      "added": [],
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "EJJ7UU2F",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "10",
+      "after": "30",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "11.7",
+      "after": "35.1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'title', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "AYKN8CXR",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "11.7",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "REJECTED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "Rejected blocks: T1C",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "MTHREQFX",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "30",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "35.1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'abstract', '1', 'exact', '')",
+       "('machine learning', 'title', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "REJECTED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "Rejected blocks: T1C",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "C4QDUX56",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "11.7",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "REJECTED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "Rejected blocks: T1C",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "NH9XDV2K",
+    "changed": {
+     "Flags_T1C": {
+      "removed": [],
+      "added": [
+       "('value chain', 'manual_tags')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "CSYE4FEP",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1A": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1A": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [],
+      "added": [
+       "('oil and gas', 'abstract', '1', 'proximity', 'oil+gas')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "40",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "40",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "NOT_EVALUATED",
+      "after": "APPROVED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('artificial intelligence', 'abstract', '1', 'exact', '')",
+       "('artificial intelligence', 'manual_tags', '1', 'exact', '')",
+       "('digital twin*', 'abstract', '3', 'exact', '')",
+       "('digital twin*', 'manual_tags', '3', 'exact', '')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "REJECTED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1A",
+      "after": "Rejected blocks: T1C",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "AG6UCB7U",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "10",
+      "after": "0",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "10",
+      "after": "0",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1A": {
+      "before": "1",
+      "after": "",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Status_T1A": {
+      "before": "APPROVED",
+      "after": "REJECTED",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [
+       "('oil and gas', 'abstract', '1', 'proximity', 'oil+gas')"
+      ],
+      "added": [],
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1B": {
+      "before": "9",
+      "after": "0",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "9",
+      "after": "0",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "5",
+      "after": "",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "NOT_EVALUATED",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [
+       "('industry 4.0', 'abstract', '5', 'exact', '')",
+       "('industry 4.0', 'manual_tags', '5', 'exact', '')",
+       "('industry 4.0', 'title', '5', 'exact', '')"
+      ],
+      "added": [],
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "Rejected blocks: T1A",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   }
+  ]
+ },
+ "nokw": {
+  "distribution_before": {
+   "REJECTED_FINAL": 313,
+   "FLAGGED_FINAL": 149,
+   "APPROVED_FINAL": 43
+  },
+  "distribution_after": {
+   "REJECTED_FINAL": 307,
+   "FLAGGED_FINAL": 154,
+   "APPROVED_FINAL": 44
+  },
+  "instrument_check": null,
+  "f05_rows_checked": 1699,
+  "f05_row_violations": [],
+  "f05_row_violation_count": 0,
+  "records_changed": 20,
+  "by_kind": {
+   "decision_or_status": 11,
+   "score_only": 7,
+   "matches_only": 2
+  },
+  "unexplained_fields": [],
+  "records": [
+   {
+    "ID": "EXI7PNPH",
+    "changed": {
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('neural network*', 'abstract', '1', 'exact', '')",
+       "('neural network*', 'title', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "A4S5QRJZ",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "2",
+      "after": "20",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "2.34",
+      "after": "23.4",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "5",
+      "after": "3",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('digital twin*', 'abstract', '3', 'exact', '')",
+       "('digital twin*', 'title', '3', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1C": {
+      "before": "0",
+      "after": "6",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1C": {
+      "before": "0",
+      "after": "7.02",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1C": {
+      "before": "",
+      "after": "3",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "FLAGGED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1C": {
+      "removed": [],
+      "added": [
+       "('lead time*', 'abstract', '3', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Final_Decision": {
+      "before": "REJECTED_FINAL",
+      "after": "FLAGGED_FINAL",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "Flagged blocks: T1C",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "EIKXVHD4",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "30",
+      "after": "38",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "35.1",
+      "after": "44.46",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [],
+      "added": [
+       "('E&P', 'abstract', '2', 'exact', '')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "2MFBMTMD",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "4",
+      "after": "6",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "4.68",
+      "after": "7.02",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1A": {
+      "before": "REJECTED",
+      "after": "FLAGGED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [],
+      "added": [
+       "('flow assurance', 'abstract', '5', 'exact', '')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "8",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "9.36",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "2",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "NOT_EVALUATED",
+      "after": "FLAGGED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('optimization algorithm*', 'abstract', '2', 'exact', '')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1C": {
+      "before": "0",
+      "after": "6",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1C": {
+      "before": "0",
+      "after": "7.02",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1C": {
+      "before": "",
+      "after": "3",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "FLAGGED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1C": {
+      "removed": [],
+      "added": [
+       "('logistic*', 'abstract', '3', 'exact', '')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Final_Decision": {
+      "before": "REJECTED_FINAL",
+      "after": "FLAGGED_FINAL",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1A",
+      "after": "Flagged blocks: T1A, T1B, T1C",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "PJUVYGVX",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "20",
+      "after": "30",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "23.4",
+      "after": "35.1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "AGDQ4M6K",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "10",
+      "after": "30",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "11.7",
+      "after": "35.1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'title', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "4Z6UT3WQ",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "40",
+      "after": "34",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "46.8",
+      "after": "39.78",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [
+       "('exploration and production', 'abstract', '3', 'proximity', 'exploration+production')"
+      ],
+      "added": [],
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "583FSDBK",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "11.7",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('artificial intelligence', 'abstract', '1', 'exact', '')",
+       "('machine learning', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1C": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1C": {
+      "before": "0",
+      "after": "11.7",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1C": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "APPROVED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1C": {
+      "removed": [],
+      "added": [
+       "('supply chain*', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Final_Decision": {
+      "before": "REJECTED_FINAL",
+      "after": "APPROVED_FINAL",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "All blocks approved",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "KBC56IP8",
+    "changed": {
+     "Highlights_T1A": {
+      "removed": [],
+      "added": [
+       "('oil and gas', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "matches_only",
+    "title": ""
+   },
+   {
+    "ID": "H4BYTH8R",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "18",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "21.06",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "3",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('digital twin*', 'abstract', '3', 'exact', '')",
+       "('digital twin*', 'title', '3', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1C": {
+      "before": "0",
+      "after": "6",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1C": {
+      "before": "0",
+      "after": "7.02",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1C": {
+      "before": "",
+      "after": "3",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "FLAGGED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1C": {
+      "removed": [],
+      "added": [
+       "('logistic*', 'abstract', '3', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Final_Decision": {
+      "before": "REJECTED_FINAL",
+      "after": "FLAGGED_FINAL",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "Flagged blocks: T1A, T1C",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "847Z9MYF",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "11.7",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1C": {
+      "before": "0",
+      "after": "6",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1C": {
+      "before": "0",
+      "after": "7.02",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1C": {
+      "before": "",
+      "after": "3",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "FLAGGED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1C": {
+      "removed": [],
+      "added": [
+       "('logistic*', 'abstract', '3', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Final_Decision": {
+      "before": "REJECTED_FINAL",
+      "after": "FLAGGED_FINAL",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "T0: Global flag: case study",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "PAJ2CN35",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "36",
+      "after": "30",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "42.12",
+      "after": "35.1",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [
+       "('exploration and production', 'abstract', '3', 'proximity', 'exploration+production')"
+      ],
+      "added": [],
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "MR5HT2NH",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "30",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "35.1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'abstract', '1', 'exact', '')",
+       "('machine learning', 'title', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1C": {
+      "before": "0",
+      "after": "6",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1C": {
+      "before": "0",
+      "after": "7.02",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1C": {
+      "before": "",
+      "after": "3",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "FLAGGED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1C": {
+      "removed": [],
+      "added": [
+       "('logistic*', 'abstract', '3', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Final_Decision": {
+      "before": "REJECTED_FINAL",
+      "after": "FLAGGED_FINAL",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "T0: Global flag: case study",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "NVCBUH9R",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "38",
+      "after": "28",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "44.46",
+      "after": "32.76",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [
+       "('oil and gas', 'abstract', '1', 'proximity', 'oil+gas')"
+      ],
+      "added": [],
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "EJJ7UU2F",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "10",
+      "after": "30",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "11.7",
+      "after": "35.1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'title', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "score_only",
+    "title": ""
+   },
+   {
+    "ID": "AYKN8CXR",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "11.7",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "REJECTED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "Rejected blocks: T1C",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "MTHREQFX",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "30",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "35.1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'abstract', '1', 'exact', '')",
+       "('machine learning', 'title', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "REJECTED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "Rejected blocks: T1C",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "C4QDUX56",
+    "changed": {
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "11.7",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('machine learning', 'abstract', '1', 'exact', '')"
+      ],
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "REJECTED",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "Rejected blocks: T1C",
+      "causes": [
+       "F02"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "CSYE4FEP",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "0",
+      "after": "10",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "0",
+      "after": "11.7",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1A": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1A": {
+      "before": "REJECTED",
+      "after": "APPROVED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [],
+      "added": [
+       "('oil and gas', 'abstract', '1', 'proximity', 'oil+gas')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1B": {
+      "before": "0",
+      "after": "16",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "0",
+      "after": "18.72",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "",
+      "after": "1",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "NOT_EVALUATED",
+      "after": "APPROVED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [],
+      "added": [
+       "('artificial intelligence', 'abstract', '1', 'exact', '')",
+       "('digital twin*', 'abstract', '3', 'exact', '')"
+      ],
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Status_T1C": {
+      "before": "NOT_EVALUATED",
+      "after": "REJECTED",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1A",
+      "after": "Rejected blocks: T1C",
+      "causes": [
+       "F01"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   },
+   {
+    "ID": "AG6UCB7U",
+    "changed": {
+     "RawScore_T1A": {
+      "before": "10",
+      "after": "0",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1A": {
+      "before": "11.7",
+      "after": "0",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1A": {
+      "before": "1",
+      "after": "",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Status_T1A": {
+      "before": "APPROVED",
+      "after": "REJECTED",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1A": {
+      "removed": [
+       "('oil and gas', 'abstract', '1', 'proximity', 'oil+gas')"
+      ],
+      "added": [],
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "RawScore_T1B": {
+      "before": "6",
+      "after": "0",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "FinalScore_T1B": {
+      "before": "7.02",
+      "after": "0",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "BestLevel_T1B": {
+      "before": "5",
+      "after": "",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Status_T1B": {
+      "before": "REJECTED",
+      "after": "NOT_EVALUATED",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Highlights_T1B": {
+      "removed": [
+       "('industry 4.0', 'abstract', '5', 'exact', '')",
+       "('industry 4.0', 'title', '5', 'exact', '')"
+      ],
+      "added": [],
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     },
+     "Decision_Reason": {
+      "before": "Rejected blocks: T1B",
+      "after": "Rejected blocks: T1A",
+      "causes": [
+       "F03"
+      ],
+      "interaction": []
+     }
+    },
+    "kind": "decision_or_status",
+    "title": ""
+   }
+  ]
+ }
+}

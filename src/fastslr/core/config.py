@@ -378,7 +378,9 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                 "level": level if level else None,
                 "scope": scope,
                 "regex": is_regex,
-                "source_row": row_idx,
+                # Line of the terms file (header = line 1), the same number the
+                # parse warnings print, so the audit trail points at the file.
+                "source_row": row_num,
             }
 
             if kind == "pos":

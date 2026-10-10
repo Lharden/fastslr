@@ -47,7 +47,7 @@ class TestNegativeGapClamp:
 class TestNonSpaceSeparators:
     """proximity-requires-adjacent-space.
 
-    Hyphen / slash / comma separated compounds must match, not only the
+    Hyphen / slash separated compounds must match, not only the
     space-separated form.
     """
 
@@ -61,10 +61,13 @@ class TestNonSpaceSeparators:
         assert pat is not None
         assert pat.search("input/output")
 
-    def test_comma_compound_matches(self):
+    def test_comma_and_period_do_not_separate(self):
+        # Freeze audit F03: proximity must not cross list or sentence
+        # punctuation ('food, oil, natural gas'; 'engine oil. Gas turbines').
         pat = compile_proximity_pattern("machine", "learning", max_gap=0)
         assert pat is not None
-        assert pat.search("machine,learning")
+        assert not pat.search("machine,learning")
+        assert not pat.search("machine. learning")
 
     def test_plain_space_still_matches(self):
         pat = compile_proximity_pattern("machine", "learning", max_gap=0)

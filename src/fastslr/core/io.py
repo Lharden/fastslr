@@ -402,6 +402,13 @@ def generate_report(df: pd.DataFrame, stats: dict, config: dict, output_path: Pa
 
         f.write(f"CONFIG HASH: {compute_config_hash(config)}\n\n")
 
+        input_warnings = stats.get("input_warnings", [])
+        if input_warnings:
+            f.write("== INPUT WARNINGS ==\n")
+            for warning in input_warnings:
+                f.write(f"- {warning}\n")
+            f.write("\n")
+
         if "Final_Decision" in df.columns:
             f.write("== FINAL DECISIONS ==\n")
             for decision, count in df["Final_Decision"].value_counts().items():
@@ -486,6 +493,7 @@ def build_protocol_snapshot(
             "total_articles": stats.get("total_articles", 0),
             "processing_time_seconds": stats.get("processing_time", 0),
             "articles_per_second": stats.get("articles_per_second", 0),
+            "input_warnings": list(stats.get("input_warnings", [])),
         },
         "artifacts": {
             "results_path": str(result_path),
