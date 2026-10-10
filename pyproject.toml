@@ -54,7 +54,7 @@ dev = [
 chardet = ["chardet>=5.0"]
 
 [project.scripts]
-fastslr = "fastslr.app.cli:app"
+fastslr = "fastslr.app.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/Lharden/fastslr"
