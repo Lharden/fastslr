@@ -54,7 +54,9 @@ class TestSymbolValueLowercased:
         result = engine.normalize("c++")
         # Must not leak uppercase from the replacement value.
         assert result == result.lower()
-        assert result == "cplusplus"
+        # Freeze audit F01: a symbol that stands for a word becomes that word,
+        # delimited by spaces (it used to be glued: 'cplusplus').
+        assert result == "c plus plus"
 
 
 class TestDupDetectionSymmetry:

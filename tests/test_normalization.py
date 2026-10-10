@@ -38,10 +38,11 @@ class TestNormalizationEngine:
         result2 = normalization_engine_enabled.normalize(text)
         assert result1 == result2
 
-    def test_case_insensitive_abbreviation(self, normalization_engine_enabled):
-        # "AI" should match regardless of case in source
-        result = normalization_engine_enabled.normalize("ai applications")
-        assert "artificial intelligence" in result
+    def test_abbreviation_is_case_sensitive(self, normalization_engine_enabled):
+        # Freeze audit F04: only the acronym as written (or upper-case) expands;
+        # a lower-case word ('5 ml', 'ai' in running text) is not the acronym.
+        assert "artificial intelligence" in normalization_engine_enabled.normalize("AI tools")
+        assert normalization_engine_enabled.normalize("ai applications") == "ai applications"
 
 
 class TestExtractNormalizationRules:
@@ -64,8 +65,8 @@ class TestExtractNormalizationRules:
         )
         rules = extract_normalization_rules(df)
         assert rules["enabled"] is True
-        assert "ai" in rules["abbreviations"]
-        assert rules["abbreviations"]["ai"] == "artificial intelligence"
+        # Freeze audit F04: the key keeps its case (expansion is case-sensitive).
+        assert rules["abbreviations"]["AI"] == "artificial intelligence"
 
     def test_extracts_compound_variants(self):
         df = pd.DataFrame(

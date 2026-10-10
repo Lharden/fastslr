@@ -7,20 +7,63 @@ from collections import OrderedDict
 
 import pandas as pd
 
+# A hyphen joining two word characters ('machine-learning', 'on-time') is read
+# as a space, in the text and in the terms alike, so the hyphenated and the
+# spaced spellings of a compound match the same term. Hyphens that do not join
+# two word characters ('pre- and post-', ' - ') are kept.
+_WORD_HYPHEN_RE = re.compile(r"(?<=\w)-(?=\w)")
+
+
+def _is_word(value: str) -> bool:
+    """Return whether *value* (stripped) starts and ends with a word character."""
+    stripped = value.strip()
+    return bool(stripped) and stripped[0].isalnum() and stripped[-1].isalnum()
+
+
+def _abbreviation_pattern(abbr: str) -> re.Pattern:
+    """Case-sensitive pattern for an abbreviation key.
+
+    Matches the key as written in the terms table and its all-uppercase form,
+    so 'ML' expands but the unit in '5 ml' does not, and 'IoT' matches 'IoT'
+    and 'IOT' but not 'iot'.
+    """
+    forms = sorted({abbr, abbr.upper()}, key=lambda form: (-len(form), form))
+    alternation = "|".join(re.escape(form) for form in forms)
+    return re.compile(rf"\b(?:{alternation})\b")
+
+
+def _symbol_substitution(symbol: str, replacement: str) -> str:
+    """Return the text that replaces *symbol*.
+
+    A symbol that stands for a word ('&' -> 'and', '/' -> 'or', 'w/' -> 'with')
+    is replaced by that word delimited by spaces, so 'oil&gas' becomes
+    'oil and gas' and not 'oilandgas'. A symbol that is itself letters (the
+    ligature 'ﬁ' -> 'fi') or a target that is punctuation ('–' -> '-') is
+    replaced in place.
+    """
+    if symbol.isalnum() or not _is_word(replacement):
+        return replacement
+    return f" {replacement} "
+
 
 class NormalizationEngine:
     """Rule-based text normalization engine with LRU cache.
 
-    Applies abbreviation expansion, compound-variant unification,
-    and symbol replacement in a deterministic order.
+    Applies abbreviation expansion, symbol replacement, compound-variant
+    unification and hyphen-between-words splitting in a deterministic order.
     """
 
     def __init__(self, rules: dict) -> None:
         self.rules = rules
         self.enabled = rules.get("enabled", False)
+        # Abbreviation keys keep their case: expansion is case-sensitive.
         self._abbreviations = self._order_by_key_length(
-            {k.lower(): v.lower() for k, v in rules.get("abbreviations", {}).items()}
+            {k.strip(): v.lower() for k, v in rules.get("abbreviations", {}).items()}
         )
+        self._abbreviation_patterns = [
+            (_abbreviation_pattern(abbr), expanded)
+            for abbr, expanded in self._abbreviations.items()
+        ]
         self._compounds = self._order_by_key_length(
             {k.lower(): v.lower() for k, v in rules.get("compound_variants", {}).items()}
         )
@@ -72,17 +115,17 @@ class NormalizationEngine:
             return ""
 
         if not self.enabled:
-            return re.sub(r"\s+", " ", text.lower().strip())
+            return re.sub(r"\s+", " ", _WORD_HYPHEN_RE.sub(" ", text.lower())).strip()
 
         normalized = str(text).strip()
 
-        for abbr, expanded in self._abbreviations.items():
-            pattern = rf"\b{re.escape(abbr)}\b"
-            normalized = re.sub(pattern, expanded, normalized, flags=re.IGNORECASE)
+        for pattern, expanded in self._abbreviation_patterns:
+            normalized = pattern.sub(lambda _m, rep=expanded: rep, normalized)
 
         normalized = normalized.lower()
 
         for symbol, replacement in self._symbols.items():
+            substitution = _symbol_substitution(symbol, replacement)
             if re.search(r"[A-Za-z]", symbol):
                 # ``\b`` only asserts a boundary between a word and non-word
                 # char, so anchoring a symbol whose edge is non-word ('c#',
@@ -90,12 +133,18 @@ class NormalizationEngine:
                 prefix = r"(?<!\w)" if symbol[:1].isalnum() or symbol[:1] == "_" else ""
                 suffix = r"(?!\w)" if symbol[-1:].isalnum() or symbol[-1:] == "_" else ""
                 pattern = rf"{prefix}{re.escape(symbol)}{suffix}"
-                normalized = re.sub(pattern, replacement, normalized, flags=re.IGNORECASE)
+                normalized = re.sub(
+                    pattern, lambda _m, rep=substitution: rep, normalized, flags=re.IGNORECASE
+                )
             else:
-                normalized = normalized.replace(symbol, replacement)
+                normalized = normalized.replace(symbol, substitution)
 
         for variant, standard in self._compounds.items():
             normalized = re.sub(rf"\b{re.escape(variant)}\b", standard, normalized)
+
+        # Last, so compound variants keyed on a hyphenated form ('e-procurement',
+        # 'well-bore') still apply before the hyphen is read as a space.
+        normalized = _WORD_HYPHEN_RE.sub(" ", normalized)
 
         return re.sub(r"\s+", " ", normalized).strip()
 
@@ -128,7 +177,8 @@ def extract_normalization_rules(
     for _idx, row in df.iterrows():
         try:
             norm_type = str(row.get("normalization_type", "")).strip().lower()
-            norm_target = str(row.get("normalization_target", "")).strip()
+            raw_target = str(row.get("normalization_target", ""))
+            norm_target = raw_target.strip()
             term = str(row.get("term", "")).strip()
 
             row_num = int(str(_idx)) + 2 if _idx is not None else None
@@ -171,7 +221,7 @@ def extract_normalization_rules(
             # #3: duplicate normalization rules
             existing = None
             if norm_type == "abbreviation":
-                existing = rules["abbreviations"].get(term.lower())
+                existing = rules["abbreviations"].get(term)
             elif norm_type == "compound_variant":
                 existing = rules["compound_variants"].get(term.lower())
             elif norm_type == "symbol_replacement":
@@ -180,7 +230,13 @@ def extract_normalization_rules(
                 # identical rows do not trigger a false-positive warning.
                 existing = rules["symbol_replacements"].get(term.lower())
 
-            if existing is not None and existing != norm_target.lower():
+            # A symbol replacement keeps the spaces written around its target
+            # (" and "); the engine delimits word targets with spaces anyway.
+            stored_target = (
+                raw_target.lower() if norm_type == "symbol_replacement" else norm_target.lower()
+            )
+
+            if existing is not None and existing != stored_target:
                 if warnings is not None:
                     warnings.append(
                         f"Row {row_num}, term '{term}': "
@@ -189,11 +245,12 @@ def extract_normalization_rules(
                     )
 
             if norm_type == "abbreviation":
-                rules["abbreviations"][term.lower()] = norm_target.lower()
+                # Case is kept: abbreviation expansion is case-sensitive.
+                rules["abbreviations"][term] = stored_target
             elif norm_type == "compound_variant":
-                rules["compound_variants"][term.lower()] = norm_target.lower()
+                rules["compound_variants"][term.lower()] = stored_target
             elif norm_type == "symbol_replacement":
-                rules["symbol_replacements"][term.lower()] = norm_target.lower()
+                rules["symbol_replacements"][term.lower()] = stored_target
 
             processed_count += 1
         except (KeyError, TypeError, ValueError):

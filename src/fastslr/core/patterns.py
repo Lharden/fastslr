@@ -60,11 +60,11 @@ def compile_pattern(term: str, is_regex: bool = False) -> re.Pattern | None:
         return None
 
 
-# Separator allowed between proximity terms. Beyond plain whitespace this
-# admits hyphen, slash, dot and comma so that hyphenated/compound forms such
-# as 'machine-learning', 'input/output' or 'machine,learning' are matched in
-# addition to the space-separated forms ('machine learning', 'A and B').
-_PROXIMITY_SEP = r"[\s\-/.,]+"
+# Separator allowed between proximity terms: whitespace, hyphen or slash, so
+# 'oil and gas', 'oil-and-gas' and 'oil/gas' match. Dot and comma are not
+# separators: proximity must not cross a sentence ('engine oil. Gas turbines')
+# or a list ('food, oil, natural gas').
+_PROXIMITY_SEP = r"[\s\-/]+"
 
 # Default intervening-token unit. Used as fallback when a caller-supplied
 # token_unit is not a valid regex fragment.
@@ -102,7 +102,8 @@ def compile_proximity_pattern(
 
     Matches ``term_a <sep> term_b`` or ``term_b <sep> term_a`` with at most
     *max_gap* intervening tokens, where ``<sep>`` is one or more whitespace,
-    hyphen, slash, dot or comma characters (see ``_PROXIMITY_SEP``).
+    hyphen or slash characters (see ``_PROXIMITY_SEP``). A ``*`` in a term is
+    a wildcard (``\\w*``), as in :func:`compile_pattern`.
 
     A negative *max_gap* is clamped to ``0`` (with a warning): the historical
     behaviour produced a regex quantifier ``{0,-1}`` which Python silently
@@ -120,8 +121,8 @@ def compile_proximity_pattern(
 
     term_a_s = term_a.strip()
     term_b_s = term_b.strip()
-    a = re.escape(term_a_s)
-    b = re.escape(term_b_s)
+    a = re.escape(term_a_s).replace(r"\*", r"\w*")
+    b = re.escape(term_b_s).replace(r"\*", r"\w*")
     gap = rf"(?:{_PROXIMITY_SEP}{token_unit}){{0,{max_gap}}}{_PROXIMITY_SEP}"
 
     # Conditional boundary on the outer edges of each alternative; the inner
@@ -167,6 +168,38 @@ def detect_compound_terms(term: str) -> list[tuple[str, str]]:
     return [(parts[i], parts[i + 1]) for i in range(len(parts) - 1)]
 
 
+# A literal hyphen between two word characters in a regex term, outside a
+# character class and not part of an escape such as ``\d-``.
+_WORD_HYPHEN_IN_REGEX = re.compile(r"(?<!\\)\w-\w")
+_CHAR_CLASS_RE = re.compile(r"\[(?:\\.|[^\]\\])*\]")
+
+
+def _strip_classes(regex: str) -> str:
+    """Remove ``[...]`` character classes, whose ``a-z`` ranges are not hyphens."""
+    return _CHAR_CLASS_RE.sub("", regex)
+
+
+def _entry_is_regex(entry: dict) -> bool:
+    """Return the entry's regex flag, accepting the 'regex' and 'is_regex' keys."""
+    is_regex = entry.get("regex", entry.get("is_regex", False))
+    if isinstance(is_regex, str):
+        return is_regex.lower() in ("1", "true", "yes")
+    return bool(is_regex)
+
+
+def _row_label(entry: dict) -> object:
+    """Line of the terms file the entry came from (already 1-based), or '?'."""
+    row = entry.get("source_row")
+    return row if row is not None else "?"
+
+
+# Proximity is generated only for components of at least two characters. The
+# acronyms 'O&G' and 'E&P' normalize to 'o and g' / 'e and p': they match as
+# exact phrases, and an 'o'..'g' or 'e'..'p' proximity would match any two
+# single letters close together ('p = 0.01 e.g.').
+_MIN_PROXIMITY_COMPONENT_LEN = 2
+
+
 def _compile_term_entry(
     entry: dict,
     is_anti: bool = False,
@@ -179,9 +212,14 @@ def _compile_term_entry(
     if not term:
         return None
 
-    is_regex = entry.get("regex", entry.get("is_regex", False))
-    if isinstance(is_regex, str):
-        is_regex = is_regex.lower() in ("1", "true", "yes")
+    is_regex = _entry_is_regex(entry)
+
+    if is_regex and warnings is not None and _WORD_HYPHEN_IN_REGEX.search(_strip_classes(term)):
+        warnings.append(
+            f"Row {_row_label(entry)}, block '{block_name}', term '{term}': regex term has "
+            f"a hyphen between word characters, but text normalization reads such hyphens "
+            f"as spaces, so it can never match. Use '[\\s-]' or a space instead."
+        )
 
     match_term = term
     if normalization_engine is not None and not is_regex:
@@ -192,10 +230,8 @@ def _compile_term_entry(
     pattern = compile_pattern(match_term, is_regex=is_regex)
     if pattern is None:
         if warnings is not None and is_regex:
-            row = entry.get("source_row")
-            row_num = int(row) + 2 if row is not None else "?"
             warnings.append(
-                f"Row {row_num}, block '{block_name}', term '{term}': "
+                f"Row {_row_label(entry)}, block '{block_name}', term '{term}': "
                 f"invalid regex pattern. Term excluded from analysis."
             )
         return None
@@ -296,10 +332,16 @@ def precompile_patterns(
     proximity_positives = []
     if enable_proximity:
         for entry in compiled_positives:
+            # A regex term is a pattern, not a phrase: splitting it on 'and'/'/'
+            # would produce fragments that are neither regex nor literal.
+            if _entry_is_regex(entry):
+                continue
             compounds = detect_compound_terms(
                 entry.get("match_term") or entry.get("original_term", "")
             )
             for part_a, part_b in compounds:
+                if min(len(part_a), len(part_b)) < _MIN_PROXIMITY_COMPONENT_LEN:
+                    continue
                 prox_pattern = compile_proximity_pattern(
                     part_a, part_b, max_gap=max_gap, token_unit=token_unit
                 )
