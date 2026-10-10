@@ -67,6 +67,20 @@ cd fastslr
 pip install -e ".[dev]"
 ```
 
+### Ambiente travado (reprodutibilidade)
+
+O `uv.lock` na raiz fixa a versão exata de cada dependência. Para reproduzir uma triagem com o mesmo ambiente, use-o a partir de um clone na tag da versão:
+
+```bash
+uv sync --frozen
+```
+
+Sem `uv`, gere um `requirements` travado e instale com `pip`:
+
+```bash
+uv export --frozen --no-dev --no-emit-project -o requirements.lock.txt
+```
+
 ### Dependência opcional (detecção de encoding)
 
 Opcional — o FastSLR já tenta automaticamente uma cadeia de codificações (utf-8 / cp1252 / latin-1). Para ativar a detecção via `chardet`:

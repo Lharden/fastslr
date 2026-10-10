@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-VERSION = "3.0.0"
+VERSION = "3.0.1"
 
 TERM_KINDS: frozenset[str] = frozenset({"pos", "anti", "flag"})
 VALID_SCOPES: frozenset[str] = frozenset({"title", "abstract", "manual_tags", "any"})
