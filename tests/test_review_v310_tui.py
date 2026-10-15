@@ -51,12 +51,26 @@ def _files(tmp_path: Path) -> tuple[Path, Path]:
 
 
 async def _fill_and_press(app, screen, pilot, articles: str, config: str) -> None:  # noqa: ANN001
+    """Fill the Run screen, press Run and wait, up to 2 s, until the press was handled.
+
+    ``press()`` only posts ``Button.Pressed``, and one pause does not always let
+    the handler run under the load of the full suite. When it had not run,
+    ``wait_for_complete()`` found no worker and returned at once, and the test
+    read an empty ``#results`` (about 1 full run in 5). The worker writes
+    ``#status`` before anything else, on every path, so a non-empty status
+    proves that the handler ran and the worker exists.
+    """
     await app.push_screen(screen)
     await pilot.pause()
     screen.query_one("#input_file", Input).value = articles
     screen.query_one("#config_file", Input).value = config
     screen.query_one("#btn_run", Button).press()
-    await pilot.pause()
+    status = screen.query_one("#status", Static)
+    for _ in range(200):
+        if str(status.render()):
+            return
+        await pilot.pause(0.01)
+    raise AssertionError("the Run press was never handled: #status stayed empty for 2 s")
 
 
 async def _until_enabled(button: Button, pilot) -> bool:  # noqa: ANN001

@@ -199,6 +199,12 @@ Esta é a rodada que o usuário pediu antes do PR. Ela leu os arquivos que a est
 
 As correções de #1, #5, #6 e #8 estão em `afee792`. As regras de ligadura da RSL1 são redundantes com o NFKC, e o teste da 3.0.1 que exige zero avisos na tabela histórica continua verde. A regressão oficial em `afee792` dá 0 registros mudados na RSL1 e no piloto da RSL2 (seção 3.1).
 
+**Teste intermitente da TUI, achado depois da quarta rodada.** A suíte inteira falhava em cerca de 1 rodada a cada 4 ou 5, num dos dois testes do resumo do Run, com o `#results` vazio.
+- **Causa:** o auxiliar dos testes lia a tela antes de o clique no Run ter sido tratado, e então o `wait_for_complete()` não achava worker nenhum.
+- **Correção:** o auxiliar espera o `#status`, que o worker escreve antes de qualquer outra coisa. Só o teste mudou.
+- **Medida:** 0 falhas em 10 rodadas da suíte inteira.
+- **Falsificação:** com a corrida provocada por um handler que espera 50 ms, o auxiliar antigo reprova 5 de 10 rodadas, e o novo, 0 de 10.
+
 ## 5. Eficiência
 
 Medido no desktop (Python 3.12, ambiente do `uv.lock`), melhor de 3 rodadas, com `config_v8.json`:
