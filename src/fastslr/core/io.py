@@ -395,13 +395,15 @@ def _xlsx_safe_text(df: pd.DataFrame) -> pd.DataFrame:
     column names; they separate words, hence a space and not nothing.
     """
     safe = df.copy()
+    # By position, not by name: names can repeat, and cleaning can make two equal.
+    for i in range(safe.shape[1]):
+        if not pd.api.types.is_numeric_dtype(safe.dtypes.iloc[i]):
+            safe.iloc[:, i] = safe.iloc[:, i].map(
+                lambda v: _XLSX_ILLEGAL_CHARACTERS.sub(" ", v) if isinstance(v, str) else v
+            )
     safe.columns = [
         _XLSX_ILLEGAL_CHARACTERS.sub(" ", c) if isinstance(c, str) else c for c in safe.columns
     ]
-    for col in _text_columns(safe):
-        safe[col] = safe[col].map(
-            lambda v: _XLSX_ILLEGAL_CHARACTERS.sub(" ", v) if isinstance(v, str) else v
-        )
     return safe
 
 

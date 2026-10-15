@@ -22,6 +22,11 @@ def _nfkc(value: str) -> str:
     return unicodedata.normalize("NFKC", value)
 
 
+def _nfkc_stable(key: str) -> bool:
+    """Whether a rule key survives NFKC as written, so it can match NFKC text."""
+    return _nfkc(key) == key
+
+
 def _is_word(value: str) -> bool:
     """Return whether *value* (stripped) starts and ends with a word character."""
     stripped = value.strip()
@@ -80,26 +85,38 @@ class NormalizationEngine:
     def __init__(self, rules: dict) -> None:
         self.rules = rules
         self.enabled = rules.get("enabled", False)
-        # Abbreviation keys keep their case: expansion is case-sensitive. Every
-        # key goes through NFKC, like the text it is matched against: a key
-        # written with a compatibility character would otherwise never match.
+        # The text is read in NFKC, so a rule key that NFKC rewrites ('ﬁ', '²',
+        # 'ＭＬ') can never match as written. It is left out, never rewritten: the
+        # NFKC of '²' is '2', and a rule on '2' would replace every digit 2 of the
+        # corpus. extract_normalization_rules warns about each one.
+        # Abbreviation keys keep their case: expansion is case-sensitive.
         self._abbreviations = self._order_by_key_length(
-            {_nfkc(k.strip()): v.lower() for k, v in rules.get("abbreviations", {}).items()}
+            {
+                k.strip(): v.lower()
+                for k, v in rules.get("abbreviations", {}).items()
+                if _nfkc_stable(k.strip())
+            }
         )
         self._abbreviation_patterns = [
             (_abbreviation_pattern(abbr), expanded)
             for abbr, expanded in self._abbreviations.items()
         ]
         self._compounds = self._order_by_key_length(
-            {_nfkc(k).lower(): v.lower() for k, v in rules.get("compound_variants", {}).items()}
+            {
+                k.lower(): v.lower()
+                for k, v in rules.get("compound_variants", {}).items()
+                if _nfkc_stable(k)
+            }
         )
         # ``symbol_replacements`` values are lowercased here so casefolding is
         # consistent: the symbol pass runs after the global ``.lower()`` and
         # would otherwise re-inject uppercase characters.
-        # Symbol keys go through NFKC too, so a rule keyed on '½' applies to the
-        # '1⁄2' the text becomes; a ligature key ('ﬁ' -> 'fi') turns into a no-op.
         self._symbols = self._order_by_key_length(
-            {_nfkc(k).lower(): v.lower() for k, v in rules.get("symbol_replacements", {}).items()}
+            {
+                k.lower(): v.lower()
+                for k, v in rules.get("symbol_replacements", {}).items()
+                if _nfkc_stable(k)
+            }
         )
         self._cache_maxsize = 2000
         # ``OrderedDict`` gives O(1) LRU bookkeeping via ``move_to_end`` and
@@ -256,6 +273,21 @@ def extract_normalization_rules(
                 continue
 
             if not term:
+                continue
+
+            # The text is read in NFKC: a key NFKC rewrites never matches as
+            # written, and rewriting it ('²' -> '2') would hit ordinary text. A
+            # rule that only says what NFKC already does ('ﬁ' -> 'fi') is
+            # redundant and goes quietly; any other one is reported.
+            if not _nfkc_stable(term):
+                redundant = _nfkc(term).lower() == norm_target.strip().lower()
+                if warnings is not None and not redundant:
+                    warnings.append(
+                        f"Row {row_num}, term '{term}': the text is read in NFKC, where "
+                        f"'{term}' is '{_nfkc(term)}', so this rule could never apply as "
+                        f"written. Write it for '{_nfkc(term)}' if that is meant. "
+                        f"Normalization rule ignored."
+                    )
                 continue
 
             # #3: duplicate normalization rules

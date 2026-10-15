@@ -11,7 +11,8 @@
 - The CLI keeps the traceback of bugs (NotImplementedError, RecursionError).
 - diff refuses repeated blank IDs, which the merge would pair with each other.
 - An old protocol migrated to 2.2 gets the 2.2 meaning, not only the label.
-- Symbol keys go through NFKC instead of being dropped.
+- A rule key that NFKC rewrites is left out, reported unless it is redundant.
+- MIN_APPROVED_BLOCKS refuses 2.7 and Infinity; xlsx cleaning works with repeated column names.
 - ERROR_POLICY is refused where it is read.
 - MIN_APPROVED_BLOCKS is validated as the run reads it.
 """
@@ -179,10 +180,37 @@ def test_highlight_of_nfkc_text_is_unchanged() -> None:
     assert highlight_text("Oil and gas", [term], "title") == "***OIL*** and gas"
 
 
-def test_rule_keys_go_through_nfkc() -> None:
-    engine = NormalizationEngine({"enabled": True, "abbreviations": {"ＭＬ": "machine learning"}})
+def test_rule_key_that_nfkc_rewrites_never_touches_ordinary_text() -> None:
+    # The NFKC of '²' is '2': mapping the key would replace every digit 2 of the
+    # corpus (fourth verification round, 2 highs). Such keys are left out.
+    engine = NormalizationEngine(
+        {
+            "enabled": True,
+            "symbol_replacements": {"²": " squared"},
+            "abbreviations": {"ＭＬ": "machine learning"},
+        }
+    )
 
-    assert engine.normalize("ML models") == "machine learning models"
+    assert engine.normalize("CO2 in 2020 m²") == "co2 in 2020 m2"
+    assert engine.normalize("ML models") == "ml models"
+
+
+def test_rule_key_that_nfkc_rewrites_is_reported_unless_redundant(tmp_path: Path) -> None:
+    path = tmp_path / "terms.csv"
+    path.write_text(
+        "block,kind,term,level,section_scope,is_regex,normalization_type,normalization_target\n"
+        ",,²,,,0,symbol_replacement, squared\n"
+        ",,ＭＬ,,,0,abbreviation,machine learning\n"
+        ",,ﬁ,,,0,symbol_replacement,fi\n"
+        "T1A,pos,oil,1,any,0,,\n",
+        encoding="utf-8",
+    )
+
+    config = parse_terms_csv(path, {"global": {}})
+
+    reported = [w for w in config["_parse_warnings"] if "read in NFKC" in w]
+    assert len(reported) == 2
+    assert not any("'ﬁ'" in w for w in reported)
 
 
 # ── validation and CLI ───────────────────────────────────────────────────────
@@ -264,10 +292,10 @@ def test_old_protocol_migrated_to_2_2_gets_the_2_2_meaning() -> None:
     assert migrated["configuration"]["enable_special_approval"] is True
 
 
-def test_symbol_key_that_nfkc_rewrites_still_applies() -> None:
-    engine = NormalizationEngine({"enabled": True, "symbol_replacements": {"½": "half"}})
+def test_symbol_key_that_survives_nfkc_still_applies() -> None:
+    engine = NormalizationEngine({"enabled": True, "symbol_replacements": {"–": "-"}})
 
-    assert "half" in engine.normalize("a ½ dose")
+    assert engine.normalize("pre–post") == "pre post"
 
 
 def test_unknown_error_policy_is_refused_where_it_is_read() -> None:
@@ -309,3 +337,28 @@ def test_xlsx_cleans_noncharacters_and_column_names(tmp_path: Path) -> None:
         "Ti tle",
         "a b",
     )
+
+
+def test_xlsx_cleaning_works_with_repeated_column_names(tmp_path: Path) -> None:
+    from openpyxl import load_workbook
+
+    # Two columns already named 'A', and 'A\x0b', which cleans to 'A ' like the fourth.
+    df = pd.DataFrame([["x\x0by", "p\x0cq", "u\x0bv", "z"]], columns=["A", "A", "A\x0b", "A "])
+
+    exported = export_results(df, tmp_path / "r", {"output": {"xlsx": True, "csv": False}})
+
+    sheet = load_workbook(exported["xlsx"]).active
+    assert sheet is not None
+    assert [sheet.cell(row=2, column=c).value for c in (1, 2, 3)] == ["x y", "p q", "u v"]
+
+
+@pytest.mark.parametrize("raw", [2.7, float("inf")])
+def test_min_approved_blocks_refuses_fractions_and_infinity(raw: float) -> None:
+    from fastslr.core.config import load_global_params
+
+    with pytest.raises(ValueError, match="MIN_APPROVED_BLOCKS"):
+        load_global_params({"MIN_APPROVED_BLOCKS": raw})
+    issues = validate_config(
+        {"global": {"MIN_APPROVED_BLOCKS": raw}}, require_resolved_blocks=False
+    )
+    assert any(i.level == "error" and "MIN_APPROVED_BLOCKS" in i.message for i in issues)

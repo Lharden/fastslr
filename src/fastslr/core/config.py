@@ -119,6 +119,10 @@ def read_min_approved_blocks(global_cfg: dict) -> int | None:
     try:
         if isinstance(raw, bool):
             raise TypeError(raw)
+        # 2.7 is not 2, and Infinity (which json.load accepts) is not a number of
+        # blocks: neither is an integral float, so both stop here before int().
+        if isinstance(raw, float) and not raw.is_integer():
+            raise ValueError(raw)
         value = int(raw)
     except (TypeError, ValueError):
         raise ValueError(f"MIN_APPROVED_BLOCKS must be an integer >= 1, got {raw!r}.") from None
