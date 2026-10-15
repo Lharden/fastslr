@@ -12,8 +12,8 @@ Junta a bateria final de auditoria pré-registro de propriedade intelectual
 levantados por 9 dimensões de análise, verificação adversarial, 28 correções
 aprovadas item a item + revisão de qualidade da execução (G4). Onde as duas
 auditorias decidiram o mesmo ponto, vale a decisão da 3.0.1. A junção passou por
-uma revisão multidimensional com adjudicação adversarial, cujos achados foram
-corrigidos aqui, e por regressão nos 505 registros históricos da RSL1: nenhuma
+quatro rodadas de revisão multidimensional com adjudicação adversarial, cujos
+achados estão corrigidos aqui ou declarados abaixo, e por regressão nos 505 registros históricos da RSL1: nenhuma
 célula muda com a política `special`. Revisão, regressão e o destino de cada
 achado: [`docs/REVISAO_v3.1.0.md`](docs/REVISAO_v3.1.0.md).
 
