@@ -1,5 +1,6 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+# license = "MIT" (PEP 639) exige setuptools >= 77.0.3
+requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,10 +8,14 @@ name = "fastslr"
 dynamic = ["version"]
 description = "FastSLR - Universal deterministic triage for Systematic Literature Reviews"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
+authors = [
+    { name = "Leonardo Harden", email = "leonardo.harden@pucpr.edu.br" },
+]
+maintainers = [
+    { name = "Leonardo Harden", email = "leonardo.harden@pucpr.edu.br" },
+]
 requires-python = ">=3.10"
-authors = [{ name = "Leonardo Harden", email = "harden.leo@gmail.com" }]
-maintainers = [{ name = "Leonardo Harden", email = "harden.leo@gmail.com" }]
 keywords = [
     "systematic-literature-review",
     "slr",
@@ -21,18 +26,20 @@ keywords = [
     "deterministic",
     "bibliometrics",
 ]
+# NOTE: no "License ::" classifier — forbidden alongside the PEP 639
+# license expression above (setuptools >= 77 rejects the combination).
 classifiers = [
     "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Topic :: Scientific/Engineering",
-    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Text Processing :: Indexing",
     "Typing :: Typed",
 ]
 dependencies = [

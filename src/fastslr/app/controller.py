@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,6 +20,7 @@ from ..core.config import (
     load_config,
     load_global_params,
     parse_terms_csv,
+    read_min_approved_blocks,
 )
 from ..core.constants import VERSION
 from ..core.coverage import (
@@ -49,8 +51,9 @@ from ..core.io import (
     read_result_table,
 )
 from ..core.normalization import NormalizationEngine
-from ..core.patterns import precompile_patterns
+from ..core.patterns import ALLOWED_TOKEN_UNITS, precompile_patterns
 from ..core.presets import generate_config
+from ..i18n import _ as t
 
 logger = logging.getLogger(__name__)
 
@@ -153,15 +156,24 @@ class SetupInspection:
 # ── Configuration & Validation ───────────────────────────────────────────────
 
 
-def validate_config(config: dict) -> list[ValidationIssue]:
-    """Check configuration for common issues."""
+def validate_config(
+    config: dict,
+    *,
+    require_resolved_blocks: bool = True,
+) -> list[ValidationIssue]:
+    """Check configuration for common issues.
+
+    Document editors may set ``require_resolved_blocks=False`` because a
+    canonical project template resolves its blocks only after loading terms.
+    Execution paths keep the stricter default.
+    """
     issues: list[ValidationIssue] = []
 
     if "global" not in config:
         issues.append(ValidationIssue("error", "Missing 'global' section"))
 
     domain_blocks = get_domain_blocks(config)
-    if not domain_blocks:
+    if require_resolved_blocks and not domain_blocks:
         issues.append(
             ValidationIssue(
                 "error",
@@ -183,6 +195,43 @@ def validate_config(config: dict) -> list[ValidationIssue]:
     policy = global_cfg.get("DECISION_POLICY", "special")
     if policy not in ("special", "strict", "k_of_n"):
         issues.append(ValidationIssue("error", f"Unknown decision policy: '{policy}'"))
+
+    # Any other value used to switch off the MAX_ERROR_RATE guard in silence.
+    error_policy = global_cfg.get("ERROR_POLICY", "flag")
+    if error_policy not in ("flag", "fail"):
+        issues.append(
+            ValidationIssue("error", f"Unknown ERROR_POLICY: '{error_policy}' (use flag or fail)")
+        )
+
+    # Read with the engine's own reader, so '5' and 5.0 are checked as the run sees them.
+    try:
+        min_approved = read_min_approved_blocks(global_cfg)
+    except ValueError as exc:
+        issues.append(ValidationIssue("error", str(exc)))
+        min_approved = None
+    if (
+        policy == "k_of_n"
+        and min_approved is not None
+        and domain_blocks
+        and min_approved > len(domain_blocks)
+    ):
+        issues.append(
+            ValidationIssue(
+                "warning",
+                f"MIN_APPROVED_BLOCKS={min_approved} is more than the {len(domain_blocks)} "
+                "domain blocks: no article can be approved.",
+            )
+        )
+
+    token_unit = global_cfg.get("TOKEN_UNIT_FOR_GAPS", r"\S+")
+    if token_unit not in ALLOWED_TOKEN_UNITS:
+        issues.append(
+            ValidationIssue(
+                "warning",
+                f"TOKEN_UNIT_FOR_GAPS {token_unit!r} is not one of "
+                f"{', '.join(sorted(ALLOWED_TOKEN_UNITS))}; proximity uses '\\S+' instead.",
+            )
+        )
 
     # Warn about nonsensical threshold values
     for key in ("LIMITES_APROVADO", "LIMITES_SINALIZADO"):
@@ -245,6 +294,47 @@ def _prepare_config(config_path: Path, terms_path: Path | None = None) -> dict:
     return config
 
 
+def _validate_execution_config(config: dict) -> None:
+    """Raise when a prepared configuration is not safe to execute."""
+    errors = [
+        issue.message
+        for issue in validate_config(config, require_resolved_blocks=True)
+        if issue.level == "error"
+    ]
+    if errors:
+        raise ValueError("Invalid execution configuration: " + " | ".join(errors))
+
+
+def _load_execution_input(input_path: Path, config: dict) -> pd.DataFrame:
+    """Load and preflight an input corpus before any execution artifacts exist.
+
+    Raises ``ValueError`` for a 0-row corpus so that run, preview AND coverage
+    all abort before processing: ``TOTAL ARTICLES: 0`` reported as success
+    silently misleads a user who exported the wrong corpus.
+    """
+    df = load_table_safe(input_path, encoding=config.get("encoding"))
+    if len(df) == 0:
+        raise ValueError(t("error_empty_corpus", path=input_path))
+    mapping = resolve_field_columns(df, config.get("fields", {}))
+    missing = [field_name for field_name in ("id", "title", "abstract") if not mapping[field_name]]
+    if missing:
+        raise ValueError(
+            "Could not resolve required input columns: "
+            + ", ".join(missing)
+            + ". Configure fields.id, fields.title and fields.abstract."
+        )
+
+    # F08: a missing, blank or duplicate record ID is refused here too, so the
+    # run aborts before the output folder exists (process_articles refuses it
+    # again for callers that skip the controller).
+    id_col = mapping["id"]
+    assert id_col is not None  # the check above raises when the ID column is missing
+    id_problems = find_record_id_problems(df, id_col)
+    if id_problems:
+        raise ValueError("Invalid record IDs in the input. " + " ".join(id_problems))
+    return df
+
+
 def _cmd_path(path: Path) -> str:
     text = str(path)
     if " " in text:
@@ -294,15 +384,17 @@ def inspect_run_setup(
             inspection.errors.append(f"Input file not found: {input_path}")
         else:
             try:
-                df = load_table_safe(input_path)
+                df = load_table_safe(input_path, encoding=config.get("encoding"))
                 inspection.input_rows = len(df)
                 inspection.input_columns = [str(c) for c in df.columns]
                 fields = config.get("fields", {}) if config else {}
                 inspection.field_mapping = resolve_field_columns(df, fields)
 
+                # run, preview and coverage refuse an input without these
+                # columns (_load_execution_input), so doctor reports an error.
                 for required in ("title", "abstract"):
                     if inspection.field_mapping.get(required) is None:
-                        inspection.warnings.append(
+                        inspection.errors.append(
                             f"Could not identify the '{required}' column. "
                             f"Set fields.{required} in config.json."
                         )
@@ -360,13 +452,8 @@ def run_triage(
     before any artifact is written.
     """
     config = _prepare_config(config_path, terms_path)
-    df = load_table_safe(input_path)
-
-    if len(df) == 0:
-        raise ValueError(
-            f"O corpus de entrada nao contem nenhum artigo (0 linhas): "
-            f"{input_path}. Verifique se o arquivo exportado esta correto."
-        )
+    _validate_execution_config(config)
+    df = _load_execution_input(input_path, config)
 
     if output_dir is None:
         output_dir = input_path.parent / "output"
@@ -445,7 +532,8 @@ def preview_triage(
 ) -> PreviewResult:
     """Run triage on a sample for validation."""
     config = _prepare_config(config_path, terms_path)
-    df = load_table_safe(input_path)
+    _validate_execution_config(config)
+    df = _load_execution_input(input_path, config)
     sample_df = sample_articles(df, sample_size, seed=seed)
     result_df, stats = process_articles(sample_df, config)
     return PreviewResult(
@@ -464,10 +552,15 @@ def analyze_coverage(
     terms_path: Path | None = None,
     output_path: Path | None = None,
 ) -> TermCoverageReport:
-    """Run triage and analyze term coverage."""
+    """Run triage and analyze term coverage.
+
+    Every block is evaluated in every article (no fail-fast, no T0 short-cut),
+    so a term is reported dead only when it matches no article at all.
+    """
     config = _prepare_config(config_path, terms_path)
-    df = load_table_safe(input_path)
-    result_df, _ = process_articles(df, config)
+    _validate_execution_config(config)
+    df = _load_execution_input(input_path, config)
+    result_df, _ = process_articles(df, config, evaluate_all_blocks=True)
     report = analyze_term_coverage(result_df, config)
 
     if output_path:
@@ -506,10 +599,20 @@ def diff_results(path_a: Path, path_b: Path) -> DiffReport:
             id_col = fallback
         else:
             raise ValueError(
-                "Nenhuma coluna de ID comum encontrada entre os dois arquivos "
-                "(esperado uma de: ID, id, Key, key). "
-                f"Colunas de A: {list(df_a.columns)}; colunas de B: {list(df_b.columns)}."
+                t("error_no_common_id") + f" (expected one of: ID, id, Key, key) "
+                f"A: {list(df_a.columns)}; B: {list(df_b.columns)}."
             )
+
+    # A repeated ID makes the outer merge pair every copy in A with every copy
+    # in B and invent transitions; a result table has one row per record.
+    for label, df, path in (("A", df_a, path_a), ("B", df_b, path_b)):
+        # Counted exactly as the merge matches them: a blank ID repeated is a
+        # repeated ID too, because the outer merge pairs '' with ''.
+        counts = Counter("" if pd.isna(value) else str(value) for value in df[id_col].tolist())
+        repeated = sorted(value for value, n in counts.items() if n > 1)
+        if repeated:
+            listed = ", ".join(repr(v) if v.strip() else "(blank)" for v in repeated[:10])
+            raise ValueError(f"File {label} has repeated IDs in '{id_col}' ({listed}): {path}")
 
     report = DiffReport(total_a=len(df_a), total_b=len(df_b))
 
@@ -582,10 +685,7 @@ def create_project(
         ]
         if existing:
             names = ", ".join(sorted(p.name for p in existing))
-            raise FileExistsError(
-                f"O diretorio de projeto '{output_dir}' ja contem arquivos de "
-                f"projeto ({names}). Use force=True para sobrescrever."
-            )
+            raise FileExistsError(t("error_project_dir_exists", path=output_dir, names=names))
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -678,11 +778,7 @@ def export_academic_package(
     """
     result_df = read_result_table(result_path)
     if "Final_Decision" not in result_df.columns:
-        raise ValueError(
-            f"O arquivo '{result_path}' nao parece ser um resultado do FastSLR: "
-            f"falta a coluna 'Final_Decision'. Rode 'fastslr run' primeiro para "
-            f"gerar um resultado de triagem antes de exportar o pacote academico."
-        )
+        raise ValueError(t("error_invalid_result", path=result_path))
 
     output_dir.mkdir(parents=True, exist_ok=True)
 

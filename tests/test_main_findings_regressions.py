@@ -363,7 +363,8 @@ def test_run_triage_aborts_on_header_only_corpus(tmp_path: Path) -> None:
     config_path, terms_path = _write_minimal_config_and_terms(tmp_path)
     output_dir = tmp_path / "out"
 
-    with pytest.raises(ValueError, match="nenhum artigo"):
+    # The message is localized (error_empty_corpus); "corpus" appears in all locales.
+    with pytest.raises(ValueError, match="(?i)corpus"):
         run_triage(input_path, config_path, terms_path, output_dir=output_dir)
 
     # No artifacts may be written for an empty corpus.

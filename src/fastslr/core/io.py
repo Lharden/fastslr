@@ -6,15 +6,17 @@ import hashlib
 import json
 import logging
 import re
+import unicodedata
 import uuid
 import zipfile
 from copy import deepcopy
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from types import ModuleType
 
 import pandas as pd
 
+from .config import read_flag
 from .constants import SECTION_NAMES, VERSION
 
 chardet: ModuleType | None
@@ -27,8 +29,11 @@ else:
 
 logger = logging.getLogger(__name__)
 
-PROTOCOL_VERSION_CURRENT = "2.1"
-PROTOCOL_SCHEMA_ID = "rsl-triage-protocol-v2.1"
+# 2.2 (fastslr 3.1.0): inputs.input_file, inputs.terms_file and
+# artifacts.results_path hold file names, not paths, and configuration.fail_fast
+# and enable_special_approval hold the booleans the engine ran with.
+PROTOCOL_VERSION_CURRENT = "2.2"
+PROTOCOL_SCHEMA_ID = "rsl-triage-protocol-v2.2"
 
 _PROTOCOL_ROOT_KEYS = frozenset(
     {
@@ -101,6 +106,28 @@ def compute_file_hash(file_path: str) -> str:
 _ENCODING_FALLBACK_CHAIN = ("utf-8-sig", "utf-8", "cp1252", "latin-1")
 
 
+def _bom_encoding(path: Path) -> str | None:
+    """Detect Unicode BOMs or a strong UTF-16 NUL-byte signature."""
+    with open(path, "rb") as f:
+        prefix = f.read(1000)
+    if prefix.startswith(b"\xff\xfe\x00\x00") or prefix.startswith(b"\x00\x00\xfe\xff"):
+        return "utf-32"
+    if prefix.startswith(b"\xff\xfe") or prefix.startswith(b"\xfe\xff"):
+        return "utf-16"
+    if prefix.startswith(b"\xef\xbb\xbf"):
+        return "utf-8-sig"
+    if len(prefix) >= 8:
+        even_bytes = prefix[0::2]
+        odd_bytes = prefix[1::2]
+        even_nul_ratio = even_bytes.count(0) / len(even_bytes)
+        odd_nul_ratio = odd_bytes.count(0) / len(odd_bytes)
+        if odd_nul_ratio > 0.3 and even_nul_ratio < 0.1:
+            return "utf-16-le"
+        if even_nul_ratio > 0.3 and odd_nul_ratio < 0.1:
+            return "utf-16-be"
+    return None
+
+
 def _candidate_encodings(path: Path, preferred: str | None = None) -> list[str]:
     """Return an ordered, de-duplicated list of encodings to try.
 
@@ -109,6 +136,9 @@ def _candidate_encodings(path: Path, preferred: str | None = None) -> list[str]:
     then the deterministic fallback chain that ends with ``latin-1``.
     """
     ordered: list[str] = []
+    bom_encoding = _bom_encoding(path)
+    if bom_encoding:
+        ordered.append(bom_encoding)
     if preferred:
         ordered.append(preferred)
 
@@ -117,7 +147,7 @@ def _candidate_encodings(path: Path, preferred: str | None = None) -> list[str]:
             with open(path, "rb") as f:
                 raw_data = f.read(10000)
             guess = chardet.detect(raw_data).get("encoding")
-        except (OSError, ValueError):
+        except ValueError:
             guess = None
         if guess:
             ordered.append(guess)
@@ -132,6 +162,14 @@ def _candidate_encodings(path: Path, preferred: str | None = None) -> list[str]:
             seen.add(key)
             deduped.append(enc)
     return deduped
+
+
+def _contains_nul(df: pd.DataFrame) -> bool:
+    """Reject mojibake candidates that decoded UTF-16/32 as a single-byte codec."""
+    if any("\x00" in str(column) for column in df.columns):
+        return True
+    sample = df.head(20)
+    return any("\x00" in str(value) for value in sample.to_numpy().flat)
 
 
 def _header_score(columns: list[object]) -> int:
@@ -169,6 +207,10 @@ def _load_delimited_table(
     separators = ("\t", ";", ",") if path.suffix.lower() == ".tsv" else (";", ",", "\t")
     encodings = _candidate_encodings(path, preferred=encoding)
     tried_encodings: list[str] = []
+    last_parse_error: Exception | None = None
+    # Widest table any encoding/separator decoded. When the file decodes but is
+    # too narrow, the problem is the columns, not the encoding.
+    widest = 0
 
     for enc in encodings:
         candidates: list[tuple[int, int, pd.DataFrame]] = []
@@ -180,9 +222,15 @@ def _load_delimited_table(
                 # This encoding cannot decode the bytes; advance to the next one.
                 decode_failed = True
                 break
-            except Exception:
+            except OSError:
+                raise
+            except Exception as exc:
                 # Parsing/separator issue specific to this separator; try the next sep.
+                last_parse_error = exc
                 continue
+            if _contains_nul(df):
+                continue
+            widest = max(widest, len(df.columns))
             if len(df.columns) >= min_columns:
                 candidates.append((_header_score(list(df.columns)), len(df.columns), df))
 
@@ -196,9 +244,26 @@ def _load_delimited_table(
         if decode_failed:
             continue
 
-    raise ValueError(
+    # Both facts, never one hiding the other: a malformed row under the right
+    # separator leaves the others with one column, and a narrow file can also
+    # fail to parse under a wrong separator. The parse error is chained.
+    if widest:
+        message = (
+            f"Unable to load delimited table: {path} has at most {widest} column(s) with the "
+            f"separators ';', ',' and tab; at least {min_columns} are needed "
+            "(record ID, title and abstract)."
+        )
+        if last_parse_error is None:
+            raise ValueError(message)
+        raise ValueError(
+            f"{message} One separator also failed to parse it: {last_parse_error}"
+        ) from last_parse_error
+    error = ValueError(
         f"Unable to load delimited table: {path} (tried encodings: {', '.join(tried_encodings)})"
     )
+    if last_parse_error is not None:
+        raise error from last_parse_error
+    raise error
 
 
 def _load_spreadsheet_table(path: Path, min_columns: int) -> pd.DataFrame:
@@ -261,15 +326,15 @@ def get_export_opts(cfg: dict) -> dict:
     # without an ``output`` block therefore behaves like the documented default
     # instead of silently producing CSV-only output.
     return {
-        "export_csv": bool(out.get("csv", False)),
-        "export_xlsx": bool(out.get("xlsx", True)),
+        "export_csv": read_flag(out, "csv", False),
+        "export_xlsx": read_flag(out, "xlsx", True),
         "csv_sep": out.get("csv_sep", root.get("sep", ";")),
         "csv_decimal": out.get("csv_decimal", root.get("decimal", ",")),
         "csv_float_fmt": out.get("csv_float_format", "%.2f"),
         "xlsx_engine": out.get("xlsx_engine", "openpyxl"),
         "xlsx_sheet": out.get("xlsx_sheet_name", "resultados"),
         "encoding": root.get("encoding", "utf-8-sig"),
-        "academic_package": bool(out.get("academic_package", True)),
+        "academic_package": read_flag(out, "academic_package", True),
     }
 
 
@@ -293,6 +358,9 @@ def export_results(df: pd.DataFrame, output_path: Path, cfg: dict) -> dict[str, 
         opts["export_xlsx"] = True
 
     if opts["export_csv"]:
+        # The CSV is the raw data, cell for cell, by the user's decision (3.1.0): a
+        # spreadsheet that opens it can run a cell starting with '=', so it is
+        # imported as text. The xlsx, the reviewers' file, never holds a formula.
         csv_path = base_path.with_suffix(".csv")
         df.to_csv(
             csv_path,
@@ -306,24 +374,107 @@ def export_results(df: pd.DataFrame, output_path: Path, cfg: dict) -> dict[str, 
 
     if opts["export_xlsx"]:
         xlsx_path = base_path.with_suffix(".xlsx")
-        df.to_excel(
-            xlsx_path,
-            index=False,
-            engine=opts["xlsx_engine"],
-            sheet_name=opts["xlsx_sheet"],
-        )
+        _write_xlsx_as_text(df, xlsx_path, opts["xlsx_engine"], opts["xlsx_sheet"])
         exported["xlsx"] = xlsx_path
 
     return exported
 
 
+# Characters that XML 1.0, and so an xlsx cell, cannot hold: the control
+# characters of openpyxl's ILLEGAL_CHARACTERS_RE and the noncharacters U+FFFE and
+# U+FFFF. Tab, newline and carriage return are legal.
+_XLSX_ILLEGAL_CHARACTERS = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]")
+
+
+def _xlsx_safe_text(df: pd.DataFrame) -> pd.DataFrame:
+    """Copy of *df* with every character an xlsx cell refuses turned into a space.
+
+    Vertical tab and form feed are common in Scopus/WoS exports and in text taken
+    from PDFs. openpyxl refuses the whole workbook over one of them, after the
+    corpus was processed, so they are replaced here, in the cells and in the
+    column names; they separate words, hence a space and not nothing.
+    """
+    safe = df.copy()
+    # By position, not by name: names can repeat, and cleaning can make two equal.
+    for i in range(safe.shape[1]):
+        if not pd.api.types.is_numeric_dtype(safe.dtypes.iloc[i]):
+            safe.iloc[:, i] = safe.iloc[:, i].map(
+                lambda v: _XLSX_ILLEGAL_CHARACTERS.sub(" ", v) if isinstance(v, str) else v
+            )
+    safe.columns = [
+        _XLSX_ILLEGAL_CHARACTERS.sub(" ", c) if isinstance(c, str) else c for c in safe.columns
+    ]
+    return safe
+
+
+def _text_columns(df: pd.DataFrame) -> list:
+    """Columns that may hold text: every non-numeric one.
+
+    pandas 3 types text as 'str', not object, so a dtype test for object misses it.
+    """
+    return [col for col in df.columns if not pd.api.types.is_numeric_dtype(df[col].dtype)]
+
+
+def _write_xlsx_as_text(df: pd.DataFrame, path: Path, engine: str, sheet: str) -> None:
+    """Write *df* to xlsx so that no cell becomes a formula and none is refused.
+
+    Titles and abstracts come from third-party exports, and both engines turn a
+    string that starts with '=' into a live formula ('=HYPERLINK(...)' opens a
+    link from the reviewers' spreadsheet). The result table never holds a
+    formula of its own, so every cell is written as the text it is.
+    """
+    df = _xlsx_safe_text(df)
+    if engine == "xlsxwriter":
+        writer = pd.ExcelWriter(
+            path, engine="xlsxwriter", engine_kwargs={"options": {"strings_to_formulas": False}}
+        )
+    else:
+        writer = pd.ExcelWriter(path, engine=engine)
+    with writer:
+        df.to_excel(writer, index=False, sheet_name=sheet)
+        if engine == "openpyxl":
+            for row in writer.sheets[sheet].iter_rows():
+                for cell in row:
+                    if cell.data_type == "f":
+                        cell.data_type = "s"
+
+
 # ── highlighting ─────────────────────────────────────────────────────────────
+
+
+def _nfkc_with_origin(text: str) -> tuple[str, list[tuple[int, int]]]:
+    """NFKC of *text* and, per output character, the span of *text* it came from.
+
+    Scoring reads NFKC text, so the highlight searches the same form; the spans
+    found there map back onto the original, which is what the reviewer reads.
+    Each cluster (a character and the combining marks after it) is normalized
+    on its own, so every output character has one origin.
+    """
+    out: list[str] = []
+    origin: list[tuple[int, int]] = []
+    i, n = 0, len(text)
+    while i < n:
+        j = i + 1
+        while j < n and unicodedata.combining(text[j]):
+            j += 1
+        piece = unicodedata.normalize("NFKC", text[i:j])
+        out.append(piece)
+        origin.extend([(i, j)] * len(piece))
+        i = j
+    return "".join(out), origin
 
 
 def highlight_text(original_text: str, all_terms: list[dict], section_name: str) -> str:
     """Mark matched terms in the original text with ***TERM*** markers."""
     if not original_text or not all_terms:
         return original_text
+
+    # Search the NFKC form, as scoring does, and map the spans back. Text that is
+    # already NFKC (most of it) takes the direct path, with identical spans.
+    if unicodedata.is_normalized("NFKC", original_text):
+        searched, origin = original_text, None
+    else:
+        searched, origin = _nfkc_with_origin(original_text)
 
     spans: list[tuple[int, int]] = []
 
@@ -338,8 +489,14 @@ def highlight_text(original_text: str, all_terms: list[dict], section_name: str)
                 continue
 
             try:
-                for match in pattern.finditer(original_text):
-                    spans.append(match.span())
+                for match in pattern.finditer(searched):
+                    start, end = match.span()
+                    # An empty match marks nothing, on either path.
+                    if start == end:
+                        continue
+                    if origin is not None:
+                        start, end = origin[start][0], origin[end - 1][1]
+                    spans.append((start, end))
             except re.error:
                 continue
 
@@ -472,18 +629,22 @@ def build_protocol_snapshot(
         "execution_id": f"run_{uuid.uuid4().hex[:12]}",
         "generated_at": datetime.now().isoformat(),
         "triage_version": VERSION,
+        # File names, not paths: the protocol goes into the academic package
+        # that is published, and an absolute path carries the OS username and
+        # the folder layout. The hashes identify the files.
         "inputs": {
-            "input_file": str(input_path),
+            "input_file": Path(input_path).name,
             "input_hash": input_hash,
-            "terms_file": str(terms_path),
+            "terms_file": Path(terms_path).name,
             "terms_hash": terms_hash,
             "config_hash": config_hash,
         },
         "configuration": {
             "decision_policy": global_cfg.get("DECISION_POLICY", "special"),
             "domain_blocks": [{"id": b, "label": block_labels.get(b, b)} for b in domain_blocks],
-            "fail_fast": global_cfg.get("FAIL_FAST_GLOBAL", True),
-            "enable_special_approval": global_cfg.get("ENABLE_SPECIAL_APPROVAL_RULE", True),
+            # The value the engine ran with, not the raw text: "false" means false.
+            "fail_fast": read_flag(global_cfg, "FAIL_FAST_GLOBAL", True),
+            "enable_special_approval": read_flag(global_cfg, "ENABLE_SPECIAL_APPROVAL_RULE", True),
             "level_scores": global_cfg.get("PONTUACAO_NIVEIS", {}),
             "section_weights": global_cfg.get("WEIGHTS", {}),
             "approval_thresholds": global_cfg.get("LIMITES_APROVADO", {}),
@@ -496,7 +657,7 @@ def build_protocol_snapshot(
             "input_warnings": list(stats.get("input_warnings", [])),
         },
         "artifacts": {
-            "results_path": str(result_path),
+            "results_path": Path(result_path).name,
         },
         "reproducibility": {
             "deterministic_engine": True,
@@ -537,7 +698,7 @@ def validate_protocol_snapshot(snapshot: dict) -> list[str]:
 # Source protocol versions that ``migrate_protocol_snapshot`` knows how to
 # upgrade to ``PROTOCOL_VERSION_CURRENT``. The current version is accepted as a
 # no-op upgrade target so re-migrating an already-current snapshot is safe.
-_MIGRATABLE_SOURCE_VERSIONS = frozenset({"1.0", "2.0", PROTOCOL_VERSION_CURRENT})
+_MIGRATABLE_SOURCE_VERSIONS = frozenset({"1.0", "2.0", "2.1", PROTOCOL_VERSION_CURRENT})
 
 
 def _default_root_value(key: str) -> object:
@@ -557,6 +718,33 @@ def _default_root_value(key: str) -> object:
     return {}
 
 
+def _apply_protocol_2_2(snapshot: dict) -> None:
+    """Give an older snapshot the 2.2 meaning, in place, not only the 2.2 label.
+
+    File fields hold names (a path carries the OS username into the published
+    package), and the two flags hold the booleans the engine ran with.
+    """
+    for section, key in (
+        ("inputs", "input_file"),
+        ("inputs", "terms_file"),
+        ("artifacts", "results_path"),
+    ):
+        values = snapshot.get(section)
+        if isinstance(values, dict) and isinstance(values.get(key), str):
+            values[key] = PureWindowsPath(values[key]).name
+    configuration = snapshot.get("configuration")
+    if isinstance(configuration, dict):
+        for key, raw in (
+            ("fail_fast", "FAIL_FAST_GLOBAL"),
+            ("enable_special_approval", "ENABLE_SPECIAL_APPROVAL_RULE"),
+        ):
+            if key in configuration:
+                try:
+                    configuration[key] = read_flag({raw: configuration[key]}, raw, True)
+                except ValueError:
+                    pass  # unreadable: left as recorded, the snapshot never claimed more
+
+
 def migrate_protocol_snapshot(old_snapshot: dict) -> dict:
     """Migrate a protocol snapshot from a known older version to the current one.
 
@@ -573,6 +761,7 @@ def migrate_protocol_snapshot(old_snapshot: dict) -> dict:
         )
 
     migrated = deepcopy(old_snapshot)
+    _apply_protocol_2_2(migrated)
     migrated["protocol_version"] = PROTOCOL_VERSION_CURRENT
     migrated["schema_id"] = PROTOCOL_SCHEMA_ID
 
@@ -648,6 +837,14 @@ def generate_academic_report(snapshot: dict, output_path: Path) -> None:
     output_path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def _relative_to(path: Path, base: Path) -> str:
+    """*path* relative to *base* when it lies inside it, else just its file name."""
+    try:
+        return path.resolve().relative_to(base.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
 def export_compliance_manifest(
     artifacts: dict[str, Path], output_path: Path, execution_id: str
 ) -> None:
@@ -655,7 +852,9 @@ def export_compliance_manifest(
     manifest = {
         "execution_id": execution_id,
         "generated_at": datetime.now().isoformat(),
-        "artifacts": {name: str(path) for name, path in artifacts.items()},
+        "artifacts": {
+            name: _relative_to(path, output_path.parent) for name, path in artifacts.items()
+        },
     }
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -694,12 +893,16 @@ def export_appendix_pack(artifacts: dict[str, Path], zip_path: Path, execution_i
         for name, path in entries:
             zf.write(path, name)
             index_lines.append(f"- {name}")
-            manifest_items[name] = str(path)
+            # The SHA-256 of each file, not its absolute path: the pack is
+            # published, and the path would carry the OS username.
+            manifest_items[name] = hashlib.sha256(path.read_bytes()).hexdigest()
 
         index_text = "\n".join(index_lines) + "\n"
         zf.writestr("APPENDIX_INDEX.md", index_text)
 
         manifest = {
+            # 2: "files" maps each packed name to its SHA-256 (1 mapped it to a path).
+            "manifest_version": 2,
             "execution_id": execution_id,
             "generated_at": datetime.now().isoformat(),
             "files": manifest_items,

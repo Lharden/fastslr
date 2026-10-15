@@ -417,6 +417,10 @@ def make_final_decision(
     policy = global_params.decision_policy
 
     if policy == "strict":
+        if rejected_blocks:
+            return "REJECTED_FINAL", f"Rejected blocks: {', '.join(rejected_blocks)}"
+        if eval_t0 and eval_t0.status == "FLAGGED":
+            return "FLAGGED_FINAL", f"T0: {eval_t0.reason}"
         if len(approved_blocks) == total_blocks:
             return "APPROVED_FINAL", "All blocks approved (strict policy)"
         elif flagged_blocks:
@@ -430,6 +434,9 @@ def make_final_decision(
 
         if rejected_blocks:
             return "REJECTED_FINAL", f"Rejected blocks: {', '.join(rejected_blocks)}"
+
+        if eval_t0 and eval_t0.status == "FLAGGED":
+            return "FLAGGED_FINAL", f"T0: {eval_t0.reason}"
 
         if len(approved_blocks) >= min_approved and len(flagged_blocks) <= max_flagged:
             return "APPROVED_FINAL", (f"{len(approved_blocks)}/{total_blocks} approved (k_of_n)")

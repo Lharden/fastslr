@@ -82,6 +82,55 @@ def get_domain_blocks(config: dict) -> list[str]:
     return []
 
 
+_TRUE_STRINGS = frozenset({"true", "1", "yes", "on"})
+_FALSE_STRINGS = frozenset({"false", "0", "no", "off"})
+
+
+def read_flag(section: dict, key: str, default: bool) -> bool:
+    """Read a boolean setting. A JSON string means what it says.
+
+    ``bool("false")`` is True, so a flag written as ``"false"`` or ``"0"`` by
+    hand or by an editor used to stay on with no warning. A value that is
+    neither a boolean nor one of the accepted words is refused by name.
+    """
+    value = section.get(key, default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int) and value in (0, 1):
+        return bool(value)
+    if isinstance(value, str) and value.strip().lower() in _TRUE_STRINGS | _FALSE_STRINGS:
+        return value.strip().lower() in _TRUE_STRINGS
+    raise ValueError(f"{key} must be true or false, got {value!r}.")
+
+
+def _read_error_policy(global_cfg: dict) -> str:
+    """ERROR_POLICY is 'flag' or 'fail'. Any other value (even 'FLAG') used to
+    switch off both the re-raise and the MAX_ERROR_RATE guard in silence."""
+    value = global_cfg.get("ERROR_POLICY", "flag")
+    if value not in ("flag", "fail"):
+        raise ValueError(f"ERROR_POLICY must be 'flag' or 'fail', got {value!r}.")
+    return value
+
+
+def read_min_approved_blocks(global_cfg: dict) -> int | None:
+    raw = global_cfg.get("MIN_APPROVED_BLOCKS")
+    if raw is None:
+        return None
+    try:
+        if isinstance(raw, bool):
+            raise TypeError(raw)
+        # 2.7 is not 2, and Infinity (which json.load accepts) is not a number of
+        # blocks: neither is an integral float, so both stop here before int().
+        if isinstance(raw, float) and not raw.is_integer():
+            raise ValueError(raw)
+        value = int(raw)
+    except (TypeError, ValueError):
+        raise ValueError(f"MIN_APPROVED_BLOCKS must be an integer >= 1, got {raw!r}.") from None
+    if value < 1:
+        raise ValueError(f"MIN_APPROVED_BLOCKS must be an integer >= 1, got {raw!r}.")
+    return value
+
+
 def load_global_params(global_cfg: dict) -> GlobalParams:
     """Construct a GlobalParams instance from the global configuration dict."""
     raw_max_gap = int(global_cfg.get("MAX_GAP_BETWEEN_TERMS", 2))
@@ -147,7 +196,7 @@ def load_global_params(global_cfg: dict) -> GlobalParams:
         max_section_score=float(
             global_cfg.get("MAX_SECTION_SCORE", global_cfg.get("MAX_SCORE_POR_SECAO", 30))
         ),
-        fail_fast_enabled=bool(global_cfg.get("FAIL_FAST_GLOBAL", True)),
+        fail_fast_enabled=read_flag(global_cfg, "FAIL_FAST_GLOBAL", True),
         special_approval_threshold=float(
             global_cfg.get(
                 "SPECIAL_APPROVAL_THRESHOLD", global_cfg.get("THRESHOLD_APROVACAO_ESPECIAL", 40.0)
@@ -155,22 +204,22 @@ def load_global_params(global_cfg: dict) -> GlobalParams:
         ),
         max_gap_between_terms=max_gap,
         token_unit_for_gaps=str(global_cfg.get("TOKEN_UNIT_FOR_GAPS", r"\S+")),
-        enable_proximity_detection=bool(global_cfg.get("ENABLE_PROXIMITY_DETECTION", True)),
+        enable_proximity_detection=read_flag(global_cfg, "ENABLE_PROXIMITY_DETECTION", True),
         level_order=level_order,
-        enable_special_approval_rule=bool(global_cfg.get("ENABLE_SPECIAL_APPROVAL_RULE", True)),
+        enable_special_approval_rule=read_flag(global_cfg, "ENABLE_SPECIAL_APPROVAL_RULE", True),
         decision_policy=str(global_cfg.get("DECISION_POLICY", "special")),
-        min_approved_blocks=global_cfg.get("MIN_APPROVED_BLOCKS"),
+        min_approved_blocks=read_min_approved_blocks(global_cfg),
         max_flagged_blocks_for_approval=int(global_cfg.get("MAX_FLAGGED_BLOCKS_FOR_APPROVAL", 0)),
         noise_profile=str(global_cfg.get("NOISE_PROFILE", "relaxed")),
         min_unique_terms_for_approval=int(global_cfg.get("MIN_UNIQUE_TERMS_FOR_APPROVAL", 1)),
         min_sections_with_hits_for_approval=int(
             global_cfg.get("MIN_SECTIONS_WITH_HITS_FOR_APPROVAL", 1)
         ),
-        require_non_weak_term_for_approval=bool(
-            global_cfg.get("REQUIRE_NON_WEAK_TERM_FOR_APPROVAL", False)
+        require_non_weak_term_for_approval=read_flag(
+            global_cfg, "REQUIRE_NON_WEAK_TERM_FOR_APPROVAL", False
         ),
         weak_levels=weak_levels,
-        error_policy=str(global_cfg.get("ERROR_POLICY", "flag")),
+        error_policy=_read_error_policy(global_cfg),
         max_error_rate=float(global_cfg.get("MAX_ERROR_RATE", 0.05)),
     )
 
@@ -206,9 +255,9 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
     # Resolve configured level range for validation
     global_cfg = base_config.get("global", {})
     raw_level_scores = global_cfg.get("PONTUACAO_NIVEIS", {})
-    configured_levels: set[int] = set()
-    if raw_level_scores:
-        configured_levels = {int(k) for k in raw_level_scores}
+    configured_levels = (
+        {int(k) for k in raw_level_scores} if raw_level_scores else set(DEFAULT_LEVEL_SCORES)
+    )
 
     _VALID_IS_REGEX = frozenset({"0", "1", "true", "false", "yes", "no", ""})
 
@@ -225,6 +274,11 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
     config["normalization_rules"] = normalization_rules
 
     block_terms: dict[str, dict] = {}
+    # Block names ignore case: the first spelling of a block is the one kept,
+    # and GLOBAL is always spelled GLOBAL. Without this, 'Global' became a
+    # domain block that rejected every article, 'global' overwrote the config's
+    # global section, and 'Ctx' / 'CTX' kept the terms of only one of them.
+    canonical_blocks: dict[str, str] = {GLOBAL_BLOCK_NAME.upper(): GLOBAL_BLOCK_NAME}
     valid_count = 0
     # Dedup key: (block, kind, term_lower, scope, level_str, is_regex).
     # Rows that share a term but differ in scope, level, or regex flag are
@@ -269,12 +323,39 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                 )
                 continue
 
+            # ── block name: case-insensitive ──────────────────────────
+            # The spelling is fixed by the first ACCEPTED row of the block (see
+            # "build entry"), so a row skipped below cannot name the block.
+            canonical = canonical_blocks.get(block.upper(), block)
+            if canonical != block:
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': block names ignore "
+                    f"case; read as block '{canonical}'."
+                )
+                block = canonical
+
+            # T0 is the block built from GLOBAL: a table block with that name
+            # would collide with it in the config.
+            if block.upper() == T0_BLOCK_NAME.upper():
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': '{T0_BLOCK_NAME}' is "
+                    f"reserved for the {GLOBAL_BLOCK_NAME} block. Row skipped."
+                )
+                continue
+
             # ── kind validation ───────────────────────────────────────
             if kind not in TERM_KINDS:
                 parse_warnings.append(
                     f"Row {row_num}, block '{block}', term '{term}': "
                     f"invalid kind '{kind}' (valid: {', '.join(sorted(TERM_KINDS))}). "
                     f"Row skipped."
+                )
+                continue
+
+            if block == GLOBAL_BLOCK_NAME and kind == "pos":
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': "
+                    f"positive GLOBAL terms do not affect T0. Row skipped."
                 )
                 continue
 
@@ -309,7 +390,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                             # and would otherwise set best_level to a value with
                             # no thresholds, producing a spurious FLAGGED block.
                             level = ""
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError, OverflowError):
                         examples = (
                             ", ".join(str(lv) for lv in sorted(configured_levels))
                             if configured_levels
@@ -352,6 +433,16 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                 )
             is_regex = is_regex_str in ("1", "true", "yes")
 
+            # ── wildcard-only term: it matches the empty string ───────
+            # '*' or '**' compiles to '\w*' with no anchor and casts a hit,
+            # with level and score, on every article. A warning was not enough.
+            if not is_regex and not term.strip("*? "):
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': "
+                    f"a term made only of wildcards matches every article. Row skipped."
+                )
+                continue
+
             # ── duplicate detection ───────────────────────────────────
             # Key must include scope, level and is_regex so that rows
             # intentionally reusing a term across sections, levels or
@@ -367,6 +458,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
             seen_terms.add(dedup_key)
 
             # ── build entry ───────────────────────────────────────────
+            canonical_blocks.setdefault(block.upper(), block)
             if block not in block_terms:
                 block_terms[block] = {
                     "positives": [],
@@ -456,7 +548,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
         # #16: wildcard-only or single-char terms
         for entry in blk_data.get("positives", []):
             t = entry["term"].strip()
-            if t in ("*", "?") or (len(t) == 1 and t.isalpha()):
+            if len(t) == 1 and t.isalpha():
                 parse_warnings.append(
                     f"Block '{blk_name}': term '{t}' is too broad — will match nearly everything."
                 )
@@ -549,5 +641,7 @@ __all__ = [
     "auto_detect_input",
     "get_domain_blocks",
     "load_global_params",
+    "read_flag",
+    "read_min_approved_blocks",
     "parse_terms_csv",
 ]

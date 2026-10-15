@@ -132,8 +132,9 @@ def find_record_id_problems(df: pd.DataFrame, id_col: str) -> list[str]:
 
     Every record must carry a non-blank, unique ID: the result table is keyed
     on it, and a blank or repeated ID makes the decision of one record
-    indistinguishable from another's. Lines are numbered as in the input file
-    (header = line 1).
+    indistinguishable from another's. Records are numbered from 1 in input
+    order, header excluded. They are not file lines: a quoted abstract with
+    line breaks, common in Scopus and WoS exports, spans several lines.
     """
     if id_col not in df.columns:
         columns = ", ".join(str(c) for c in df.columns)
@@ -148,24 +149,24 @@ def find_record_id_problems(df: pd.DataFrame, id_col: str) -> list[str]:
     ]
     problems: list[str] = []
 
-    blank_lines = [pos + 2 for pos, value in enumerate(ids) if value is None]
-    if blank_lines:
-        listed = ", ".join(str(line) for line in blank_lines[:_MAX_LISTED_IDS])
-        more = " ..." if len(blank_lines) > _MAX_LISTED_IDS else ""
+    blank_records = [pos + 1 for pos, value in enumerate(ids) if value is None]
+    if blank_records:
+        listed = ", ".join(str(n) for n in blank_records[:_MAX_LISTED_IDS])
+        more = " ..." if len(blank_records) > _MAX_LISTED_IDS else ""
         problems.append(
-            f"{len(blank_lines)} record(s) with a blank ID in column '{id_col}' "
-            f"(input line(s) {listed}{more})."
+            f"{len(blank_records)} record(s) with a blank ID in column '{id_col}' "
+            f"(record(s) {listed}{more}, counted from 1 without the header)."
         )
 
-    lines_by_id: dict[str, list[int]] = {}
+    records_by_id: dict[str, list[int]] = {}
     for pos, value in enumerate(ids):
         if value is not None:
-            lines_by_id.setdefault(value, []).append(pos + 2)
-    duplicates = [(value, lines) for value, lines in lines_by_id.items() if len(lines) > 1]
+            records_by_id.setdefault(value, []).append(pos + 1)
+    duplicates = [(value, numbers) for value, numbers in records_by_id.items() if len(numbers) > 1]
     if duplicates:
         listed = "; ".join(
-            f"'{value}' (lines {', '.join(str(line) for line in lines)})"
-            for value, lines in duplicates[:_MAX_LISTED_IDS]
+            f"'{value}' (records {', '.join(str(n) for n in numbers)})"
+            for value, numbers in duplicates[:_MAX_LISTED_IDS]
         )
         more = " ..." if len(duplicates) > _MAX_LISTED_IDS else ""
         problems.append(
@@ -335,6 +336,8 @@ def process_articles(
     df: pd.DataFrame,
     config: dict,
     on_progress: Callable[[int, int], None] | None = None,
+    *,
+    evaluate_all_blocks: bool = False,
 ) -> tuple[pd.DataFrame, dict]:
     """Process the article DataFrame through the full triage pipeline.
 
@@ -343,6 +346,11 @@ def process_articles(
         config: Loaded triage configuration dict.
         on_progress: Optional callback ``(current, total)`` invoked after
             each article is processed.
+        evaluate_all_blocks: evaluate every block of every article, ignoring
+            fail-fast and the T0 exclusion. Term coverage needs it: a block
+            that is skipped has no matches, and its terms would look dead. The
+            final decision does not change, because a rejected block and a T0
+            rejection decide REJECTED_FINAL before anything else is read.
 
     Returns ``(result_df, stats)``.
     """
@@ -400,6 +408,7 @@ def process_articles(
     total = len(df)
 
     for count, (_idx, row) in enumerate(df.iterrows(), start=1):
+        article_id = f"ERR_{count}"
         try:
             id_value = row.get(id_col)
             title_value = row.get(title_col)
@@ -425,7 +434,9 @@ def process_articles(
 
             eval_t0 = evaluate_t0_conditional(title, abstract, manual_tags, config, norm_engine)
 
-            t0_prevents_evaluation = eval_t0 and eval_t0.status == "REJECTED"
+            t0_prevents_evaluation = (
+                eval_t0 and eval_t0.status == "REJECTED" and not evaluate_all_blocks
+            )
 
             evaluations: dict[str, BlockEvaluation] = {}
 
@@ -444,7 +455,11 @@ def process_articles(
                         global_params,
                     )
 
-                    if fail_fast and evaluations[block_name].status == "REJECTED":
+                    if (
+                        fail_fast
+                        and not evaluate_all_blocks
+                        and evaluations[block_name].status == "REJECTED"
+                    ):
                         skip_remaining = True
             else:
                 for block_name in domain_blocks:
@@ -500,10 +515,10 @@ def process_articles(
             error_count += 1
             if error_policy == "fail":
                 raise
-            logger.debug("Error processing article %d: %s", count, exc)
+            logger.warning("Error processing article %s: %s", article_id, exc, exc_info=True)
             # Under "flag" policy, keep the article as FLAGGED
             row_output = {
-                id_output: f"ERR_{count}",
+                id_output: article_id,
                 "Final_Decision": "FLAGGED_FINAL",
                 "Decision_Reason": f"Processing error: {exc}",
                 "triage_version": VERSION,

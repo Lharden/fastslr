@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import html
 import re
+import unicodedata
 from collections import OrderedDict
 
 import pandas as pd
+
+_SCIENTIFIC_MARKUP_RE = re.compile(r"</?(?:inf|sub|sup)\s*>", re.IGNORECASE)
 
 # A hyphen joining two word characters ('machine-learning', 'on-time') is read
 # as a space, in the text and in the terms alike, so the hyphenated and the
@@ -14,22 +18,47 @@ import pandas as pd
 _WORD_HYPHEN_RE = re.compile(r"(?<=\w)-(?=\w)")
 
 
+def _nfkc(value: str) -> str:
+    return unicodedata.normalize("NFKC", value)
+
+
+def _nfkc_stable(key: str) -> bool:
+    """Whether a rule key survives NFKC as written, so it can match NFKC text."""
+    return _nfkc(key) == key
+
+
 def _is_word(value: str) -> bool:
     """Return whether *value* (stripped) starts and ends with a word character."""
     stripped = value.strip()
     return bool(stripped) and stripped[0].isalnum() and stripped[-1].isalnum()
 
 
-def _abbreviation_pattern(abbr: str) -> re.Pattern:
-    """Case-sensitive pattern for an abbreviation key.
+def _edge_anchors(key: str) -> tuple[str, str]:
+    """Word-boundary anchors for *key*, only on the edges that are word characters.
 
-    Matches the key as written in the terms table and its all-uppercase form,
-    so 'ML' expands but the unit in '5 ml' does not, and 'IoT' matches 'IoT'
-    and 'IOT' but not 'iot'.
+    ``\\b`` next to a non-word edge never matches where it should: 'C#' at the
+    end of a phrase, 'c++' or '.NET'. For a key with word edges on both sides
+    the anchors are the same as ``\\b...\\b``.
     """
+    prefix = r"(?<!\w)" if re.match(r"\w", key[:1]) else ""
+    suffix = r"(?!\w)" if re.match(r"\w", key[-1:]) else ""
+    return prefix, suffix
+
+
+def _abbreviation_pattern(abbr: str) -> re.Pattern:
+    """Pattern for an abbreviation key.
+
+    A key with an uppercase letter keeps its case: it matches as written in the
+    terms table and in all uppercase, so 'ML' expands but the unit in '5 ml'
+    does not, and 'IoT' matches 'IoT' and 'IOT' but not 'iot'. An all-lowercase
+    key says nothing about case, so 'iot' matches 'iot', 'IoT' and 'IOT'.
+    """
+    prefix, suffix = _edge_anchors(abbr)
+    if abbr == abbr.lower():
+        return re.compile(rf"{prefix}{re.escape(abbr)}{suffix}", re.IGNORECASE)
     forms = sorted({abbr, abbr.upper()}, key=lambda form: (-len(form), form))
     alternation = "|".join(re.escape(form) for form in forms)
-    return re.compile(rf"\b(?:{alternation})\b")
+    return re.compile(rf"{prefix}(?:{alternation}){suffix}")
 
 
 def _symbol_substitution(symbol: str, replacement: str) -> str:
@@ -56,22 +85,38 @@ class NormalizationEngine:
     def __init__(self, rules: dict) -> None:
         self.rules = rules
         self.enabled = rules.get("enabled", False)
+        # The text is read in NFKC, so a rule key that NFKC rewrites ('ﬁ', '²',
+        # 'ＭＬ') can never match as written. It is left out, never rewritten: the
+        # NFKC of '²' is '2', and a rule on '2' would replace every digit 2 of the
+        # corpus. extract_normalization_rules warns about each one.
         # Abbreviation keys keep their case: expansion is case-sensitive.
         self._abbreviations = self._order_by_key_length(
-            {k.strip(): v.lower() for k, v in rules.get("abbreviations", {}).items()}
+            {
+                k.strip(): v.lower()
+                for k, v in rules.get("abbreviations", {}).items()
+                if _nfkc_stable(k.strip())
+            }
         )
         self._abbreviation_patterns = [
             (_abbreviation_pattern(abbr), expanded)
             for abbr, expanded in self._abbreviations.items()
         ]
         self._compounds = self._order_by_key_length(
-            {k.lower(): v.lower() for k, v in rules.get("compound_variants", {}).items()}
+            {
+                k.lower(): v.lower()
+                for k, v in rules.get("compound_variants", {}).items()
+                if _nfkc_stable(k)
+            }
         )
         # ``symbol_replacements`` values are lowercased here so casefolding is
         # consistent: the symbol pass runs after the global ``.lower()`` and
         # would otherwise re-inject uppercase characters.
         self._symbols = self._order_by_key_length(
-            {k.lower(): v.lower() for k, v in rules.get("symbol_replacements", {}).items()}
+            {
+                k.lower(): v.lower()
+                for k, v in rules.get("symbol_replacements", {}).items()
+                if _nfkc_stable(k)
+            }
         )
         self._cache_maxsize = 2000
         # ``OrderedDict`` gives O(1) LRU bookkeeping via ``move_to_end`` and
@@ -114,10 +159,17 @@ class NormalizationEngine:
         if not text:
             return ""
 
-        if not self.enabled:
-            return re.sub(r"\s+", " ", _WORD_HYPHEN_RE.sub(" ", text.lower())).strip()
+        # Entities and scientific markup are cleaned first, on both paths, so
+        # 'oil &amp; gas' and 'CO<sub>2</sub>' reach the rules as 'oil & gas'
+        # and 'CO2'. NFKC then gives one form to text that only looks the same:
+        # decomposed accents ('gestão' exported in NFD), full-width letters
+        # ('ＡＩ') and ligatures.
+        normalized = html.unescape(str(text).strip())
+        normalized = _SCIENTIFIC_MARKUP_RE.sub("", normalized)
+        normalized = unicodedata.normalize("NFKC", normalized)
 
-        normalized = str(text).strip()
+        if not self.enabled:
+            return re.sub(r"\s+", " ", _WORD_HYPHEN_RE.sub(" ", normalized.lower())).strip()
 
         for pattern, expanded in self._abbreviation_patterns:
             normalized = pattern.sub(lambda _m, rep=expanded: rep, normalized)
@@ -140,7 +192,12 @@ class NormalizationEngine:
                 normalized = normalized.replace(symbol, substitution)
 
         for variant, standard in self._compounds.items():
-            normalized = re.sub(rf"\b{re.escape(variant)}\b", standard, normalized)
+            prefix, suffix = _edge_anchors(variant)
+            normalized = re.sub(
+                rf"{prefix}{re.escape(variant)}{suffix}",
+                lambda _m, rep=standard: rep,
+                normalized,
+            )
 
         # Last, so compound variants keyed on a hyphenated form ('e-procurement',
         # 'well-bore') still apply before the hyphen is read as a space.
@@ -218,6 +275,21 @@ def extract_normalization_rules(
             if not term:
                 continue
 
+            # The text is read in NFKC: a key NFKC rewrites never matches as
+            # written, and rewriting it ('²' -> '2') would hit ordinary text. A
+            # rule that only says what NFKC already does ('ﬁ' -> 'fi') is
+            # redundant and goes quietly; any other one is reported.
+            if not _nfkc_stable(term):
+                redundant = _nfkc(term).lower() == norm_target.strip().lower()
+                if warnings is not None and not redundant:
+                    warnings.append(
+                        f"Row {row_num}, term '{term}': the text is read in NFKC, where "
+                        f"'{term}' is '{_nfkc(term)}', so this rule could never apply as "
+                        f"written. Write it for '{_nfkc(term)}' if that is meant. "
+                        f"Normalization rule ignored."
+                    )
+                continue
+
             # #3: duplicate normalization rules
             existing = None
             if norm_type == "abbreviation":
@@ -243,6 +315,19 @@ def extract_normalization_rules(
                         f"duplicate normalization rule (already mapped to '{existing}'). "
                         f"Overwriting with '{norm_target}'."
                     )
+
+            # Abbreviation keys keep their case, so 'ML' and 'ml' are two rules,
+            # and both claim the text 'ML'. Which one wins would depend on the
+            # sort order, so the overlap is reported.
+            if norm_type == "abbreviation" and warnings is not None:
+                for other, other_target in rules["abbreviations"].items():
+                    if other != term and other.lower() == term.lower():
+                        if other_target != stored_target:
+                            warnings.append(
+                                f"Row {row_num}, term '{term}': abbreviation rules '{other}' "
+                                f"('{other_target}') and '{term}' ('{stored_target}') differ "
+                                f"only in case and overlap on the same text."
+                            )
 
             if norm_type == "abbreviation":
                 # Case is kept: abbreviation expansion is case-sensitive.

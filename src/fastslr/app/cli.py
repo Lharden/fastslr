@@ -85,6 +85,11 @@ def _rich_progress_callback(progress: Progress, task_id: object):
     return _on_progress
 
 
+def _ascii_spinner_column() -> SpinnerColumn:
+    """Return a spinner that remains renderable on legacy Windows consoles."""
+    return SpinnerColumn(spinner_name="line")
+
+
 def _print_stats(stats: dict) -> None:
     """Print triage statistics as a rich table."""
     table = Table(title=t("table_triage_results"), show_header=True)
@@ -251,14 +256,14 @@ def run(
         console.print()
 
     with Progress(
-        SpinnerColumn(),
+        _ascii_spinner_column(),
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
         TaskProgressColumn(),
         console=console,
         disable=quiet,
     ) as progress:
-        task_id = progress.add_task("Triage", total=None)
+        task_id = progress.add_task(t("progress_triage"), total=None)
         callback = _rich_progress_callback(progress, task_id)
 
         try:
@@ -508,6 +513,10 @@ def terms_cmd(
         console.print(f"[dim]{t('terms_truncated', shown=200, total=view.total)}[/dim]")
 
     console.print(table)
+    if view.parse_warnings:
+        console.print(f"\n[yellow bold]{t('terms_parse_warnings')}[/yellow bold]")
+        for warning in view.parse_warnings:
+            console.print(f"  [yellow]- {warning}[/yellow]")
 
 
 @app.command()
@@ -542,6 +551,12 @@ def profile_save(
 def profile_load(
     name: str = typer.Argument(..., help="Profile name."),
     output: Path = typer.Option("config.json", "--output", "-o", help="Output config file path."),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite the output file if it already exists.",
+    ),
     lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Load a named profile to a config file."""
@@ -554,6 +569,10 @@ def profile_load(
         cfg = profiles.load_profile(name)
     except FileNotFoundError:
         console.print(f"[red]{t('file_not_found', path=name)}[/red]")
+        raise typer.Exit(1)
+
+    if output.exists() and not force:
+        console.print(f"[red]{t('profile_output_exists', path=output)}[/red]")
         raise typer.Exit(1)
 
     output.write_text(
@@ -591,7 +610,8 @@ def profile_list(
 def main() -> None:
     """Entry point that wraps the Typer app with a friendly error handler.
 
-    Commands raise plain exceptions (``FileNotFoundError``, ``ValueError``,
+    Commands raise plain exceptions (``OSError`` and subclasses such as
+    ``PermissionError``, ``ValueError``, ``RuntimeError``,
     ``json.JSONDecodeError``) deep in the core engine. Without this wrapper they
     surface as raw tracebacks. Here we translate the common ones into a localized
     one-line message and exit with status 1, while letting ``typer.Exit`` /
@@ -599,8 +619,20 @@ def main() -> None:
     """
     try:
         app()
-    except (FileNotFoundError, json.JSONDecodeError, ValueError) as exc:
+    except (NotImplementedError, RecursionError):
+        # Subclasses of RuntimeError that mean a bug, not a user problem: keep the traceback.
+        raise
+    except PermissionError as exc:
+        # Typically the output workbook is open in Excel: tell the user what to do.
+        console.print(f"[red]{t('error_permission_denied', path=exc.filename or exc)}[/red]")
+        sys.exit(1)
+    except (FileNotFoundError, json.JSONDecodeError, ValueError, RuntimeError) as exc:
         console.print(f"[red]{t('error_generic', message=exc)}[/red]")
+        sys.exit(1)
+    except OSError as exc:
+        # FileExistsError (output dir is a file), missing parent directory, disk errors.
+        path = exc.filename or "?"
+        console.print(f"[red]{t('error_os', path=path, message=exc.strerror or exc)}[/red]")
         sys.exit(1)
 
 

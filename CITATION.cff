@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use FastSLR in your research, please cite it as below."
+title: "FastSLR: Universal Deterministic Triage for Systematic Literature Reviews"
+abstract: >-
+  FastSLR is a deterministic CLI/TUI tool for the screening (triage) stage of
+  Systematic Literature Reviews. Given a corpus of articles and a configurable
+  set of weighted search terms, it produces reproducible APPROVED/FLAGGED/REJECTED
+  decisions with full auditability and academic export packages.
+type: software
+version: 3.1.0
+date-released: 2026-06-10
+license: MIT
+repository-code: "https://github.com/Lharden/fastslr"
+url: "https://github.com/Lharden/fastslr"
+keywords:
+  - systematic literature review
+  - SLR
+  - screening
+  - triage
+  - reproducible research
+  - bibliometrics
+authors:
+  - given-names: Leonardo
+    family-names: Harden
+    email: leonardo.harden@pucpr.edu.br
+    affiliation: "Pontifícia Universidade Católica do Paraná (PUCPR)"
+    orcid: "https://orcid.org/0009-0007-2525-6343"

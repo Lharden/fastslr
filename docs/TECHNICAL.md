@@ -537,21 +537,42 @@ Uma execucao completa gera:
 - **File hash:** SHA-256 truncado (16 hex) do conteudo binario do arquivo
 - **Execution ID:** UUID parcial (`run_<12 hex>`) para identificacao unica de cada execucao
 
-### 9.4 Protocolo Snapshot (v2.1)
+### 9.4 Protocolo Snapshot (v2.2)
 
 Estrutura completa para reprodutibilidade academica:
 ```json
 {
-  "protocol_version": "2.1",
-  "schema_id": "rsl-triage-protocol-v2.1",
+  "protocol_version": "2.2",
+  "schema_id": "rsl-triage-protocol-v2.2",
   "execution_id": "run_abc123def456",
-  "triage_version": "3.0.1",
-  "inputs": { "input_hash": "...", "terms_hash": "...", "config_hash": "..." },
-  "configuration": { "decision_policy": "...", "domain_blocks": [...] },
-  "processing": { "total_articles": 500, "processing_time_seconds": 1.2 },
+  "generated_at": "2026-10-15T12:00:00",
+  "triage_version": "3.1.0",
+  "inputs": {
+    "input_file": "corpus.csv", "input_hash": "...",
+    "terms_file": "terms.csv", "terms_hash": "...",
+    "config_hash": "..."
+  },
+  "configuration": {
+    "decision_policy": "special", "domain_blocks": [...],
+    "fail_fast": true, "enable_special_approval": true, "...": "..."
+  },
+  "processing": { "total_articles": 500, "processing_time_seconds": 1.2, "input_warnings": [] },
+  "artifacts": { "results_path": "results.xlsx" },
   "reproducibility": { "deterministic_engine": true }
 }
 ```
+
+O que mudou na 2.2 (fastslr 3.1.0):
+- `inputs.input_file`, `inputs.terms_file` e `artifacts.results_path` guardam o nome do arquivo, nao o caminho: o
+  protocolo vai para o pacote academico publicado, e um caminho absoluto leva o usuario do SO. Os hashes identificam
+  os arquivos.
+- `configuration.fail_fast` e `configuration.enable_special_approval` guardam o booleano com que o motor rodou, nao o
+  texto do config (`"false"` vale falso).
+
+`validate_protocol_snapshot` aceita so a 2.2. Um snapshot 1.0, 2.0 ou 2.1 passa por `migrate_protocol_snapshot`, que
+aplica o significado da 2.2 (nomes de arquivo e flags booleanas), e nao so o rotulo. Limite conhecido: uma flag
+ilegivel no snapshot antigo (`null`, `2`) fica como estava gravada, sem erro, e um caminho sem componente final vira
+nome vazio.
 
 ---
 

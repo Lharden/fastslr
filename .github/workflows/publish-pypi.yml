@@ -8,12 +8,23 @@ name: Publish to PyPI
 #   - Repository name:   fastslr
 #   - Workflow name:     publish-pypi.yml
 #   - Environment name:  pypi
-# Depois, publicar um GitHub Release (ou rodar este workflow manualmente) publica no PyPI.
+# Depois, publicar um GitHub Release ou confirmar explicitamente uma execução
+# manual na branch padrão publica no PyPI.
 
 on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish (without the v prefix)
+        required: true
+        type: string
+      confirm_publish:
+        description: Confirm publication to PyPI
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -22,11 +33,36 @@ jobs:
   build:
     name: Build distribution
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.package_version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Read package version
+        id: package_version
+        shell: bash
+        run: |
+          VERSION="$(python -c "import sys; sys.path.insert(0, 'src'); from fastslr.core.constants import VERSION; print(VERSION)")"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+      - name: Validate release tag against package version
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+          PACKAGE_VERSION: ${{ steps.package_version.outputs.version }}
+        run: |
+          if [[ "${EVENT_NAME}" == "release" ]]; then
+            EXPECTED_VERSION="${RELEASE_TAG#v}"
+          else
+            EXPECTED_VERSION="${REQUESTED_VERSION}"
+          fi
+          if [[ "${EXPECTED_VERSION}" != "${PACKAGE_VERSION}" ]]; then
+            echo "Requested version ${EXPECTED_VERSION} does not match package version ${PACKAGE_VERSION}."
+            exit 1
+          fi
       - name: Build sdist and wheel
         run: |
           python -m pip install --upgrade build
@@ -41,8 +77,13 @@ jobs:
           path: dist/
 
   publish:
-    name: Publish to PyPI
+    name: Publish v${{ needs.build.outputs.version }} to PyPI
     needs: build
+    if: >-
+      github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' &&
+       inputs.confirm_publish == true &&
+       github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
     runs-on: ubuntu-latest
     environment:
       name: pypi

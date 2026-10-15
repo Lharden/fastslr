@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from rich.markup import escape
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -33,6 +34,19 @@ from ..i18n import get_locale, set_locale
 from . import controller
 
 APP_VERSION = controller.get_version()
+
+
+def _clean_path(raw: str) -> str:
+    """Normalize a path typed or pasted into an Input.
+
+    Strips surrounding whitespace and one pair of matching quotes, which is how
+    the Windows "Copy as path" action delivers a path (``"C:\\x\\a.csv"``).
+    """
+    value = raw.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        value = value[1:-1].strip()
+    return value
+
 
 # ── Dashboard ────────────────────────────────────────────────────────────────
 
@@ -150,6 +164,8 @@ class DashboardScreen(Screen):
 class RunTriageScreen(Screen):
     """Execute triage on articles — the core workflow."""
 
+    _worker_widgets: tuple[Static, ProgressBar, Static, Button]
+
     BINDINGS = [Binding("escape", "go_back", "Back")]
 
     def compose(self) -> ComposeResult:
@@ -186,18 +202,30 @@ class RunTriageScreen(Screen):
     def start_triage(self) -> None:
         # Read inputs on the UI thread (query_one is not thread-safe) and pass
         # them as arguments to the worker — finding tui-worker-ui-access-from-thread.
-        input_path = self.query_one("#input_file", Input).value.strip()
-        config_path = self.query_one("#config_file", Input).value.strip()
-        terms_path = self.query_one("#terms_file", Input).value.strip()
-        output_dir = self.query_one("#output_dir", Input).value.strip()
+        input_path = _clean_path(self.query_one("#input_file", Input).value)
+        config_path = _clean_path(self.query_one("#config_file", Input).value)
+        terms_path = _clean_path(self.query_one("#terms_file", Input).value)
+        output_dir = _clean_path(self.query_one("#output_dir", Input).value)
+        run_button = self.query_one("#btn_run", Button)
+        if run_button.disabled:  # a run is already in flight
+            return
+        # Widgets are resolved here, on the UI thread; the worker only receives
+        # references and talks to them through call_from_thread.
+        self._worker_widgets = (
+            self.query_one("#status", Static),
+            self.query_one("#progress", ProgressBar),
+            self.query_one("#results", Static),
+            run_button,
+        )
+        run_button.disabled = True
         self._run_triage(input_path, config_path, terms_path, output_dir)
 
     @on(Button.Pressed, "#btn_check")
     def check_setup(self) -> None:
-        input_path = self.query_one("#input_file", Input).value.strip()
-        config_path = self.query_one("#config_file", Input).value.strip()
-        terms_path = self.query_one("#terms_file", Input).value.strip()
-        output_dir = self.query_one("#output_dir", Input).value.strip()
+        input_path = _clean_path(self.query_one("#input_file", Input).value)
+        config_path = _clean_path(self.query_one("#config_file", Input).value)
+        terms_path = _clean_path(self.query_one("#terms_file", Input).value)
+        output_dir = _clean_path(self.query_one("#output_dir", Input).value)
 
         status = self.query_one("#status", Static)
         results = self.query_one("#results", Static)
@@ -238,14 +266,28 @@ class RunTriageScreen(Screen):
         status.update(setup_status)
         results.update("\n  " + "\n  ".join(lines) + "\n")
 
-    @work(thread=True)
+    @work(thread=True, exclusive=True)
     def _run_triage(
         self, input_path: str, config_path: str, terms_path: str, output_dir: str
     ) -> None:
-        status = self.query_one("#status", Static)
-        progress = self.query_one("#progress", ProgressBar)
-        results = self.query_one("#results", Static)
+        status, progress, results, run_button = self._worker_widgets
+        try:
+            self._do_run_triage(
+                status, progress, results, input_path, config_path, terms_path, output_dir
+            )
+        finally:
+            self.app.call_from_thread(setattr, run_button, "disabled", False)
 
+    def _do_run_triage(
+        self,
+        status: Static,
+        progress: ProgressBar,
+        results: Static,
+        input_path: str,
+        config_path: str,
+        terms_path: str,
+        output_dir: str,
+    ) -> None:
         if not input_path or not config_path:
             self.app.call_from_thread(
                 status.update, "  [red]Please provide both articles file and config file.[/red]"
@@ -267,7 +309,7 @@ class RunTriageScreen(Screen):
             )
             return
 
-        self.app.call_from_thread(status.update, "  [cyan]Running triage...[/cyan]")
+        self.app.call_from_thread(status.update, f"  [cyan]{t('tui_running_triage')}[/cyan]")
         self.app.call_from_thread(progress.update, total=100, progress=0)
 
         def on_progress(current: int, total: int) -> None:
@@ -294,7 +336,7 @@ class RunTriageScreen(Screen):
             time_s = stats.get("processing_time", 0)
 
             summary = (
-                f"\n  [bold green]Triage complete![/bold green]\n\n"
+                f"\n  [bold green]{t('tui_triage_complete')}[/bold green]\n\n"
                 f"  {t('table_total_articles')}: {total}\n"
                 f"  {t('table_processing_time')}: {time_s:.2f}s\n\n"
                 f"  [green]APPROVED: {approved}[/green]  "
@@ -302,6 +344,12 @@ class RunTriageScreen(Screen):
                 f"[red]REJECTED: {rejected}[/red]\n\n"
                 f"  {t('triage_complete', path=result.output_dir)}\n"
             )
+            input_warnings = stats.get("input_warnings", [])
+            if input_warnings:
+                summary += f"\n  [yellow bold]{t('warnings_found', count=len(input_warnings))}"
+                summary += "[/yellow bold]\n"
+                for i, message in enumerate(input_warnings, 1):
+                    summary += f"  [yellow]{i}. {escape(str(message))}[/yellow]\n"
             self.app.call_from_thread(results.update, summary)
             self.app.call_from_thread(status.update, "  [green]Done.[/green]")
 
@@ -356,7 +404,7 @@ class NewProjectScreen(Screen):
     def create(self) -> None:
         name = self.query_one("#project_name", Input).value.strip()
         blocks_raw = self.query_one("#blocks", Input).value.strip()
-        output_raw = self.query_one("#output_dir", Input).value.strip()
+        output_raw = _clean_path(self.query_one("#output_dir", Input).value)
         result_msg = self.query_one("#result_msg", Static)
 
         if not name:
@@ -424,8 +472,8 @@ class BrowseTermsScreen(Screen):
 
     @on(Button.Pressed, "#btn_load")
     def load_terms(self) -> None:
-        config_path = self.query_one("#config_path", Input).value.strip()
-        terms_path = self.query_one("#terms_path", Input).value.strip()
+        config_path = _clean_path(self.query_one("#config_path", Input).value)
+        terms_path = _clean_path(self.query_one("#terms_path", Input).value)
 
         if not config_path:
             self.notify("Please provide a config file path.", severity="warning")
@@ -500,7 +548,7 @@ class ResultsScreen(Screen):
 
     @on(Button.Pressed, "#btn_load")
     def load_results(self) -> None:
-        results_path = self.query_one("#results_path", Input).value.strip()
+        results_path = _clean_path(self.query_one("#results_path", Input).value)
         filter_val = self.query_one("#filter_decision", Select).value
 
         if not results_path:
@@ -647,9 +695,9 @@ class CoverageScreen(Screen):
 
     @on(Button.Pressed, "#btn_analyze")
     def analyze(self) -> None:
-        input_path = self.query_one("#input_file", Input).value.strip()
-        config_path = self.query_one("#config_file", Input).value.strip()
-        terms_path = self.query_one("#terms_file", Input).value.strip()
+        input_path = _clean_path(self.query_one("#input_file", Input).value)
+        config_path = _clean_path(self.query_one("#config_file", Input).value)
+        terms_path = _clean_path(self.query_one("#terms_file", Input).value)
 
         if not input_path or not config_path:
             self.notify("Please provide articles file and config file.", severity="warning")
@@ -694,8 +742,8 @@ class DiffScreen(Screen):
 
     @on(Button.Pressed, "#btn_compare")
     def compare(self) -> None:
-        file_a = self.query_one("#file_a", Input).value.strip()
-        file_b = self.query_one("#file_b", Input).value.strip()
+        file_a = _clean_path(self.query_one("#file_a", Input).value)
+        file_b = _clean_path(self.query_one("#file_b", Input).value)
 
         if not file_a or not file_b:
             self.notify("Please provide both result files.", severity="warning")
@@ -752,9 +800,9 @@ class ExportScreen(Screen):
 
     @on(Button.Pressed, "#btn_export")
     def do_export(self) -> None:
-        result_file = self.query_one("#result_file", Input).value.strip()
-        output_dir = self.query_one("#output_dir", Input).value.strip()
-        config_file = self.query_one("#config_file", Input).value.strip()
+        result_file = _clean_path(self.query_one("#result_file", Input).value)
+        output_dir = _clean_path(self.query_one("#output_dir", Input).value)
+        config_file = _clean_path(self.query_one("#config_file", Input).value)
 
         if not result_file:
             self.notify("Please provide a results file.", severity="warning")
@@ -801,7 +849,7 @@ class EditConfigScreen(Screen):
 
     @on(Button.Pressed, "#btn_load")
     def load_config(self) -> None:
-        config_path = self.query_one("#config_path", Input).value.strip()
+        config_path = _clean_path(self.query_one("#config_path", Input).value)
         if not config_path:
             self.notify("Please provide a config file path.", severity="warning")
             return
@@ -826,7 +874,7 @@ class EditConfigScreen(Screen):
             status.update(f"  [red]Invalid JSON: {e}[/red]")
             return
 
-        issues = controller.validate_config(cfg)
+        issues = controller.validate_config(cfg, require_resolved_blocks=False)
         if not issues:
             status.update("  [green]Configuration looks valid.[/green]")
             return
@@ -841,7 +889,7 @@ class EditConfigScreen(Screen):
 
     @on(Button.Pressed, "#btn_save")
     def save_config(self) -> None:
-        config_path = self.query_one("#config_path", Input).value.strip()
+        config_path = _clean_path(self.query_one("#config_path", Input).value)
         if not config_path:
             self.notify("No config file path specified.", severity="warning")
             return
@@ -851,7 +899,11 @@ class EditConfigScreen(Screen):
             content = editor.text
             # Validate JSON
             cfg = json.loads(content)
-            errors = [issue for issue in controller.validate_config(cfg) if issue.level == "error"]
+            errors = [
+                issue
+                for issue in controller.validate_config(cfg, require_resolved_blocks=False)
+                if issue.level == "error"
+            ]
             if errors:
                 self.query_one("#config_status", Static).update(
                     "  [red]Cannot save with validation errors. Use Validate for details.[/red]"
