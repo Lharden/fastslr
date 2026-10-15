@@ -551,6 +551,12 @@ def profile_save(
 def profile_load(
     name: str = typer.Argument(..., help="Profile name."),
     output: Path = typer.Option("config.json", "--output", "-o", help="Output config file path."),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite the output file if it already exists.",
+    ),
     lang: str | None = typer.Option(None, "--lang", "-l", help="Interface language."),
 ) -> None:
     """Load a named profile to a config file."""
@@ -563,6 +569,10 @@ def profile_load(
         cfg = profiles.load_profile(name)
     except FileNotFoundError:
         console.print(f"[red]{t('file_not_found', path=name)}[/red]")
+        raise typer.Exit(1)
+
+    if output.exists() and not force:
+        console.print(f"[red]{t('profile_output_exists', path=output)}[/red]")
         raise typer.Exit(1)
 
     output.write_text(
@@ -600,7 +610,8 @@ def profile_list(
 def main() -> None:
     """Entry point that wraps the Typer app with a friendly error handler.
 
-    Commands raise plain exceptions (``FileNotFoundError``, ``ValueError``,
+    Commands raise plain exceptions (``OSError`` and subclasses such as
+    ``PermissionError``, ``ValueError``, ``RuntimeError``,
     ``json.JSONDecodeError``) deep in the core engine. Without this wrapper they
     surface as raw tracebacks. Here we translate the common ones into a localized
     one-line message and exit with status 1, while letting ``typer.Exit`` /
@@ -608,8 +619,17 @@ def main() -> None:
     """
     try:
         app()
-    except (FileNotFoundError, json.JSONDecodeError, ValueError) as exc:
+    except PermissionError as exc:
+        # Typically the output workbook is open in Excel: tell the user what to do.
+        console.print(f"[red]{t('error_permission_denied', path=exc.filename or exc)}[/red]")
+        sys.exit(1)
+    except (FileNotFoundError, json.JSONDecodeError, ValueError, RuntimeError) as exc:
         console.print(f"[red]{t('error_generic', message=exc)}[/red]")
+        sys.exit(1)
+    except OSError as exc:
+        # FileExistsError (output dir is a file), missing parent directory, disk errors.
+        path = exc.filename or "?"
+        console.print(f"[red]{t('error_os', path=path, message=exc.strerror or exc)}[/red]")
         sys.exit(1)
 
 
