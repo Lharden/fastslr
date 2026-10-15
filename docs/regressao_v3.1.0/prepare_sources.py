@@ -1,9 +1,9 @@
 """Build the code trees for the 3.0.1 -> 3.1.0 regression on the 505 historical records.
 
-Usage: python prepare_sources.py <repo> <out_dir> [--base <ref>] [--merged <ref>]
+Usage: python prepare_sources.py <repo> <out_dir> --base <ref> --merged <ref>
 
-- <out_dir>/base/src: the src of the base (default: HEAD^2, the 3.0.1 side of the merge);
-- <out_dir>/merged/src: the src of the merged code (default: HEAD);
+- <out_dir>/base/src: the src of the base (for 3.1.0: 4a66697, the 3.0.1 side of the merge);
+- <out_dir>/merged/src: the src of the merged code;
 - <out_dir>/loo_<module>/src: the merged src with ONE module put back to its base copy
   (leave-one-out attribution of the pre-IP audit changes).
 
@@ -49,8 +49,9 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("repo", type=Path)
     p.add_argument("out", type=Path)
-    p.add_argument("--base", default="HEAD^2")
-    p.add_argument("--merged", default="HEAD")
+    # Explicit refs: a default like HEAD^2 only means the 3.0.1 side while HEAD is the merge.
+    p.add_argument("--base", required=True)
+    p.add_argument("--merged", required=True)
     args = p.parse_args()
     if args.out.exists():
         raise SystemExit(f"{args.out} already exists")

@@ -79,7 +79,7 @@ _PROXIMITY_SEP = r"[\s\-/]+"
 # Default intervening-token unit. Used as fallback when a caller-supplied
 # token_unit is not explicitly allowlisted.
 _DEFAULT_TOKEN_UNIT = r"\S+"
-_ALLOWED_TOKEN_UNITS = frozenset({_DEFAULT_TOKEN_UNIT, r"\w+"})
+ALLOWED_TOKEN_UNITS = frozenset({_DEFAULT_TOKEN_UNIT, r"\w+"})
 
 
 def _safe_token_unit(token_unit: str) -> str:
@@ -90,7 +90,7 @@ def _safe_token_unit(token_unit: str) -> str:
     catastrophic backtracking after composition. Only reviewed exact values
     are accepted; all others fall back to the safe default with a warning.
     """
-    if token_unit not in _ALLOWED_TOKEN_UNITS:
+    if token_unit not in ALLOWED_TOKEN_UNITS:
         logger.warning(
             "token_unit for proximity gap is not allowlisted: %r; falling back to %r",
             token_unit,
@@ -379,6 +379,7 @@ def precompile_patterns(
 
 
 __all__ = [
+    "ALLOWED_TOKEN_UNITS",
     "compile_pattern",
     "compile_proximity_pattern",
     "detect_compound_terms",

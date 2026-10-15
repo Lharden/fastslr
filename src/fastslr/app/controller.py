@@ -49,7 +49,7 @@ from ..core.io import (
     read_result_table,
 )
 from ..core.normalization import NormalizationEngine
-from ..core.patterns import precompile_patterns
+from ..core.patterns import ALLOWED_TOKEN_UNITS, precompile_patterns
 from ..core.presets import generate_config
 from ..i18n import _ as t
 
@@ -193,6 +193,16 @@ def validate_config(
     policy = global_cfg.get("DECISION_POLICY", "special")
     if policy not in ("special", "strict", "k_of_n"):
         issues.append(ValidationIssue("error", f"Unknown decision policy: '{policy}'"))
+
+    token_unit = global_cfg.get("TOKEN_UNIT_FOR_GAPS", r"\S+")
+    if token_unit not in ALLOWED_TOKEN_UNITS:
+        issues.append(
+            ValidationIssue(
+                "warning",
+                f"TOKEN_UNIT_FOR_GAPS {token_unit!r} is not one of "
+                f"{', '.join(sorted(ALLOWED_TOKEN_UNITS))}; proximity uses '\\S+' instead.",
+            )
+        )
 
     # Warn about nonsensical threshold values
     for key in ("LIMITES_APROVADO", "LIMITES_SINALIZADO"):
@@ -351,9 +361,11 @@ def inspect_run_setup(
                 fields = config.get("fields", {}) if config else {}
                 inspection.field_mapping = resolve_field_columns(df, fields)
 
+                # run, preview and coverage refuse an input without these
+                # columns (_load_execution_input), so doctor reports an error.
                 for required in ("title", "abstract"):
                     if inspection.field_mapping.get(required) is None:
-                        inspection.warnings.append(
+                        inspection.errors.append(
                             f"Could not identify the '{required}' column. "
                             f"Set fields.{required} in config.json."
                         )

@@ -15,6 +15,7 @@ from types import ModuleType
 
 import pandas as pd
 
+from .config import read_flag
 from .constants import SECTION_NAMES, VERSION
 
 chardet: ModuleType | None
@@ -303,15 +304,15 @@ def get_export_opts(cfg: dict) -> dict:
     # without an ``output`` block therefore behaves like the documented default
     # instead of silently producing CSV-only output.
     return {
-        "export_csv": bool(out.get("csv", False)),
-        "export_xlsx": bool(out.get("xlsx", True)),
+        "export_csv": read_flag(out, "csv", False),
+        "export_xlsx": read_flag(out, "xlsx", True),
         "csv_sep": out.get("csv_sep", root.get("sep", ";")),
         "csv_decimal": out.get("csv_decimal", root.get("decimal", ",")),
         "csv_float_fmt": out.get("csv_float_format", "%.2f"),
         "xlsx_engine": out.get("xlsx_engine", "openpyxl"),
         "xlsx_sheet": out.get("xlsx_sheet_name", "resultados"),
         "encoding": root.get("encoding", "utf-8-sig"),
-        "academic_package": bool(out.get("academic_package", True)),
+        "academic_package": read_flag(out, "academic_package", True),
     }
 
 
@@ -348,15 +349,33 @@ def export_results(df: pd.DataFrame, output_path: Path, cfg: dict) -> dict[str, 
 
     if opts["export_xlsx"]:
         xlsx_path = base_path.with_suffix(".xlsx")
-        df.to_excel(
-            xlsx_path,
-            index=False,
-            engine=opts["xlsx_engine"],
-            sheet_name=opts["xlsx_sheet"],
-        )
+        _write_xlsx_as_text(df, xlsx_path, opts["xlsx_engine"], opts["xlsx_sheet"])
         exported["xlsx"] = xlsx_path
 
     return exported
+
+
+def _write_xlsx_as_text(df: pd.DataFrame, path: Path, engine: str, sheet: str) -> None:
+    """Write *df* to xlsx so that no cell becomes a formula.
+
+    Titles and abstracts come from third-party exports, and both engines turn a
+    string that starts with '=' into a live formula ('=HYPERLINK(...)' opens a
+    link from the reviewers' spreadsheet). The result table never holds a
+    formula of its own, so every cell is written as the text it is.
+    """
+    if engine == "xlsxwriter":
+        writer = pd.ExcelWriter(
+            path, engine="xlsxwriter", engine_kwargs={"options": {"strings_to_formulas": False}}
+        )
+    else:
+        writer = pd.ExcelWriter(path, engine=engine)
+    with writer:
+        df.to_excel(writer, index=False, sheet_name=sheet)
+        if engine == "openpyxl":
+            for row in writer.sheets[sheet].iter_rows():
+                for cell in row:
+                    if cell.data_type == "f":
+                        cell.data_type = "s"
 
 
 # ── highlighting ─────────────────────────────────────────────────────────────
