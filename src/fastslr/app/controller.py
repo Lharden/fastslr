@@ -195,6 +195,28 @@ def validate_config(
     if policy not in ("special", "strict", "k_of_n"):
         issues.append(ValidationIssue("error", f"Unknown decision policy: '{policy}'"))
 
+    # Any other value used to switch off the MAX_ERROR_RATE guard in silence.
+    error_policy = global_cfg.get("ERROR_POLICY", "flag")
+    if error_policy not in ("flag", "fail"):
+        issues.append(
+            ValidationIssue("error", f"Unknown ERROR_POLICY: '{error_policy}' (use flag or fail)")
+        )
+
+    min_approved = global_cfg.get("MIN_APPROVED_BLOCKS")
+    if (
+        policy == "k_of_n"
+        and isinstance(min_approved, int)
+        and domain_blocks
+        and min_approved > len(domain_blocks)
+    ):
+        issues.append(
+            ValidationIssue(
+                "warning",
+                f"MIN_APPROVED_BLOCKS={min_approved} is more than the {len(domain_blocks)} "
+                "domain blocks: no article can be approved.",
+            )
+        )
+
     token_unit = global_cfg.get("TOKEN_UNIT_FOR_GAPS", r"\S+")
     if token_unit not in ALLOWED_TOKEN_UNITS:
         issues.append(
@@ -578,7 +600,13 @@ def diff_results(path_a: Path, path_b: Path) -> DiffReport:
     # A repeated ID makes the outer merge pair every copy in A with every copy
     # in B and invent transitions; a result table has one row per record.
     for label, df, path in (("A", df_a, path_a), ("B", df_b, path_b)):
-        counts = Counter(str(value) for value in df[id_col].tolist())
+        # Blank IDs are not counted: legacy tables can hold several, and they never
+        # pair with anything in the other file.
+        counts = Counter(
+            str(value).strip()
+            for value in df[id_col].tolist()
+            if not pd.isna(value) and str(value).strip()
+        )
         repeated = sorted(value for value, n in counts.items() if n > 1)
         if repeated:
             raise ValueError(

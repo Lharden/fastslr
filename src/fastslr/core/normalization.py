@@ -18,6 +18,10 @@ _SCIENTIFIC_MARKUP_RE = re.compile(r"</?(?:inf|sub|sup)\s*>", re.IGNORECASE)
 _WORD_HYPHEN_RE = re.compile(r"(?<=\w)-(?=\w)")
 
 
+def _nfkc(value: str) -> str:
+    return unicodedata.normalize("NFKC", value)
+
+
 def _is_word(value: str) -> bool:
     """Return whether *value* (stripped) starts and ends with a word character."""
     stripped = value.strip()
@@ -76,22 +80,30 @@ class NormalizationEngine:
     def __init__(self, rules: dict) -> None:
         self.rules = rules
         self.enabled = rules.get("enabled", False)
-        # Abbreviation keys keep their case: expansion is case-sensitive.
+        # Abbreviation keys keep their case: expansion is case-sensitive. Every
+        # key goes through NFKC, like the text it is matched against: a key
+        # written with a compatibility character would otherwise never match.
         self._abbreviations = self._order_by_key_length(
-            {k.strip(): v.lower() for k, v in rules.get("abbreviations", {}).items()}
+            {_nfkc(k.strip()): v.lower() for k, v in rules.get("abbreviations", {}).items()}
         )
         self._abbreviation_patterns = [
             (_abbreviation_pattern(abbr), expanded)
             for abbr, expanded in self._abbreviations.items()
         ]
         self._compounds = self._order_by_key_length(
-            {k.lower(): v.lower() for k, v in rules.get("compound_variants", {}).items()}
+            {_nfkc(k).lower(): v.lower() for k, v in rules.get("compound_variants", {}).items()}
         )
         # ``symbol_replacements`` values are lowercased here so casefolding is
         # consistent: the symbol pass runs after the global ``.lower()`` and
         # would otherwise re-inject uppercase characters.
+        # A symbol key that NFKC rewrites ('ﬁ' -> 'fi') would only map the NFKC
+        # text to itself, so it is kept only when the key survives NFKC as is.
         self._symbols = self._order_by_key_length(
-            {k.lower(): v.lower() for k, v in rules.get("symbol_replacements", {}).items()}
+            {
+                _nfkc(k).lower(): v.lower()
+                for k, v in rules.get("symbol_replacements", {}).items()
+                if _nfkc(k) == k
+            }
         )
         self._cache_maxsize = 2000
         # ``OrderedDict`` gives O(1) LRU bookkeeping via ``move_to_end`` and

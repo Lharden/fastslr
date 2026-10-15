@@ -311,13 +311,24 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                 continue
 
             # ── block name: case-insensitive ──────────────────────────
-            canonical = canonical_blocks.setdefault(block.upper(), block)
+            # The spelling is fixed by the first ACCEPTED row of the block (see
+            # "build entry"), so a row skipped below cannot name the block.
+            canonical = canonical_blocks.get(block.upper(), block)
             if canonical != block:
                 parse_warnings.append(
                     f"Row {row_num}, block '{block}', term '{term}': block names ignore "
                     f"case; read as block '{canonical}'."
                 )
                 block = canonical
+
+            # T0 is the block built from GLOBAL: a table block with that name
+            # would collide with it in the config.
+            if block.upper() == T0_BLOCK_NAME.upper():
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': '{T0_BLOCK_NAME}' is "
+                    f"reserved for the {GLOBAL_BLOCK_NAME} block. Row skipped."
+                )
+                continue
 
             # ── kind validation ───────────────────────────────────────
             if kind not in TERM_KINDS:
@@ -366,7 +377,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                             # and would otherwise set best_level to a value with
                             # no thresholds, producing a spurious FLAGGED block.
                             level = ""
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError, OverflowError):
                         examples = (
                             ", ".join(str(lv) for lv in sorted(configured_levels))
                             if configured_levels
@@ -434,6 +445,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
             seen_terms.add(dedup_key)
 
             # ── build entry ───────────────────────────────────────────
+            canonical_blocks.setdefault(block.upper(), block)
             if block not in block_terms:
                 block_terms[block] = {
                     "positives": [],

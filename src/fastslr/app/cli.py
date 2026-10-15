@@ -619,6 +619,9 @@ def main() -> None:
     """
     try:
         app()
+    except (NotImplementedError, RecursionError):
+        # Subclasses of RuntimeError that mean a bug, not a user problem: keep the traceback.
+        raise
     except PermissionError as exc:
         # Typically the output workbook is open in Excel: tell the user what to do.
         console.print(f"[red]{t('error_permission_denied', path=exc.filename or exc)}[/red]")

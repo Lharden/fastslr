@@ -6,6 +6,7 @@ import hashlib
 import json
 import logging
 import re
+import unicodedata
 import uuid
 import zipfile
 from copy import deepcopy
@@ -28,8 +29,11 @@ else:
 
 logger = logging.getLogger(__name__)
 
-PROTOCOL_VERSION_CURRENT = "2.1"
-PROTOCOL_SCHEMA_ID = "rsl-triage-protocol-v2.1"
+# 2.2 (fastslr 3.1.0): inputs.input_file, inputs.terms_file and
+# artifacts.results_path hold file names, not paths, and configuration.fail_fast
+# and enable_special_approval hold the booleans the engine ran with.
+PROTOCOL_VERSION_CURRENT = "2.2"
+PROTOCOL_SCHEMA_ID = "rsl-triage-protocol-v2.2"
 
 _PROTOCOL_ROOT_KEYS = frozenset(
     {
@@ -240,7 +244,10 @@ def _load_delimited_table(
         if decode_failed:
             continue
 
-    if widest:
+    # Only when no separator hit a parse error: a malformed row under the right
+    # separator also leaves the other separators with one column, and the parse
+    # error is then the real cause.
+    if widest and last_parse_error is None:
         raise ValueError(
             f"Unable to load delimited table: {path} has at most {widest} column(s) with the "
             f"separators ';', ',' and tab; at least {min_columns} are needed "
@@ -347,7 +354,7 @@ def export_results(df: pd.DataFrame, output_path: Path, cfg: dict) -> dict[str, 
 
     if opts["export_csv"]:
         csv_path = base_path.with_suffix(".csv")
-        df.to_csv(
+        _csv_safe_text(df).to_csv(
             csv_path,
             index=False,
             encoding=opts["encoding"],
@@ -365,14 +372,63 @@ def export_results(df: pd.DataFrame, output_path: Path, cfg: dict) -> dict[str, 
     return exported
 
 
+# Control characters that XML 1.0, and so an xlsx cell, cannot hold (the same set
+# as openpyxl's ILLEGAL_CHARACTERS_RE). Tab, newline and carriage return are legal.
+_XLSX_ILLEGAL_CHARACTERS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def _xlsx_safe_text(df: pd.DataFrame) -> pd.DataFrame:
+    """Copy of *df* with every control character an xlsx cell refuses turned into a space.
+
+    Vertical tab and form feed are common in Scopus/WoS exports and in text taken
+    from PDFs. openpyxl refuses the whole workbook over one of them, after the
+    corpus was processed, so they are replaced here; they separate words, hence a
+    space and not nothing.
+    """
+    safe = df.copy()
+    for col in _text_columns(safe):
+        safe[col] = safe[col].map(
+            lambda v: _XLSX_ILLEGAL_CHARACTERS.sub(" ", v) if isinstance(v, str) else v
+        )
+    return safe
+
+
+def _text_columns(df: pd.DataFrame) -> list:
+    """Columns that may hold text: every non-numeric one.
+
+    pandas 3 types text as 'str', not object, so a dtype test for object misses it.
+    """
+    return [col for col in df.columns if not pd.api.types.is_numeric_dtype(df[col].dtype)]
+
+
+_CSV_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_safe_text(df: pd.DataFrame) -> pd.DataFrame:
+    """Copy of *df* where a text cell that a spreadsheet would run as a formula starts with '.
+
+    A CSV has no cell types: Excel and LibreOffice evaluate '=HYPERLINK(...)', '+1+1'
+    or '@SUM(1)' when the file is opened, and the CSV goes into the academic package
+    that other reviewers open. The leading apostrophe is the usual neutraliser
+    (OWASP, CSV injection). Numeric columns are not touched.
+    """
+    safe = df.copy()
+    for col in _text_columns(safe):
+        safe[col] = safe[col].map(
+            lambda v: f"'{v}" if isinstance(v, str) and v.startswith(_CSV_FORMULA_START) else v
+        )
+    return safe
+
+
 def _write_xlsx_as_text(df: pd.DataFrame, path: Path, engine: str, sheet: str) -> None:
-    """Write *df* to xlsx so that no cell becomes a formula.
+    """Write *df* to xlsx so that no cell becomes a formula and none is refused.
 
     Titles and abstracts come from third-party exports, and both engines turn a
     string that starts with '=' into a live formula ('=HYPERLINK(...)' opens a
     link from the reviewers' spreadsheet). The result table never holds a
     formula of its own, so every cell is written as the text it is.
     """
+    df = _xlsx_safe_text(df)
     if engine == "xlsxwriter":
         writer = pd.ExcelWriter(
             path, engine="xlsxwriter", engine_kwargs={"options": {"strings_to_formulas": False}}
@@ -391,10 +447,39 @@ def _write_xlsx_as_text(df: pd.DataFrame, path: Path, engine: str, sheet: str) -
 # ── highlighting ─────────────────────────────────────────────────────────────
 
 
+def _nfkc_with_origin(text: str) -> tuple[str, list[tuple[int, int]]]:
+    """NFKC of *text* and, per output character, the span of *text* it came from.
+
+    Scoring reads NFKC text, so the highlight searches the same form; the spans
+    found there map back onto the original, which is what the reviewer reads.
+    Each cluster (a character and the combining marks after it) is normalized
+    on its own, so every output character has one origin.
+    """
+    out: list[str] = []
+    origin: list[tuple[int, int]] = []
+    i, n = 0, len(text)
+    while i < n:
+        j = i + 1
+        while j < n and unicodedata.combining(text[j]):
+            j += 1
+        piece = unicodedata.normalize("NFKC", text[i:j])
+        out.append(piece)
+        origin.extend([(i, j)] * len(piece))
+        i = j
+    return "".join(out), origin
+
+
 def highlight_text(original_text: str, all_terms: list[dict], section_name: str) -> str:
     """Mark matched terms in the original text with ***TERM*** markers."""
     if not original_text or not all_terms:
         return original_text
+
+    # Search the NFKC form, as scoring does, and map the spans back. Text that is
+    # already NFKC (most of it) takes the direct path, with identical spans.
+    if unicodedata.is_normalized("NFKC", original_text):
+        searched, origin = original_text, None
+    else:
+        searched, origin = _nfkc_with_origin(original_text)
 
     spans: list[tuple[int, int]] = []
 
@@ -409,8 +494,13 @@ def highlight_text(original_text: str, all_terms: list[dict], section_name: str)
                 continue
 
             try:
-                for match in pattern.finditer(original_text):
-                    spans.append(match.span())
+                for match in pattern.finditer(searched):
+                    start, end = match.span()
+                    if origin is not None:
+                        if start == end:
+                            continue
+                        start, end = origin[start][0], origin[end - 1][1]
+                    spans.append((start, end))
             except re.error:
                 continue
 
@@ -556,8 +646,9 @@ def build_protocol_snapshot(
         "configuration": {
             "decision_policy": global_cfg.get("DECISION_POLICY", "special"),
             "domain_blocks": [{"id": b, "label": block_labels.get(b, b)} for b in domain_blocks],
-            "fail_fast": global_cfg.get("FAIL_FAST_GLOBAL", True),
-            "enable_special_approval": global_cfg.get("ENABLE_SPECIAL_APPROVAL_RULE", True),
+            # The value the engine ran with, not the raw text: "false" means false.
+            "fail_fast": read_flag(global_cfg, "FAIL_FAST_GLOBAL", True),
+            "enable_special_approval": read_flag(global_cfg, "ENABLE_SPECIAL_APPROVAL_RULE", True),
             "level_scores": global_cfg.get("PONTUACAO_NIVEIS", {}),
             "section_weights": global_cfg.get("WEIGHTS", {}),
             "approval_thresholds": global_cfg.get("LIMITES_APROVADO", {}),
@@ -611,7 +702,7 @@ def validate_protocol_snapshot(snapshot: dict) -> list[str]:
 # Source protocol versions that ``migrate_protocol_snapshot`` knows how to
 # upgrade to ``PROTOCOL_VERSION_CURRENT``. The current version is accepted as a
 # no-op upgrade target so re-migrating an already-current snapshot is safe.
-_MIGRATABLE_SOURCE_VERSIONS = frozenset({"1.0", "2.0", PROTOCOL_VERSION_CURRENT})
+_MIGRATABLE_SOURCE_VERSIONS = frozenset({"1.0", "2.0", "2.1", PROTOCOL_VERSION_CURRENT})
 
 
 def _default_root_value(key: str) -> object:
@@ -786,6 +877,8 @@ def export_appendix_pack(artifacts: dict[str, Path], zip_path: Path, execution_i
         zf.writestr("APPENDIX_INDEX.md", index_text)
 
         manifest = {
+            # 2: "files" maps each packed name to its SHA-256 (1 mapped it to a path).
+            "manifest_version": 2,
             "execution_id": execution_id,
             "generated_at": datetime.now().isoformat(),
             "files": manifest_items,
