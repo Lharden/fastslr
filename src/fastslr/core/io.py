@@ -11,7 +11,7 @@ import uuid
 import zipfile
 from copy import deepcopy
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from types import ModuleType
 
 import pandas as pd
@@ -244,15 +244,20 @@ def _load_delimited_table(
         if decode_failed:
             continue
 
-    # Only when no separator hit a parse error: a malformed row under the right
-    # separator also leaves the other separators with one column, and the parse
-    # error is then the real cause.
-    if widest and last_parse_error is None:
-        raise ValueError(
+    # Both facts, never one hiding the other: a malformed row under the right
+    # separator leaves the others with one column, and a narrow file can also
+    # fail to parse under a wrong separator. The parse error is chained.
+    if widest:
+        message = (
             f"Unable to load delimited table: {path} has at most {widest} column(s) with the "
             f"separators ';', ',' and tab; at least {min_columns} are needed "
             "(record ID, title and abstract)."
         )
+        if last_parse_error is None:
+            raise ValueError(message)
+        raise ValueError(
+            f"{message} One separator also failed to parse it: {last_parse_error}"
+        ) from last_parse_error
     error = ValueError(
         f"Unable to load delimited table: {path} (tried encodings: {', '.join(tried_encodings)})"
     )
@@ -353,8 +358,11 @@ def export_results(df: pd.DataFrame, output_path: Path, cfg: dict) -> dict[str, 
         opts["export_xlsx"] = True
 
     if opts["export_csv"]:
+        # The CSV is the raw data, cell for cell, by the user's decision (3.1.0): a
+        # spreadsheet that opens it can run a cell starting with '=', so it is
+        # imported as text. The xlsx, the reviewers' file, never holds a formula.
         csv_path = base_path.with_suffix(".csv")
-        _csv_safe_text(df).to_csv(
+        df.to_csv(
             csv_path,
             index=False,
             encoding=opts["encoding"],
@@ -372,20 +380,24 @@ def export_results(df: pd.DataFrame, output_path: Path, cfg: dict) -> dict[str, 
     return exported
 
 
-# Control characters that XML 1.0, and so an xlsx cell, cannot hold (the same set
-# as openpyxl's ILLEGAL_CHARACTERS_RE). Tab, newline and carriage return are legal.
-_XLSX_ILLEGAL_CHARACTERS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+# Characters that XML 1.0, and so an xlsx cell, cannot hold: the control
+# characters of openpyxl's ILLEGAL_CHARACTERS_RE and the noncharacters U+FFFE and
+# U+FFFF. Tab, newline and carriage return are legal.
+_XLSX_ILLEGAL_CHARACTERS = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]")
 
 
 def _xlsx_safe_text(df: pd.DataFrame) -> pd.DataFrame:
-    """Copy of *df* with every control character an xlsx cell refuses turned into a space.
+    """Copy of *df* with every character an xlsx cell refuses turned into a space.
 
     Vertical tab and form feed are common in Scopus/WoS exports and in text taken
     from PDFs. openpyxl refuses the whole workbook over one of them, after the
-    corpus was processed, so they are replaced here; they separate words, hence a
-    space and not nothing.
+    corpus was processed, so they are replaced here, in the cells and in the
+    column names; they separate words, hence a space and not nothing.
     """
     safe = df.copy()
+    safe.columns = [
+        _XLSX_ILLEGAL_CHARACTERS.sub(" ", c) if isinstance(c, str) else c for c in safe.columns
+    ]
     for col in _text_columns(safe):
         safe[col] = safe[col].map(
             lambda v: _XLSX_ILLEGAL_CHARACTERS.sub(" ", v) if isinstance(v, str) else v
@@ -399,25 +411,6 @@ def _text_columns(df: pd.DataFrame) -> list:
     pandas 3 types text as 'str', not object, so a dtype test for object misses it.
     """
     return [col for col in df.columns if not pd.api.types.is_numeric_dtype(df[col].dtype)]
-
-
-_CSV_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
-
-
-def _csv_safe_text(df: pd.DataFrame) -> pd.DataFrame:
-    """Copy of *df* where a text cell that a spreadsheet would run as a formula starts with '.
-
-    A CSV has no cell types: Excel and LibreOffice evaluate '=HYPERLINK(...)', '+1+1'
-    or '@SUM(1)' when the file is opened, and the CSV goes into the academic package
-    that other reviewers open. The leading apostrophe is the usual neutraliser
-    (OWASP, CSV injection). Numeric columns are not touched.
-    """
-    safe = df.copy()
-    for col in _text_columns(safe):
-        safe[col] = safe[col].map(
-            lambda v: f"'{v}" if isinstance(v, str) and v.startswith(_CSV_FORMULA_START) else v
-        )
-    return safe
 
 
 def _write_xlsx_as_text(df: pd.DataFrame, path: Path, engine: str, sheet: str) -> None:
@@ -496,9 +489,10 @@ def highlight_text(original_text: str, all_terms: list[dict], section_name: str)
             try:
                 for match in pattern.finditer(searched):
                     start, end = match.span()
+                    # An empty match marks nothing, on either path.
+                    if start == end:
+                        continue
                     if origin is not None:
-                        if start == end:
-                            continue
                         start, end = origin[start][0], origin[end - 1][1]
                     spans.append((start, end))
             except re.error:
@@ -722,6 +716,33 @@ def _default_root_value(key: str) -> object:
     return {}
 
 
+def _apply_protocol_2_2(snapshot: dict) -> None:
+    """Give an older snapshot the 2.2 meaning, in place, not only the 2.2 label.
+
+    File fields hold names (a path carries the OS username into the published
+    package), and the two flags hold the booleans the engine ran with.
+    """
+    for section, key in (
+        ("inputs", "input_file"),
+        ("inputs", "terms_file"),
+        ("artifacts", "results_path"),
+    ):
+        values = snapshot.get(section)
+        if isinstance(values, dict) and isinstance(values.get(key), str):
+            values[key] = PureWindowsPath(values[key]).name
+    configuration = snapshot.get("configuration")
+    if isinstance(configuration, dict):
+        for key, raw in (
+            ("fail_fast", "FAIL_FAST_GLOBAL"),
+            ("enable_special_approval", "ENABLE_SPECIAL_APPROVAL_RULE"),
+        ):
+            if key in configuration:
+                try:
+                    configuration[key] = read_flag({raw: configuration[key]}, raw, True)
+                except ValueError:
+                    pass  # unreadable: left as recorded, the snapshot never claimed more
+
+
 def migrate_protocol_snapshot(old_snapshot: dict) -> dict:
     """Migrate a protocol snapshot from a known older version to the current one.
 
@@ -738,6 +759,7 @@ def migrate_protocol_snapshot(old_snapshot: dict) -> dict:
         )
 
     migrated = deepcopy(old_snapshot)
+    _apply_protocol_2_2(migrated)
     migrated["protocol_version"] = PROTOCOL_VERSION_CURRENT
     migrated["schema_id"] = PROTOCOL_SCHEMA_ID
 

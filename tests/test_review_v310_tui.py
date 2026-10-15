@@ -59,6 +59,20 @@ async def _fill_and_press(app, screen, pilot, articles: str, config: str) -> Non
     await pilot.pause()
 
 
+async def _until_enabled(button: Button, pilot) -> bool:  # noqa: ANN001
+    """Wait, up to 2 s, for the worker's call_from_thread to re-enable *button*.
+
+    One pause is not always enough under the load of the full suite, and a test
+    that reads the button right after it fails at random.
+    """
+    for _ in range(200):
+        if not button.disabled:
+            break
+        await pilot.pause(0.01)
+    await pilot.pause()  # let the other widgets the worker updated refresh too
+    return button.disabled
+
+
 # -- 3. helper ---------------------------------------------------------------
 
 
@@ -267,8 +281,7 @@ def test_double_press_runs_triage_once_and_button_is_reenabled(
             await pilot.pause()
             release.set()
             await app.workers.wait_for_complete()
-            await pilot.pause()
-            return disabled_while_running, btn.disabled
+            return disabled_while_running, await _until_enabled(btn, pilot)
 
     disabled_while_running, disabled_after = _run(scenario())
     assert disabled_while_running is True
@@ -290,11 +303,8 @@ def test_button_reenabled_after_error(monkeypatch: pytest.MonkeyPatch, tmp_path:
             screen = tui.RunTriageScreen()
             await _fill_and_press(app, screen, pilot, str(articles), str(config))
             await app.workers.wait_for_complete()
-            await pilot.pause()
-            return (
-                screen.query_one("#btn_run", Button).disabled,
-                str(screen.query_one("#status", Static).render()),
-            )
+            disabled = await _until_enabled(screen.query_one("#btn_run", Button), pilot)
+            return disabled, str(screen.query_one("#status", Static).render())
 
     disabled, status = _run(scenario())
     assert disabled is False
@@ -310,8 +320,7 @@ def test_button_reenabled_after_missing_file(tmp_path: Path) -> None:
                 app, screen, pilot, str(tmp_path / "no.csv"), str(tmp_path / "no.json")
             )
             await app.workers.wait_for_complete()
-            await pilot.pause()
-            return screen.query_one("#btn_run", Button).disabled
+            return await _until_enabled(screen.query_one("#btn_run", Button), pilot)
 
     assert _run(scenario()) is False
 

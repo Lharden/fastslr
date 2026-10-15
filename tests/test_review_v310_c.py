@@ -1,7 +1,7 @@
 """Regressions from the second verification round of the 3.1.0 review.
 
 - A control character in a title never makes the xlsx export fail.
-- A CSV cell that a spreadsheet would run as a formula starts with an apostrophe.
+- The CSV is the raw data (decision of the user), and the xlsx never holds a formula.
 - The protocol records the booleans the engine ran with.
 - A block is spelled as its first accepted row; T0 is reserved; an infinite level is invalid.
 - A parse error is reported as such, not as a narrow table.
@@ -9,7 +9,11 @@
 - Rule keys go through NFKC like the text.
 - ERROR_POLICY and MIN_APPROVED_BLOCKS are checked by validate.
 - The CLI keeps the traceback of bugs (NotImplementedError, RecursionError).
-- diff ignores blank IDs when it looks for repeated ones.
+- diff refuses repeated blank IDs, which the merge would pair with each other.
+- An old protocol migrated to 2.2 gets the 2.2 meaning, not only the label.
+- Symbol keys go through NFKC instead of being dropped.
+- ERROR_POLICY is refused where it is read.
+- MIN_APPROVED_BLOCKS is validated as the run reads it.
 """
 
 from __future__ import annotations
@@ -56,20 +60,17 @@ def test_control_characters_do_not_break_the_xlsx_export(tmp_path: Path, engine:
     assert sheet.cell(row=2, column=2).value == "foo bar baz"
 
 
-def test_csv_cells_that_would_run_as_formulas_start_with_an_apostrophe(tmp_path: Path) -> None:
-    df = pd.DataFrame(
-        {
-            "ID": ["a", "b", "c", "d", "e"],
-            "Title": ['=HYPERLINK("x")', "+1+1", "@SUM(1)", "-2+3", "Plain title"],
-            "Score": [-1.5, 2.0, 3.0, 4.0, 5.0],
-        }
-    )
+def test_csv_is_the_raw_data_cell_for_cell(tmp_path: Path) -> None:
+    # The user's decision for 3.1.0: the CSV stays raw (no leading apostrophe), so
+    # it round-trips and diffs; the xlsx is the file that never holds a formula.
+    titles = ['=HYPERLINK("x")', "+1+1", "@SUM(1)", "-2+3", "Plain title"]
+    df = pd.DataFrame({"ID": list("abcde"), "Title": titles, "Score": [-1.5, 2, 3, 4, 5]})
     output = {"xlsx": False, "csv": True, "csv_sep": ";", "csv_decimal": "."}
 
     exported = export_results(df, tmp_path / "r", {"output": output, "encoding": "utf-8"})
 
     back = pd.read_csv(exported["csv"], sep=";", dtype=str, keep_default_na=False)
-    assert list(back["Title"]) == ['\'=HYPERLINK("x")', "'+1+1", "'@SUM(1)", "'-2+3", "Plain title"]
+    assert list(back["Title"]) == titles
     assert back["Score"].iloc[0] == "-1.50"
 
 
@@ -133,15 +134,23 @@ def test_level_that_is_not_a_whole_number_is_invalid_not_a_crash(
     assert oil["level"] is None
 
 
-def test_parse_error_is_not_reported_as_a_narrow_table(tmp_path: Path) -> None:
+def test_parse_error_is_reported_with_the_column_count(tmp_path: Path) -> None:
     path = tmp_path / "bad.csv"
     path.write_text("ID,Title,Abstract\n1,a,b\n2,c,d,e\n3,f,g\n", encoding="utf-8")
 
     with pytest.raises(ValueError) as caught:
         load_table_safe(path)
 
-    assert "at most" not in str(caught.value)
+    assert "also failed to parse" in str(caught.value)
     assert caught.value.__cause__ is not None
+
+
+def test_narrow_table_keeps_its_message_when_a_wrong_separator_fails(tmp_path: Path) -> None:
+    path = tmp_path / "narrow.csv"
+    path.write_text('ID,Title\n1,"a;b;c"\n2,d\n', encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"at most 2 column\(s\)"):
+        load_table_safe(path)
 
 
 # ── highlight and NFKC ───────────────────────────────────────────────────────
@@ -209,16 +218,94 @@ def test_cli_keeps_the_traceback_of_bugs(
         cli_module.main()
 
 
-def test_diff_ignores_blank_ids_when_looking_for_repeated_ones(tmp_path: Path) -> None:
+def test_diff_refuses_repeated_blank_ids(tmp_path: Path) -> None:
+    # The outer merge pairs '' with '': repeated blank IDs would invent transitions,
+    # so they are refused like any repeated ID (third verification round, 2 highs).
     a = tmp_path / "a.csv"
     b = tmp_path / "b.csv"
     pd.DataFrame(
-        {"ID": ["", "", "A1"], "Final_Decision": ["FLAGGED_FINAL"] * 2 + ["APPROVED_FINAL"]}
+        {"ID": ["1", "", ""], "Final_Decision": ["APPROVED_FINAL"] + ["REJECTED_FINAL"] * 2}
     ).to_csv(a, sep=";", index=False)
-    pd.DataFrame({"ID": ["A1"], "Final_Decision": ["REJECTED_FINAL"]}).to_csv(
-        b, sep=";", index=False
+    pd.DataFrame(
+        {
+            "ID": ["1", "", ""],
+            "Final_Decision": ["APPROVED_FINAL", "APPROVED_FINAL", "REJECTED_FINAL"],
+        }
+    ).to_csv(b, sep=";", index=False)
+
+    with pytest.raises(ValueError, match=r"repeated IDs.*\(blank\)"):
+        diff_results(a, b)
+
+
+# ── stabilization of the third round ─────────────────────────────────────────
+
+
+def test_old_protocol_migrated_to_2_2_gets_the_2_2_meaning() -> None:
+    from fastslr.core.io import migrate_protocol_snapshot
+
+    old = {
+        "protocol_version": "2.1",
+        "execution_id": "run_x",
+        "inputs": {
+            "input_file": "C:/Users/alice/secret/input.csv",
+            "terms_file": "C:\\Users\\alice\\terms.csv",
+        },
+        "configuration": {"fail_fast": "false", "enable_special_approval": "1"},
+        "artifacts": {"results_path": "/home/alice/out/r.xlsx"},
+    }
+
+    migrated = migrate_protocol_snapshot(old)
+
+    assert migrated["protocol_version"] == "2.2"
+    assert migrated["inputs"]["input_file"] == "input.csv"
+    assert migrated["inputs"]["terms_file"] == "terms.csv"
+    assert migrated["artifacts"]["results_path"] == "r.xlsx"
+    assert migrated["configuration"]["fail_fast"] is False
+    assert migrated["configuration"]["enable_special_approval"] is True
+
+
+def test_symbol_key_that_nfkc_rewrites_still_applies() -> None:
+    engine = NormalizationEngine({"enabled": True, "symbol_replacements": {"½": "half"}})
+
+    assert "half" in engine.normalize("a ½ dose")
+
+
+def test_unknown_error_policy_is_refused_where_it_is_read() -> None:
+    from fastslr.core.config import load_global_params
+
+    with pytest.raises(ValueError, match="ERROR_POLICY"):
+        load_global_params({"ERROR_POLICY": "FLAG"})
+
+
+@pytest.mark.parametrize("raw", ["5", 5.0])
+def test_min_approved_blocks_is_validated_as_the_run_reads_it(raw: object) -> None:
+    config = {
+        "global": {"BLOCK_ORDER": ["T1A"], "DECISION_POLICY": "k_of_n", "MIN_APPROVED_BLOCKS": raw},
+        "T1A": {"positives": [{"term": "oil"}]},
+    }
+
+    issues = validate_config(config)
+
+    assert any(i.level == "warning" and "MIN_APPROVED_BLOCKS" in i.message for i in issues)
+
+
+def test_empty_match_marks_nothing_on_the_direct_path() -> None:
+    # 'x*' matches the empty string at every position of 'Oil', away from any real match.
+    term = {"pattern": re.compile(r"x*", re.IGNORECASE), "scope": "any"}
+
+    assert highlight_text("Oil", [term], "title") == "Oil"
+
+
+def test_xlsx_cleans_noncharacters_and_column_names(tmp_path: Path) -> None:
+    from openpyxl import load_workbook
+
+    df = pd.DataFrame({"Ti\x0btle": ["a\ufffeb"]})
+
+    exported = export_results(df, tmp_path / "r", {"output": {"xlsx": True, "csv": False}})
+
+    sheet = load_workbook(exported["xlsx"]).active
+    assert sheet is not None
+    assert (sheet.cell(row=1, column=1).value, sheet.cell(row=2, column=1).value) == (
+        "Ti tle",
+        "a b",
     )
-
-    report = diff_results(a, b)
-
-    assert report.total_a == 3

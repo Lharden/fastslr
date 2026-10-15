@@ -103,7 +103,16 @@ def read_flag(section: dict, key: str, default: bool) -> bool:
     raise ValueError(f"{key} must be true or false, got {value!r}.")
 
 
-def _read_min_approved_blocks(global_cfg: dict) -> int | None:
+def _read_error_policy(global_cfg: dict) -> str:
+    """ERROR_POLICY is 'flag' or 'fail'. Any other value (even 'FLAG') used to
+    switch off both the re-raise and the MAX_ERROR_RATE guard in silence."""
+    value = global_cfg.get("ERROR_POLICY", "flag")
+    if value not in ("flag", "fail"):
+        raise ValueError(f"ERROR_POLICY must be 'flag' or 'fail', got {value!r}.")
+    return value
+
+
+def read_min_approved_blocks(global_cfg: dict) -> int | None:
     raw = global_cfg.get("MIN_APPROVED_BLOCKS")
     if raw is None:
         return None
@@ -195,7 +204,7 @@ def load_global_params(global_cfg: dict) -> GlobalParams:
         level_order=level_order,
         enable_special_approval_rule=read_flag(global_cfg, "ENABLE_SPECIAL_APPROVAL_RULE", True),
         decision_policy=str(global_cfg.get("DECISION_POLICY", "special")),
-        min_approved_blocks=_read_min_approved_blocks(global_cfg),
+        min_approved_blocks=read_min_approved_blocks(global_cfg),
         max_flagged_blocks_for_approval=int(global_cfg.get("MAX_FLAGGED_BLOCKS_FOR_APPROVAL", 0)),
         noise_profile=str(global_cfg.get("NOISE_PROFILE", "relaxed")),
         min_unique_terms_for_approval=int(global_cfg.get("MIN_UNIQUE_TERMS_FOR_APPROVAL", 1)),
@@ -206,7 +215,7 @@ def load_global_params(global_cfg: dict) -> GlobalParams:
             global_cfg, "REQUIRE_NON_WEAK_TERM_FOR_APPROVAL", False
         ),
         weak_levels=weak_levels,
-        error_policy=str(global_cfg.get("ERROR_POLICY", "flag")),
+        error_policy=_read_error_policy(global_cfg),
         max_error_rate=float(global_cfg.get("MAX_ERROR_RATE", 0.05)),
     )
 
@@ -628,5 +637,7 @@ __all__ = [
     "auto_detect_input",
     "get_domain_blocks",
     "load_global_params",
+    "read_flag",
+    "read_min_approved_blocks",
     "parse_terms_csv",
 ]

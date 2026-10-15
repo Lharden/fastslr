@@ -96,14 +96,10 @@ class NormalizationEngine:
         # ``symbol_replacements`` values are lowercased here so casefolding is
         # consistent: the symbol pass runs after the global ``.lower()`` and
         # would otherwise re-inject uppercase characters.
-        # A symbol key that NFKC rewrites ('ﬁ' -> 'fi') would only map the NFKC
-        # text to itself, so it is kept only when the key survives NFKC as is.
+        # Symbol keys go through NFKC too, so a rule keyed on '½' applies to the
+        # '1⁄2' the text becomes; a ligature key ('ﬁ' -> 'fi') turns into a no-op.
         self._symbols = self._order_by_key_length(
-            {
-                _nfkc(k).lower(): v.lower()
-                for k, v in rules.get("symbol_replacements", {}).items()
-                if _nfkc(k) == k
-            }
+            {_nfkc(k).lower(): v.lower() for k, v in rules.get("symbol_replacements", {}).items()}
         )
         self._cache_maxsize = 2000
         # ``OrderedDict`` gives O(1) LRU bookkeeping via ``move_to_end`` and

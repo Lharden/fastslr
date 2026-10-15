@@ -20,6 +20,7 @@ from ..core.config import (
     load_config,
     load_global_params,
     parse_terms_csv,
+    read_min_approved_blocks,
 )
 from ..core.constants import VERSION
 from ..core.coverage import (
@@ -202,10 +203,15 @@ def validate_config(
             ValidationIssue("error", f"Unknown ERROR_POLICY: '{error_policy}' (use flag or fail)")
         )
 
-    min_approved = global_cfg.get("MIN_APPROVED_BLOCKS")
+    # Read with the engine's own reader, so '5' and 5.0 are checked as the run sees them.
+    try:
+        min_approved = read_min_approved_blocks(global_cfg)
+    except ValueError as exc:
+        issues.append(ValidationIssue("error", str(exc)))
+        min_approved = None
     if (
         policy == "k_of_n"
-        and isinstance(min_approved, int)
+        and min_approved is not None
         and domain_blocks
         and min_approved > len(domain_blocks)
     ):
@@ -600,18 +606,13 @@ def diff_results(path_a: Path, path_b: Path) -> DiffReport:
     # A repeated ID makes the outer merge pair every copy in A with every copy
     # in B and invent transitions; a result table has one row per record.
     for label, df, path in (("A", df_a, path_a), ("B", df_b, path_b)):
-        # Blank IDs are not counted: legacy tables can hold several, and they never
-        # pair with anything in the other file.
-        counts = Counter(
-            str(value).strip()
-            for value in df[id_col].tolist()
-            if not pd.isna(value) and str(value).strip()
-        )
+        # Counted exactly as the merge matches them: a blank ID repeated is a
+        # repeated ID too, because the outer merge pairs '' with ''.
+        counts = Counter("" if pd.isna(value) else str(value) for value in df[id_col].tolist())
         repeated = sorted(value for value, n in counts.items() if n > 1)
         if repeated:
-            raise ValueError(
-                f"File {label} has repeated IDs in '{id_col}' ({', '.join(repeated[:10])}): {path}"
-            )
+            listed = ", ".join(repr(v) if v.strip() else "(blank)" for v in repeated[:10])
+            raise ValueError(f"File {label} has repeated IDs in '{id_col}' ({listed}): {path}")
 
     report = DiffReport(total_a=len(df_a), total_b=len(df_b))
 
