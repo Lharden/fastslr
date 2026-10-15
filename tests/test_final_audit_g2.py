@@ -177,7 +177,11 @@ def test_run_respects_configured_input_encoding(tmp_path: Path) -> None:
     assert result.result_df.loc[0, "ID"] == "A1"
 
 
-def test_duplicate_ids_are_surfaceable_in_inspection_and_run(tmp_path: Path) -> None:
+def test_duplicate_ids_are_refused_in_inspection_and_before_any_run_artifact(
+    tmp_path: Path,
+) -> None:
+    # F08 (v3.0.1) refuses duplicate IDs; the pre-IP audit only warned. The
+    # refusal happens in the preflight, so the run leaves no output folder.
     config_path = _write_config(tmp_path, _inline_config())
     input_path = _write_articles(
         tmp_path,
@@ -189,15 +193,11 @@ def test_duplicate_ids_are_surfaceable_in_inspection_and_run(tmp_path: Path) -> 
     )
 
     inspection = inspect_run_setup(input_path=input_path, config_path=config_path)
-    result = run_triage(input_path, config_path, output_dir=tmp_path / "out")
+    with pytest.raises(ValueError, match="A1"):
+        run_triage(input_path, config_path, output_dir=tmp_path / "out")
 
-    assert any(
-        "duplicate" in warning.lower() and "A1" in warning for warning in inspection.warnings
-    )
-    assert any(
-        "duplicate" in warning.lower() and "A1" in warning
-        for warning in result.config["_parse_warnings"]
-    )
+    assert any("duplicate" in error.lower() and "A1" in error for error in inspection.errors)
+    assert not (tmp_path / "out").exists()
 
 
 def test_inline_config_coverage_uses_canonical_domain_blocks() -> None:

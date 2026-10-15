@@ -1,6 +1,6 @@
 # Guia do Usuário — FastSLR
 
-> **Manual completo de uso** · FastSLR v3.0.0 · Triagem determinística universal para Revisões Sistemáticas de Literatura (RSL/SLR)
+> **Manual completo de uso** · FastSLR v3.0.1 · Triagem determinística universal para Revisões Sistemáticas de Literatura (RSL/SLR)
 
 Este guia ensina, do zero ao resultado publicável, como instalar, configurar e operar o FastSLR para **qualquer** tipo de revisão sistemática — saúde, engenharia, computação, ciências sociais, negócios, educação, etc. Nenhum conhecimento de programação é necessário para o uso básico.
 
@@ -60,7 +60,7 @@ pip install fastslr
 Para fixar uma versão específica (recomendado para a reprodutibilidade da sua RSL — garante que colaboradores e revisores usem exatamente o mesmo código):
 
 ```bash
-pip install fastslr==3.0.0
+pip install fastslr==3.0.1
 ```
 
 Confirme a instalação:
@@ -77,7 +77,7 @@ Para a versão mais recente do repositório, ou uma tag específica:
 
 ```bash
 pip install git+https://github.com/Lharden/fastslr.git
-pip install git+https://github.com/Lharden/fastslr.git@v3.0.0
+pip install git+https://github.com/Lharden/fastslr.git@v3.0.1
 ```
 
 ### Dependência opcional (detecção de encoding)
@@ -252,14 +252,16 @@ O FastSLR detecta e mapeia automaticamente as colunas de exportações do **Zote
 
 | Campo interno | Nomes reconhecidos (exemplos) |
 |---|---|
-| `id` | Key, ID, EID, UT, Record ID |
+| `id` | Key, EID, UT, Record ID, ID (`UT` antes de `ID`: no Web of Science, `ID` são as palavras-chave Keywords Plus) |
 | `title` | Title, TI, Article Title, Título |
 | `abstract` | Abstract Note, Abstract, AB, Resumo, Resumen |
 | `manual_tags` | Manual Tags, Tags, Author Keywords, Keywords, DE, Palavras-chave |
 
 O reconhecimento é **tolerante a maiúsculas/minúsculas e a acentos**. Se sua coluna tiver um nome diferente, basta mapeá-la no `config.json` (ver [Seção 8](#8-configurando-o-configjson)).
 
-> **Sem coluna de palavras-chave?** Sem problema. Artigos sem `manual_tags` recebem um pequeno *uplift* (multiplicador) na pontuação para compensar a falta de dados (configurável via `NO_TAGS_UPLIFT`, padrão 1.17).
+> **Sem coluna de palavras-chave?** A triagem roda, mas todo artigo conta como "sem palavras-chave" e recebe o *uplift* (multiplicador da pontuação, `NO_TAGS_UPLIFT`, padrão 1.17). Por isso o FastSLR avisa quando a coluna falta: no terminal, no `doctor`, no `triage_report.txt` e no `protocol.json`.
+
+> **ID de registro obrigatório e único.** Uma entrada com ID vazio ou repetido é recusada (`run` sai com erro e não grava resultado; `doctor` mostra as linhas). Corrija a exportação antes de rodar.
 
 ### Dica de codificação (encoding)
 Se você exportou do Excel em um sistema em português/espanhol, o arquivo pode estar em `cp1252`/`latin-1`. O FastSLR lida com isso automaticamente. Se mesmo assim houver erro, salve o CSV como **UTF-8** no Excel ("Salvar como → CSV UTF-8".
@@ -339,6 +341,8 @@ TECH;pos;input/output;2;any;0;;
 
 A "distância" máxima entre os componentes é controlada por `MAX_GAP_BETWEEN_TERMS` no `config.json` (padrão 2 palavras).
 
+Entre as palavras valem espaço, hífen ou barra ("oil-and-gas", "oil/gas"). Ponto e vírgula **não** valem: "engine oil. Gas turbines" e "food, oil, natural gas" não casam `oil and gas`, e uma lista como "exploration, production" também não casa `exploration and production` — cadastre a forma da lista como termo próprio se ela importar. Não há proximidade para termo regex nem para componente de uma letra: `O&G` e `E&P` casam só como sigla ("O&G", "O & G").
+
 ### 7.6 Normalização (abreviaturas, variantes, símbolos)
 
 Unifica variações para que **um único termo** capture várias formas escritas:
@@ -353,6 +357,12 @@ CTX;pos;supply-chain;2;any;0;compound_variant;supply chain
 # Substituição de símbolo
 TECH;pos;c#;1;any;0;symbol_replacement;csharp
 ```
+
+Como cada regra se comporta:
+
+- **Abreviatura é sensível a caixa.** Casa a sigla como você escreveu e em maiúsculas: `ML` expande, mas o `ml` de "5 ml" não; `IoT` casa "IoT" e "IOT".
+- **Símbolo que vale uma palavra vira essa palavra entre espaços**: com `&` → `and`, "oil&gas" vira "oil and gas" e casa o termo `oil and gas`; com `/` → `or`, "AI/ML" vira "artificial intelligence or machine learning".
+- **Hífen entre palavras vale espaço**, no texto e no termo: "machine-learning" casa `machine learning`, e o termo `on-time deliver*` casa "on time delivery". Você não precisa cadastrar a variante com hífen. Em termo **regex**, escreva `[\s-]` no lugar do hífen (o FastSLR avisa se encontrar `covid-19` num regex).
 
 ### 7.7 Boas práticas para termos
 
@@ -662,7 +672,7 @@ Quando `output.academic_package = true`, o FastSLR gera `academic_package.zip` c
 4. Rodar a mesma entrada duas vezes produz resultados **idênticos** nos dados de triagem (apenas metadados voláteis como `run_timestamp` e `execution_id` diferem).
 
 ### Como citar a metodologia (modelo)
-> "A triagem foi realizada com FastSLR v3.0.0, uma ferramenta de filtragem determinística baseada em regras. Os critérios (blocos de domínio, níveis de relevância e limiares) estão documentados no `config.json` e `terms.csv` fornecidos como material suplementar. O `protocol.json` contém os hashes SHA-256 que garantem a reprodutibilidade do processo."
+> "A triagem foi realizada com FastSLR v3.0.1, uma ferramenta de filtragem determinística baseada em regras. Os critérios (blocos de domínio, níveis de relevância e limiares) estão documentados no `config.json` e `terms.csv` fornecidos como material suplementar. O `protocol.json` contém os hashes SHA-256 que garantem a reprodutibilidade do processo."
 
 ---
 

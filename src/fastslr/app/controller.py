@@ -27,7 +27,13 @@ from ..core.coverage import (
     export_coverage_csv,
     format_coverage_report,
 )
-from ..core.engine import process_articles, resolve_field_columns, sample_articles
+from ..core.engine import (
+    find_record_id_problems,
+    missing_keywords_warning,
+    process_articles,
+    resolve_field_columns,
+    sample_articles,
+)
 from ..core.io import (
     build_protocol_snapshot,
     compute_config_hash,
@@ -260,19 +266,6 @@ def _validate_execution_config(config: dict) -> None:
         raise ValueError("Invalid execution configuration: " + " | ".join(errors))
 
 
-def _duplicate_id_warning(df: pd.DataFrame, id_col: str | None) -> str | None:
-    """Return a surfaceable warning when the resolved ID column has duplicates."""
-    if id_col is None:
-        return None
-    values = df[id_col].dropna().astype(str)
-    duplicates = sorted(values[values.duplicated(keep=False)].unique())
-    if not duplicates:
-        return None
-    preview = ", ".join(duplicates[:10])
-    suffix = f" (+{len(duplicates) - 10} more)" if len(duplicates) > 10 else ""
-    return f"Duplicate article IDs detected in '{id_col}': {preview}{suffix}."
-
-
 def _load_execution_input(input_path: Path, config: dict) -> pd.DataFrame:
     """Load and preflight an input corpus before any execution artifacts exist.
 
@@ -292,12 +285,14 @@ def _load_execution_input(input_path: Path, config: dict) -> pd.DataFrame:
             + ". Configure fields.id, fields.title and fields.abstract."
         )
 
-    duplicate_warning = _duplicate_id_warning(df, mapping["id"])
-    if duplicate_warning:
-        warnings = config.setdefault("_parse_warnings", [])
-        if duplicate_warning not in warnings:
-            warnings.append(duplicate_warning)
-        logger.warning(duplicate_warning)
+    # F08: a missing, blank or duplicate record ID is refused here too, so the
+    # run aborts before the output folder exists (process_articles refuses it
+    # again for callers that skip the controller).
+    id_col = mapping["id"]
+    assert id_col is not None  # the check above raises when the ID column is missing
+    id_problems = find_record_id_problems(df, id_col)
+    if id_problems:
+        raise ValueError("Invalid record IDs in the input. " + " ".join(id_problems))
     return df
 
 
@@ -356,15 +351,26 @@ def inspect_run_setup(
                 fields = config.get("fields", {}) if config else {}
                 inspection.field_mapping = resolve_field_columns(df, fields)
 
-                for required in ("id", "title", "abstract"):
+                for required in ("title", "abstract"):
                     if inspection.field_mapping.get(required) is None:
                         inspection.warnings.append(
                             f"Could not identify the '{required}' column. "
                             f"Set fields.{required} in config.json."
                         )
-                duplicate_warning = _duplicate_id_warning(df, inspection.field_mapping.get("id"))
-                if duplicate_warning:
-                    inspection.warnings.append(duplicate_warning)
+
+                # The run refuses a missing, blank or duplicate record ID, so
+                # doctor reports it as an error, not a warning.
+                id_col = inspection.field_mapping.get("id") or str(fields.get("id", "key"))
+                inspection.errors.extend(find_record_id_problems(df, id_col))
+
+                if config:
+                    keywords_warning = missing_keywords_warning(
+                        inspection.field_mapping.get("manual_tags") or fields.get("manual_tags"),
+                        df,
+                        load_global_params(config.get("global", {})).no_tags_uplift,
+                    )
+                    if keywords_warning:
+                        inspection.warnings.append(keywords_warning)
             except Exception as exc:
                 inspection.errors.append(f"Could not load input table: {exc}")
 

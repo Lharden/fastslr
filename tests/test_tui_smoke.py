@@ -47,6 +47,27 @@ def _reset_locale():
     i18n.set_locale(original)
 
 
+async def _settle_screen(pilot) -> None:  # noqa: ANN001
+    """Pause until every ``Header`` on the active screen has composed its children.
+
+    ``Header._on_mount`` schedules a title watcher that does
+    ``query_one(HeaderTitle)``. A single ``pilot.pause()`` after a screen switch
+    can return before the new screen's Header finished composing; if the test
+    then ends, the app shuts down under that watcher and Textual raises
+    ``NoMatches: HeaderTitle``. Waiting for the child to exist removes the race
+    without swallowing any exception.
+    """
+    await pilot.pause()
+    for header in pilot.app.screen.query("Header"):
+        for _ in range(200):
+            if header.query("HeaderTitle"):
+                break
+            await pilot.pause()
+        else:  # pragma: no cover - only reached if Header never composes
+            raise AssertionError("Header did not finish composing")
+    await pilot.pause()
+
+
 def _silence_notify(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     """Patch App.notify to capture (and silence) notification text."""
     captured: list[str] = []
@@ -104,7 +125,7 @@ def test_dashboard_navigates_to_every_screen():
             dashboard = app.screen
             assert isinstance(dashboard, tui.DashboardScreen)
             dashboard._navigate(action_id)
-            await pilot.pause()
+            await _settle_screen(pilot)
             return type(app.screen)
 
     for action_id, screen_cls in expected.items():
@@ -139,7 +160,7 @@ def test_dashboard_menu_action_methods_navigate():
         async with app.run_test() as pilot:
             await pilot.pause()
             getattr(app.screen, method_name)()
-            await pilot.pause()
+            await _settle_screen(pilot)
             return type(app.screen)
 
     for method_name, screen_cls in cases:
@@ -154,7 +175,7 @@ def test_dashboard_button_press_navigates():
         async with app.run_test() as pilot:
             await pilot.pause()
             app.screen.query_one("#run_triage", Button).press()
-            await pilot.pause()
+            await _settle_screen(pilot)
             return isinstance(app.screen, tui.RunTriageScreen)
 
     assert _run(scenario())

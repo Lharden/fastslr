@@ -89,7 +89,10 @@ def test_normalization_unescapes_entities_and_removes_scientific_markup() -> Non
 
     normalized = engine.normalize(raw)
 
-    assert normalized == "co2 & h+ with 10-3"
+    # Markup and entities go first; then F02 (3.0.1) reads the hyphen that the
+    # markup left between two word characters ('10-3') as a space, in the text
+    # and in the terms alike.
+    assert normalized == "co2 & h+ with 10 3"
     assert raw == "CO<sub>2</sub> &amp; H<sup>+</sup> with 10<inf>-3</inf>"
 
 

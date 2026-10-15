@@ -23,7 +23,9 @@ from .scoring import evaluate_block, evaluate_t0_conditional, make_final_decisio
 logger = logging.getLogger(__name__)
 
 _COLUMN_ALIASES: dict[str, list[str]] = {
-    "key": ["Key", "key", "ID", "id", "EID", "UT", "Record ID", "Article ID"],
+    # 'UT' precedes 'ID': in a Web of Science export 'UT' is the accession
+    # number and 'ID' is Keywords Plus, not a record identifier.
+    "key": ["Key", "key", "EID", "UT", "Record ID", "Article ID", "ID", "id"],
     "title": ["Title", "title", "TI", "Article Title", "Document Title", "Titulo", "Título"],
     "abstract": [
         "Abstract Note",
@@ -120,6 +122,78 @@ def resolve_field_columns(df: pd.DataFrame, fields: dict) -> dict[str, str | Non
         resolved[field_name] = actual_col if actual_col in df.columns else None
 
     return resolved
+
+
+_MAX_LISTED_IDS = 10
+
+
+def find_record_id_problems(df: pd.DataFrame, id_col: str) -> list[str]:
+    """Return one message per record-ID problem in *df* (empty when IDs are valid).
+
+    Every record must carry a non-blank, unique ID: the result table is keyed
+    on it, and a blank or repeated ID makes the decision of one record
+    indistinguishable from another's. Lines are numbered as in the input file
+    (header = line 1).
+    """
+    if id_col not in df.columns:
+        columns = ", ".join(str(c) for c in df.columns)
+        return [
+            f"Record ID column '{id_col}' not found in the input (columns: {columns}). "
+            "Set fields.id in config.json."
+        ]
+
+    ids: list[str | None] = [
+        None if _is_missing_scalar(value) or not str(value).strip() else str(value).strip()
+        for value in df[id_col].tolist()
+    ]
+    problems: list[str] = []
+
+    blank_lines = [pos + 2 for pos, value in enumerate(ids) if value is None]
+    if blank_lines:
+        listed = ", ".join(str(line) for line in blank_lines[:_MAX_LISTED_IDS])
+        more = " ..." if len(blank_lines) > _MAX_LISTED_IDS else ""
+        problems.append(
+            f"{len(blank_lines)} record(s) with a blank ID in column '{id_col}' "
+            f"(input line(s) {listed}{more})."
+        )
+
+    lines_by_id: dict[str, list[int]] = {}
+    for pos, value in enumerate(ids):
+        if value is not None:
+            lines_by_id.setdefault(value, []).append(pos + 2)
+    duplicates = [(value, lines) for value, lines in lines_by_id.items() if len(lines) > 1]
+    if duplicates:
+        listed = "; ".join(
+            f"'{value}' (lines {', '.join(str(line) for line in lines)})"
+            for value, lines in duplicates[:_MAX_LISTED_IDS]
+        )
+        more = " ..." if len(duplicates) > _MAX_LISTED_IDS else ""
+        problems.append(
+            f"{len(duplicates)} duplicate record ID(s) in column '{id_col}': {listed}{more}."
+        )
+
+    return problems
+
+
+def missing_keywords_warning(tags_col: str | None, df: pd.DataFrame, uplift: float) -> str | None:
+    """Warning for an input without a keywords column, or ``None`` when it has one.
+
+    Without the column every record counts as having no keywords, so the
+    no-keywords uplift applies to all of them and the keywords section never
+    scores.
+    """
+    if tags_col and tags_col in df.columns:
+        return None
+    source = f"column '{tags_col}' not found in the input" if tags_col else "no column configured"
+    effect = (
+        f"the no-keywords uplift (x{uplift:g}) is applied to every record"
+        if uplift > 1.0
+        else "the keywords section never scores"
+    )
+    return (
+        f"Keywords column missing (fields.manual_tags: {source}): every record is treated "
+        f"as having no keywords, so {effect}."
+    )
 
 
 def collect_statistics(df_result: pd.DataFrame) -> dict:
@@ -293,6 +367,16 @@ def process_articles(
     if tags_col:
         tags_col = _auto_map_column(df, tags_col)
 
+    id_problems = find_record_id_problems(df, id_col)
+    if id_problems:
+        raise ValueError("Invalid record IDs in the input. " + " ".join(id_problems))
+
+    input_warnings: list[str] = []
+    keywords_warning = missing_keywords_warning(tags_col, df, global_params.no_tags_uplift)
+    if keywords_warning:
+        logger.warning(keywords_warning)
+        input_warnings.append(keywords_warning)
+
     fail_fast = global_params.fail_fast_enabled
     error_policy = global_params.error_policy
 
@@ -439,6 +523,7 @@ def process_articles(
     stats["articles_per_second"] = len(output_rows) / processing_time if processing_time > 0 else 0
     stats["error_count"] = error_count
     stats["error_rate"] = error_count / total if total > 0 else 0
+    stats["input_warnings"] = input_warnings
 
     if (
         error_policy == "flag"
@@ -465,4 +550,11 @@ def sample_articles(df: pd.DataFrame, n: int, seed: int | None = None) -> pd.Dat
     return df.sample(n=n, random_state=seed).reset_index(drop=True)
 
 
-__all__ = ["process_articles", "collect_statistics", "sample_articles", "resolve_field_columns"]
+__all__ = [
+    "process_articles",
+    "collect_statistics",
+    "sample_articles",
+    "resolve_field_columns",
+    "find_record_id_problems",
+    "missing_keywords_warning",
+]

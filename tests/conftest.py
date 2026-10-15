@@ -10,6 +10,7 @@ import pytest
 # Ensure the src directory is on the path for editable-install-free testing
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+from fastslr.app.controller import _prepare_config  # noqa: E402
 from fastslr.core.models import GlobalParams  # noqa: E402
 from fastslr.core.normalization import NormalizationEngine  # noqa: E402
 
@@ -80,3 +81,20 @@ def _restore_locale():
     from fastslr.i18n import detect_locale, set_locale
 
     set_locale(detect_locale())
+
+
+# ── Historical configuration of the review (pre-freeze audit, F01-F10) ──────
+
+_HIST = Path(__file__).resolve().parent / "fixtures" / "historical"
+
+
+@pytest.fixture(scope="module")
+def hist_config() -> dict:
+    """config_v8.json + terms_final.csv prepared through the production path."""
+    return _prepare_config(_HIST / "config_v8.json", _HIST / "terms_final.csv")
+
+
+@pytest.fixture(scope="module")
+def hist_engine(hist_config) -> NormalizationEngine:
+    """The normalization engine built from terms_final.csv."""
+    return hist_config["T1A"]["normalization_engine"]
