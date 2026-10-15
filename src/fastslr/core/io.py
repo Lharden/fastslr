@@ -204,6 +204,9 @@ def _load_delimited_table(
     encodings = _candidate_encodings(path, preferred=encoding)
     tried_encodings: list[str] = []
     last_parse_error: Exception | None = None
+    # Widest table any encoding/separator decoded. When the file decodes but is
+    # too narrow, the problem is the columns, not the encoding.
+    widest = 0
 
     for enc in encodings:
         candidates: list[tuple[int, int, pd.DataFrame]] = []
@@ -223,6 +226,7 @@ def _load_delimited_table(
                 continue
             if _contains_nul(df):
                 continue
+            widest = max(widest, len(df.columns))
             if len(df.columns) >= min_columns:
                 candidates.append((_header_score(list(df.columns)), len(df.columns), df))
 
@@ -236,6 +240,12 @@ def _load_delimited_table(
         if decode_failed:
             continue
 
+    if widest:
+        raise ValueError(
+            f"Unable to load delimited table: {path} has at most {widest} column(s) with the "
+            f"separators ';', ',' and tab; at least {min_columns} are needed "
+            "(record ID, title and abstract)."
+        )
     error = ValueError(
         f"Unable to load delimited table: {path} (tried encodings: {', '.join(tried_encodings)})"
     )
@@ -533,10 +543,13 @@ def build_protocol_snapshot(
         "execution_id": f"run_{uuid.uuid4().hex[:12]}",
         "generated_at": datetime.now().isoformat(),
         "triage_version": VERSION,
+        # File names, not paths: the protocol goes into the academic package
+        # that is published, and an absolute path carries the OS username and
+        # the folder layout. The hashes identify the files.
         "inputs": {
-            "input_file": str(input_path),
+            "input_file": Path(input_path).name,
             "input_hash": input_hash,
-            "terms_file": str(terms_path),
+            "terms_file": Path(terms_path).name,
             "terms_hash": terms_hash,
             "config_hash": config_hash,
         },
@@ -557,7 +570,7 @@ def build_protocol_snapshot(
             "input_warnings": list(stats.get("input_warnings", [])),
         },
         "artifacts": {
-            "results_path": str(result_path),
+            "results_path": Path(result_path).name,
         },
         "reproducibility": {
             "deterministic_engine": True,
@@ -709,6 +722,14 @@ def generate_academic_report(snapshot: dict, output_path: Path) -> None:
     output_path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def _relative_to(path: Path, base: Path) -> str:
+    """*path* relative to *base* when it lies inside it, else just its file name."""
+    try:
+        return path.resolve().relative_to(base.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
 def export_compliance_manifest(
     artifacts: dict[str, Path], output_path: Path, execution_id: str
 ) -> None:
@@ -716,7 +737,9 @@ def export_compliance_manifest(
     manifest = {
         "execution_id": execution_id,
         "generated_at": datetime.now().isoformat(),
-        "artifacts": {name: str(path) for name, path in artifacts.items()},
+        "artifacts": {
+            name: _relative_to(path, output_path.parent) for name, path in artifacts.items()
+        },
     }
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -755,7 +778,9 @@ def export_appendix_pack(artifacts: dict[str, Path], zip_path: Path, execution_i
         for name, path in entries:
             zf.write(path, name)
             index_lines.append(f"- {name}")
-            manifest_items[name] = str(path)
+            # The SHA-256 of each file, not its absolute path: the pack is
+            # published, and the path would carry the OS username.
+            manifest_items[name] = hashlib.sha256(path.read_bytes()).hexdigest()
 
         index_text = "\n".join(index_lines) + "\n"
         zf.writestr("APPENDIX_INDEX.md", index_text)

@@ -1,8 +1,10 @@
-"""Compare the 3.0.1 base and the merged 3.1.0 on the 505 records and attribute every difference.
+"""Compare the 3.0.1 base and the merged 3.1.0 on a corpus and attribute every difference.
 
 Usage: python compare.py <out_dir> <report_dir> [--reference <dir>]
+                         [--variants kw nokw] [--rows 505]
 
-<out_dir> holds the runs of run_all.py: base_<kw>, merged_<kw> and loo_<module>_<kw>.
+<out_dir> holds the runs of run_all.py: base_<variant>, merged_<variant> and
+loo_<module>_<variant>. The defaults are the two inputs of the 505 historical records of RSL1.
 --reference points to the folder of the 3.0.1 regression runs (with fixed_kw/ and fixed_nokw/):
 the base must give exactly the same cells, or the instrument is not the one of 2026-10-10.
 
@@ -24,9 +26,12 @@ STATUS = ["Status_T0"] + [f"Status_{b}" for b in BLOCKS] + ["Final_Decision"]
 IGNORE = {"run_timestamp", "triage_version"}
 
 
+ROWS = 505
+
+
 def load(path: Path) -> pd.DataFrame:
     df = pd.read_excel(path / "triage_results.xlsx", dtype=str, keep_default_na=False)
-    assert df["ID"].is_unique and len(df) == 505, path
+    assert df["ID"].is_unique and len(df) == ROWS, (path, len(df))
     return df.set_index("ID")
 
 
@@ -51,12 +56,34 @@ def main() -> None:
     p.add_argument("out", type=Path)
     p.add_argument("report", type=Path)
     p.add_argument("--reference", type=Path)
+    p.add_argument("--variants", nargs="+", default=["kw", "nokw"])
+    p.add_argument("--rows", type=int, default=505, help="records expected in every run")
     args = p.parse_args()
-    modules = sorted(
-        {d.name.removeprefix("loo_").rsplit("_", 1)[0] for d in args.out.glob("loo_*_kw")}
+    global ROWS
+    ROWS = args.rows
+    census = args.out / "run_all.json"
+    if not census.exists():
+        raise SystemExit(f"{census} is missing: run run_all.py, which records what it was asked")
+    trees = sorted(
+        t.removeprefix("loo_")
+        for t in json.loads(census.read_text(encoding="utf-8"))["trees"]
+        if t.startswith("loo_")
     )
-    summary: dict[str, Any] = {"modules": modules}
-    for kw in ("kw", "nokw"):
+
+    def ran(tree: str) -> bool:
+        return all(
+            (args.out / f"loo_{tree}_{kw}" / "triage_results.xlsx").exists() for kw in args.variants
+        )
+
+    # A module whose base copy cannot run with the merged code (it lacks a name another
+    # module imports now) cannot be undone alone: it is reported, never silently dropped.
+    modules = [m for m in trees if ran(m)]
+    summary: dict[str, Any] = {
+        "modules": modules,
+        "modules_not_run": sorted(set(trees) - set(modules)),
+    }
+    print("modules undone:", modules, "| could not run alone:", summary["modules_not_run"])
+    for kw in args.variants:
         base, merged = load(args.out / f"base_{kw}"), load(args.out / f"merged_{kw}")
         loo = {m: load(args.out / f"loo_{m}_{kw}") for m in modules}
         instrument = None
@@ -103,7 +130,7 @@ def main() -> None:
     (args.report / "regression_detail.json").write_text(
         json.dumps(summary, indent=1, ensure_ascii=False, default=str), encoding="utf-8"
     )
-    for kw in ("kw", "nokw"):
+    for kw in args.variants:
         s = summary[kw]
         print(f"=== {kw}")
         for key in (

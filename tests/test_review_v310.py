@@ -24,6 +24,7 @@ from fastslr.app.controller import (
 )
 from fastslr.core.config import load_global_params, parse_terms_csv
 from fastslr.core.io import export_results
+from fastslr.core.normalization import NormalizationEngine
 
 
 def _write_terms_csv(path: Path, rows: list[str]) -> Path:
@@ -212,3 +213,76 @@ def test_f08_preflight_refuses_bad_ids_in_every_flow(
             analyze_coverage(input_path, config_path)
 
     assert not out.exists()
+
+
+# ── normalization and matching ───────────────────────────────────────────────
+
+
+def _engine(**rules: dict) -> NormalizationEngine:
+    return NormalizationEngine({"enabled": True, **rules})
+
+
+def test_nfkc_gives_one_form_to_text_that_only_looks_the_same() -> None:
+    import unicodedata
+
+    engine = NormalizationEngine({"enabled": False})
+    nfd = unicodedata.normalize("NFD", "Gestão de cadeia")
+
+    assert engine.normalize(nfd) == engine.normalize("Gestão de cadeia") == "gestão de cadeia"
+    assert engine.normalize("ＡＩ systems") == "ai systems"
+    assert _engine(abbreviations={"AI": "artificial intelligence"}).normalize("ＡＩ systems") == (
+        "artificial intelligence systems"
+    )
+
+
+def test_lowercase_abbreviation_key_matches_any_case() -> None:
+    engine = _engine(abbreviations={"iot": "internet of things"})
+
+    assert engine.normalize("IoT platforms and IOT and iot") == (
+        "internet of things platforms and internet of things and internet of things"
+    )
+
+
+def test_abbreviation_key_with_uppercase_keeps_its_case() -> None:
+    engine = _engine(abbreviations={"ML": "machine learning"})
+
+    assert engine.normalize("5 ml of ML") == "5 ml of machine learning"
+
+
+def test_keys_with_non_word_edges_expand() -> None:
+    engine = _engine(
+        abbreviations={"C#": "csharp", ".NET": "dotnet"},
+        compound_variants={"c++": "cplusplus"},
+    )
+
+    assert engine.normalize("using C# and .NET with c++ code") == (
+        "using csharp and dotnet with cplusplus code"
+    )
+    assert engine.normalize("ABC#D") == "abc#d"
+
+
+def test_abbreviation_rules_that_differ_only_in_case_are_reported(tmp_path: Path) -> None:
+    path = tmp_path / "terms.csv"
+    path.write_text(
+        "block,kind,term,level,section_scope,is_regex,normalization_type,normalization_target\n"
+        ",,ML,,,0,abbreviation,machine learning\n"
+        ",,ml,,,0,abbreviation,millilitre\n"
+        "T1A,pos,oil,1,any,0,,\n",
+        encoding="utf-8",
+    )
+
+    config = parse_terms_csv(path, {"global": {}})
+
+    assert any("differ only in case" in w for w in config["_parse_warnings"])
+
+
+@pytest.mark.parametrize("term", ["*", "**", "?*"])
+def test_wildcard_only_term_is_skipped(tmp_path: Path, term: str) -> None:
+    csv = _write_terms_csv(
+        tmp_path / "terms.csv", [f"T1A,pos,{term},1,any,0", "T1A,pos,oil,1,any,0"]
+    )
+
+    config = parse_terms_csv(csv, {"global": {}})
+
+    assert [e["term"] for e in config["T1A"]["positives"]] == ["oil"]
+    assert any("only of wildcards" in w for w in config["_parse_warnings"])

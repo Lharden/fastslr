@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -523,11 +524,15 @@ def analyze_coverage(
     terms_path: Path | None = None,
     output_path: Path | None = None,
 ) -> TermCoverageReport:
-    """Run triage and analyze term coverage."""
+    """Run triage and analyze term coverage.
+
+    Every block is evaluated in every article (no fail-fast, no T0 short-cut),
+    so a term is reported dead only when it matches no article at all.
+    """
     config = _prepare_config(config_path, terms_path)
     _validate_execution_config(config)
     df = _load_execution_input(input_path, config)
-    result_df, _ = process_articles(df, config)
+    result_df, _ = process_articles(df, config, evaluate_all_blocks=True)
     report = analyze_term_coverage(result_df, config)
 
     if output_path:
@@ -568,6 +573,16 @@ def diff_results(path_a: Path, path_b: Path) -> DiffReport:
             raise ValueError(
                 t("error_no_common_id") + f" (expected one of: ID, id, Key, key) "
                 f"A: {list(df_a.columns)}; B: {list(df_b.columns)}."
+            )
+
+    # A repeated ID makes the outer merge pair every copy in A with every copy
+    # in B and invent transitions; a result table has one row per record.
+    for label, df, path in (("A", df_a, path_a), ("B", df_b, path_b)):
+        counts = Counter(str(value) for value in df[id_col].tolist())
+        repeated = sorted(value for value, n in counts.items() if n > 1)
+        if repeated:
+            raise ValueError(
+                f"File {label} has repeated IDs in '{id_col}' ({', '.join(repeated[:10])}): {path}"
             )
 
     report = DiffReport(total_a=len(df_a), total_b=len(df_b))

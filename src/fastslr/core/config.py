@@ -409,6 +409,16 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
                 )
             is_regex = is_regex_str in ("1", "true", "yes")
 
+            # ── wildcard-only term: it matches the empty string ───────
+            # '*' or '**' compiles to '\w*' with no anchor and casts a hit,
+            # with level and score, on every article. A warning was not enough.
+            if not is_regex and not term.strip("*? "):
+                parse_warnings.append(
+                    f"Row {row_num}, block '{block}', term '{term}': "
+                    f"a term made only of wildcards matches every article. Row skipped."
+                )
+                continue
+
             # ── duplicate detection ───────────────────────────────────
             # Key must include scope, level and is_regex so that rows
             # intentionally reusing a term across sections, levels or
@@ -513,7 +523,7 @@ def parse_terms_csv(terms_path: str | Path, base_config: dict) -> dict:
         # #16: wildcard-only or single-char terms
         for entry in blk_data.get("positives", []):
             t = entry["term"].strip()
-            if t in ("*", "?") or (len(t) == 1 and t.isalpha()):
+            if len(t) == 1 and t.isalpha():
                 parse_warnings.append(
                     f"Block '{blk_name}': term '{t}' is too broad — will match nearly everything."
                 )
