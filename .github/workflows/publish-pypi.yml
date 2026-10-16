@@ -43,8 +43,11 @@ jobs:
       - name: Read package version
         id: package_version
         shell: bash
+        # VERSION is read statically, as setuptools reads the `attr` version for the build.
+        # Importing fastslr.core.constants runs fastslr/core/__init__.py, which needs pandas,
+        # and nothing is installed yet: the v3.1.0 release run failed on that import.
         run: |
-          VERSION="$(python -c "import sys; sys.path.insert(0, 'src'); from fastslr.core.constants import VERSION; print(VERSION)")"
+          VERSION="$(python -c "import ast, pathlib; tree = ast.parse(pathlib.Path('src/fastslr/core/constants.py').read_text(encoding='utf-8')); print(next(node.value.value for node in tree.body if isinstance(node, ast.Assign) and any(getattr(target, 'id', None) == 'VERSION' for target in node.targets)))")"
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
       - name: Validate release tag against package version
         shell: bash
@@ -68,9 +71,15 @@ jobs:
           python -m pip install --upgrade build
           python -m build
       - name: Check artifacts
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ steps.package_version.outputs.version }}
         run: |
           python -m pip install --upgrade twine
           python -m twine check dist/*
+          # The version validated above must be the one the build wrote.
+          test -f "dist/fastslr-${PACKAGE_VERSION}.tar.gz"
+          test -f "dist/fastslr-${PACKAGE_VERSION}-py3-none-any.whl"
       - uses: actions/upload-artifact@v4
         with:
           name: dist
