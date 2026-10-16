@@ -5,6 +5,19 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [Unreleased]
+
+### Corrigido
+
+- O README, o Guia do Usuário e o `docs/TECHNICAL.md` ainda citavam a 3.0.1, e o
+  `CITATION.cff` trazia a data da auditoria local de junho. Inclui o modelo de
+  texto para a seção de métodos do artigo. Na página da 3.1.0 no PyPI, a
+  descrição, que é o README, começa com "FastSLR v3.0.1", mas o pacote é o da
+  3.1.0. Um teste agora amarra essas versões e a data do `CITATION.cff` à
+  `VERSION` e ao CHANGELOG.
+- O workflow de publicação lê a versão sem importar o pacote. A primeira
+  execução da release v3.1.0 falhou por isso, sem publicar nada.
+
 ## [3.1.0] - 2026-10-15
 
 Junta a bateria final de auditoria pré-registro de propriedade intelectual

@@ -8,7 +8,7 @@ abstract: >-
   decisions with full auditability and academic export packages.
 type: software
 version: 3.1.0
-date-released: 2026-06-10
+date-released: 2026-10-15
 license: MIT
 repository-code: "https://github.com/Lharden/fastslr"
 url: "https://github.com/Lharden/fastslr"

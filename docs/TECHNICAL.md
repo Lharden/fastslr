@@ -1,4 +1,4 @@
-# FastSLR v3.0.1 — Descritivo Tecnico do Sistema
+# FastSLR v3.1.0 — Descritivo Tecnico do Sistema
 
 ## 1. Visao Geral
 
@@ -603,7 +603,7 @@ Prioridade: `FASTSLR_LANG` env var → locale do sistema → `en`
 ```python
 from fastslr.i18n import _
 
-_("version_info", version="3.0.1")  # → "FastSLR v3.0.1"
+_("version_info", version="3.1.0")  # → "FastSLR v3.1.0"
 ```
 
 Fallback chain: locale ativo → ingles → chave literal.

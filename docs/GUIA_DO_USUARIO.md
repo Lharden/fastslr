@@ -1,6 +1,6 @@
 # Guia do Usuário — FastSLR
 
-> **Manual completo de uso** · FastSLR v3.0.1 · Triagem determinística universal para Revisões Sistemáticas de Literatura (RSL/SLR)
+> **Manual completo de uso** · FastSLR v3.1.0 · Triagem determinística universal para Revisões Sistemáticas de Literatura (RSL/SLR)
 
 Este guia ensina, do zero ao resultado publicável, como instalar, configurar e operar o FastSLR para **qualquer** tipo de revisão sistemática — saúde, engenharia, computação, ciências sociais, negócios, educação, etc. Nenhum conhecimento de programação é necessário para o uso básico.
 
@@ -60,7 +60,7 @@ pip install fastslr
 Para fixar uma versão específica (recomendado para a reprodutibilidade da sua RSL — garante que colaboradores e revisores usem exatamente o mesmo código):
 
 ```bash
-pip install fastslr==3.0.1
+pip install fastslr==3.1.0
 ```
 
 Confirme a instalação:
@@ -77,7 +77,7 @@ Para a versão mais recente do repositório, ou uma tag específica:
 
 ```bash
 pip install git+https://github.com/Lharden/fastslr.git
-pip install git+https://github.com/Lharden/fastslr.git@v3.0.1
+pip install git+https://github.com/Lharden/fastslr.git@v3.1.0
 ```
 
 ### Dependência opcional (detecção de encoding)
@@ -672,7 +672,7 @@ Quando `output.academic_package = true`, o FastSLR gera `academic_package.zip` c
 4. Rodar a mesma entrada duas vezes produz resultados **idênticos** nos dados de triagem (apenas metadados voláteis como `run_timestamp` e `execution_id` diferem).
 
 ### Como citar a metodologia (modelo)
-> "A triagem foi realizada com FastSLR v3.0.1, uma ferramenta de filtragem determinística baseada em regras. Os critérios (blocos de domínio, níveis de relevância e limiares) estão documentados no `config.json` e `terms.csv` fornecidos como material suplementar. O `protocol.json` contém os hashes SHA-256 que garantem a reprodutibilidade do processo."
+> "A triagem foi realizada com FastSLR v3.1.0, uma ferramenta de filtragem determinística baseada em regras. Os critérios (blocos de domínio, níveis de relevância e limiares) estão documentados no `config.json` e `terms.csv` fornecidos como material suplementar. O `protocol.json` contém os hashes SHA-256 que garantem a reprodutibilidade do processo."
 
 ---
 
