@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: algoritmo
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, algoritmo, patterns, regex]
 ---
 
@@ -49,4 +53,4 @@ Toda a correspondência é **regex compilado** sobre texto normalizado — sem s
 
 ---
 
-Relacionado: [[Algoritmo - Normalização]] · [[Algoritmo - Avaliação de Bloco]] · [[Configuração - config e termos]] · [[Home]]
+Relacionado: [[Algoritmo - Normalização]] · [[Algoritmo - Avaliação de Bloco]] · [[Configuração - config e termos]] · [[FastSLR - Vault Técnico]]

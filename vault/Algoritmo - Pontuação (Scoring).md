@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: algoritmo
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, algoritmo, scoring]
 ---
 
@@ -77,4 +81,4 @@ São consultados em [[Algoritmo - Avaliação de Bloco|evaluate_block]] usando o
 
 ---
 
-Relacionado: [[Algoritmo - Avaliação de Bloco]] · [[Configuração - config e termos]] · [[Algoritmo - Decisão Final]] · [[Home]]
+Relacionado: [[Algoritmo - Avaliação de Bloco]] · [[Configuração - config e termos]] · [[Algoritmo - Decisão Final]] · [[FastSLR - Vault Técnico]]

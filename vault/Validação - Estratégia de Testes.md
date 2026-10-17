@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: validacao
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, validacao, testes]
 ---
 
@@ -60,4 +64,4 @@ pyright
 
 ---
 
-Relacionado: [[Validação - Checklist]] · [[Validação - Bugs e Riscos Conhecidos]] · [[Home]]
+Relacionado: [[Validação - Checklist]] · [[Validação - Bugs e Riscos Conhecidos]] · [[FastSLR - Vault Técnico]]

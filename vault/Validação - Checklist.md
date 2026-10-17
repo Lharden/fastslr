@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: validacao
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, validacao, checklist]
 ---
 
@@ -72,4 +76,4 @@ Checklist mestre para garantir que a triagem está **correta, reproduzível e ro
 
 ---
 
-Relacionado: [[Validação - Bugs e Riscos Conhecidos]] · [[Validação - Estratégia de Testes]] · [[Home]]
+Relacionado: [[Validação - Bugs e Riscos Conhecidos]] · [[Validação - Estratégia de Testes]] · [[FastSLR - Vault Técnico]]

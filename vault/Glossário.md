@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: referencia
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, glossario]
 ---
 
@@ -68,4 +72,4 @@ tags: [fastslr, glossario]
 
 ---
 
-Relacionado: [[Home]] · [[Objetivo e Visão]] · [[Algoritmo - Pipeline de Triagem]]
+Relacionado: [[FastSLR - Vault Técnico]] · [[Objetivo e Visão]] · [[Algoritmo - Pipeline de Triagem]]

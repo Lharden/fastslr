@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: algoritmo
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, algoritmo, normalizacao]
 ---
 
@@ -46,4 +50,4 @@ O engine mantém um cache **LRU manual** (dict + lista de ordem). É O(n) por ac
 
 ---
 
-Relacionado: [[Algoritmo - Padrões e Proximidade]] · [[Algoritmo - Avaliação de Bloco]] · [[Configuração - config e termos]] · [[Home]]
+Relacionado: [[Algoritmo - Padrões e Proximidade]] · [[Algoritmo - Avaliação de Bloco]] · [[Configuração - config e termos]] · [[FastSLR - Vault Técnico]]

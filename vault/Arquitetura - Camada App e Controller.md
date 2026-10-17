@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: arquitetura
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, arquitetura, app, controller]
 ---
 
@@ -55,4 +59,4 @@ Entry point de `python -m fastslr`: importa `app` de `cli.py` e o invoca.
 
 ---
 
-Relacionado: [[Arquitetura - Visão Geral]] · [[Arquitetura - Camada Core]] · [[Fluxo de Dados]] · [[Home]]
+Relacionado: [[Arquitetura - Visão Geral]] · [[Arquitetura - Camada Core]] · [[Fluxo de Dados]] · [[FastSLR - Vault Técnico]]

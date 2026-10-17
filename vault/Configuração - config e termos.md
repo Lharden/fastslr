@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: configuracao
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, configuracao]
 ---
 
@@ -43,7 +47,7 @@ Dois arquivos controlam toda a triagem: `config.json` (parâmetros) e `terms.csv
 | `NOISE_PROFILE` | relaxed | `relaxed`/`strict` (ativa filtros de ruído) |
 | `ERROR_POLICY` | flag | `flag`/`fail` |
 
-`fields` mapeia colunas do CSV de entrada (com auto-detecção via [[Fluxo de Dados|adapters]]). `output` controla os formatos gerados.
+`fields` mapeia colunas do CSV de entrada (com auto-detecção via [[Fluxo de Dados|`engine._auto_map_column`]]). `output` controla os formatos gerados.
 
 > [!warning] Chaves em PT-BR
 > Os nomes de parâmetro são em português (`PONTUACAO_NIVEIS`, `LIMITES_APROVADO`…). `load_global_params` os traduz para o `GlobalParams` interno (chaves de nível viram `int`).
@@ -82,4 +86,4 @@ Tipos de termo: `pos` (contribui ao score), `anti` (rejeita o bloco), `flag` (re
 
 ---
 
-Relacionado: [[Algoritmo - Pontuação (Scoring)]] · [[Algoritmo - Políticas de Decisão]] · [[Reprodutibilidade e Pacote Acadêmico]] · [[Home]]
+Relacionado: [[Algoritmo - Pontuação (Scoring)]] · [[Algoritmo - Políticas de Decisão]] · [[Reprodutibilidade e Pacote Acadêmico]] · [[FastSLR - Vault Técnico]]

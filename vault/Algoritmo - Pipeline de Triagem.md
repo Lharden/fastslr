@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: algoritmo
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, algoritmo, pipeline]
 ---
 
@@ -62,4 +66,4 @@ O pipeline é totalmente determinístico **exceto** por `run_timestamp` (`dateti
 
 ---
 
-Relacionado: [[Algoritmo - Pré-triagem T0]] · [[Algoritmo - Avaliação de Bloco]] · [[Algoritmo - Decisão Final]] · [[Home]]
+Relacionado: [[Algoritmo - Pré-triagem T0]] · [[Algoritmo - Avaliação de Bloco]] · [[Algoritmo - Decisão Final]] · [[FastSLR - Vault Técnico]]

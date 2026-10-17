@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: algoritmo
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, algoritmo, t0]
 ---
 
@@ -46,4 +50,4 @@ Quando T0 existe, o resultado inclui `Status_T0`, `Reason_T0`, `Scope_T0`, `Anti
 
 ---
 
-Relacionado: [[Algoritmo - Pipeline de Triagem]] · [[Algoritmo - Decisão Final]] · [[Algoritmo - Avaliação de Bloco]] · [[Home]]
+Relacionado: [[Algoritmo - Pipeline de Triagem]] · [[Algoritmo - Decisão Final]] · [[Algoritmo - Avaliação de Bloco]] · [[FastSLR - Vault Técnico]]
