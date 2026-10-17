@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: arquitetura
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, arquitetura, core]
 ---
 
@@ -38,12 +42,12 @@ Carga robusta de CSV/XLSX (detecção de encoding e separador), hashing SHA-256,
 ### `coverage.py` — análise de cobertura
 `analyze_term_coverage` identifica **dead terms** (0 matches), **broad terms** (>80% dos artigos) e blocos sem discriminação. Útil na fase de calibração. Ver [[Algoritmo - Pipeline de Triagem]].
 
-### `adapters.py` — importadores bibliográficos
-`detect_format` + `apply_mapping` reconhecem exportações de **Zotero**, **Scopus** e **Web of Science** e renomeiam colunas para o esquema interno.
+> [!info] `adapters.py` foi removido
+> Existiu um módulo `adapters.py` com `detect_format`/`apply_mapping` para exportações de Zotero, Scopus e Web of Science. Ele nunca chegou a ser cabeado ao pipeline (dead code) e foi eliminado. O reconhecimento de exportações bibliográficas acontece em `engine._auto_map_column`, por nome de coluna e aliases conhecidos. Registro do achado em [[Validação - Auditoria Completa]].
 
 ### `presets.py` — presets e scaffolding
 `LEVEL_PRESETS` (binary/simple/standard), `generate_config` (cria config completa para `new-project`).
 
 ---
 
-Relacionado: [[Arquitetura - Visão Geral]] · [[Arquitetura - Camada App e Controller]] · [[Algoritmo - Pipeline de Triagem]] · [[Home]]
+Relacionado: [[Arquitetura - Visão Geral]] · [[Arquitetura - Camada App e Controller]] · [[Algoritmo - Pipeline de Triagem]] · [[FastSLR - Vault Técnico]]

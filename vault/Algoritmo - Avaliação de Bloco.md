@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: algoritmo
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, algoritmo, bloco]
 ---
 
@@ -64,4 +68,4 @@ Se há anti-flag e o status era `APPROVED`, vira `FLAGGED`. (Não afeta `REJECTE
 
 ---
 
-Relacionado: [[Algoritmo - Pontuação (Scoring)]] · [[Algoritmo - Padrões e Proximidade]] · [[Algoritmo - Decisão Final]] · [[Home]]
+Relacionado: [[Algoritmo - Pontuação (Scoring)]] · [[Algoritmo - Padrões e Proximidade]] · [[Algoritmo - Decisão Final]] · [[FastSLR - Vault Técnico]]

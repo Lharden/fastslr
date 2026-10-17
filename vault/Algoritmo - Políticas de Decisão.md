@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: algoritmo
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, algoritmo, politicas]
 ---
 
@@ -59,4 +63,4 @@ Parâmetros: `MIN_APPROVED_BLOCKS` (`min_approved_blocks`, padrão 1), `MAX_FLAG
 
 ---
 
-Relacionado: [[Algoritmo - Decisão Final]] · [[Configuração - config e termos]] · [[Home]]
+Relacionado: [[Algoritmo - Decisão Final]] · [[Configuração - config e termos]] · [[FastSLR - Vault Técnico]]

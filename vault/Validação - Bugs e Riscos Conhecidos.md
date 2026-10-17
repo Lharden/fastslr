@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: validacao
+status: historico
+atualizado: 2026-08-28
 tags: [fastslr, validacao, bugs, riscos]
 ---
 
@@ -113,4 +117,4 @@ Do `docs/stress-test-log.md` — **já corrigidos**, mantidos como referência:
 
 ---
 
-Ver o checklist acionável em [[Validação - Checklist]]. Relacionado: [[Validação - Estratégia de Testes]] · [[Home]].
+Ver o checklist acionável em [[Validação - Checklist]]. Relacionado: [[Validação - Estratégia de Testes]] · [[FastSLR - Vault Técnico]].

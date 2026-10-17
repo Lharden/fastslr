@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: algoritmo
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, algoritmo, decisao]
 ---
 
@@ -48,4 +52,4 @@ Objetivo: evitar falsos negativos quando um único bloco está na fronteira mas 
 
 ---
 
-Relacionado: [[Algoritmo - Políticas de Decisão]] · [[Algoritmo - Avaliação de Bloco]] · [[Algoritmo - Pré-triagem T0]] · [[Home]]
+Relacionado: [[Algoritmo - Políticas de Decisão]] · [[Algoritmo - Avaliação de Bloco]] · [[Algoritmo - Pré-triagem T0]] · [[FastSLR - Vault Técnico]]

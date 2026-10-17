@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: reprodutibilidade
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, reprodutibilidade, academico]
 ---
 
@@ -50,4 +54,4 @@ O `docs/rsl/PROTOCOL.md` documenta o protocolo metodológico. O software impleme
 
 ---
 
-Relacionado: [[Objetivo e Visão]] · [[Fluxo de Dados]] · [[Configuração - config e termos]] · [[Home]]
+Relacionado: [[Objetivo e Visão]] · [[Fluxo de Dados]] · [[Configuração - config e termos]] · [[FastSLR - Vault Técnico]]

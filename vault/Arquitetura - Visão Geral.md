@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: arquitetura
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, arquitetura]
 ---
 
@@ -20,7 +24,7 @@ FastSLR adota uma arquitetura em **duas camadas** com uma **fachada** entre elas
 ┌───────────────────────────▼──────────────────────────────┐
 │                   CAMADA CORE (core/)                      │
 │  engine → scoring → patterns → normalization → config     │
-│           models · constants · io · coverage · adapters   │
+│           models · constants · io · coverage · presets    │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -62,7 +66,6 @@ src/fastslr/
 │   ├── constants.py       # defaults e constantes
 │   ├── io.py              # CSV/XLSX, highlight, protocol, ZIP
 │   ├── coverage.py        # análise de cobertura de termos
-│   ├── adapters.py        # importadores Zotero/Scopus/WoS
 │   └── presets.py         # presets de níveis e scaffolding
 ├── app/         # interface
 │   ├── cli.py             # comandos (Typer + Rich)
@@ -74,4 +77,4 @@ src/fastslr/
 
 ---
 
-Relacionado: [[Arquitetura - Camada Core]] · [[Arquitetura - Camada App e Controller]] · [[Fluxo de Dados]] · [[Home]]
+Relacionado: [[Arquitetura - Camada Core]] · [[Arquitetura - Camada App e Controller]] · [[Fluxo de Dados]] · [[FastSLR - Vault Técnico]]

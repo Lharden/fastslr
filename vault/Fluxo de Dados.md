@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: arquitetura
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, arquitetura, fluxo]
 ---
 
@@ -41,7 +45,7 @@ Da exportação bibliográfica ao pacote acadêmico reproduzível.
 
 ## Etapas
 
-1. **Carga de entrada** — `io.load_table_safe` detecta encoding (opcional via `chardet`) e separador (`;`, `,`, `\t`), lê CSV/XLSX. `adapters.py` reconhece o formato (Zotero/Scopus/WoS) e renomeia colunas.
+1. **Carga de entrada** — `io.load_table_safe` detecta encoding (opcional via `chardet`) e separador (`;`, `,`, `\t`), lê CSV/XLSX. A escolha do separador usa `_header_score`, que prefere o separador que produz cabeçalhos reconhecíveis.
 2. **Auto-mapeamento de colunas** — `engine._auto_map_column` casa `id/title/abstract/manual_tags` por nome exato → case-insensitive → sem acentos → aliases conhecidos.
 3. **Preparação da config** — o controller carrega config + termos, monta o `NormalizationEngine` e pré-compila os padrões de cada bloco (e T0). Ver [[Arquitetura - Camada App e Controller]].
 4. **Triagem** — `process_articles` roda o [[Algoritmo - Pipeline de Triagem|pipeline]] por artigo.
@@ -61,4 +65,4 @@ Da exportação bibliográfica ao pacote acadêmico reproduzível.
 
 ---
 
-Relacionado: [[Arquitetura - Visão Geral]] · [[Algoritmo - Pipeline de Triagem]] · [[Reprodutibilidade e Pacote Acadêmico]] · [[Home]]
+Relacionado: [[Arquitetura - Visão Geral]] · [[Algoritmo - Pipeline de Triagem]] · [[Reprodutibilidade e Pacote Acadêmico]] · [[FastSLR - Vault Técnico]]

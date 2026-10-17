@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: validacao
+status: historico
+atualizado: 2026-08-28
 tags: [fastslr, validacao, correcoes]
 ---
 
@@ -138,4 +142,4 @@ Para o plano detalhado e a priorização original (Média/Baixa) destes itens, v
 
 ---
 
-Relacionado: [[Validação - Auditoria Completa]] · [[Validação - Checklist]] · [[Home]]
+Relacionado: [[Validação - Auditoria Completa]] · [[Validação - Checklist]] · [[FastSLR - Vault Técnico]]

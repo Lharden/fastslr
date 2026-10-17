@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: validacao
+status: historico
+atualizado: 2026-08-28
 tags: [fastslr, validacao, auditoria]
 ---
 
@@ -762,4 +766,4 @@ Ordem recomendada de aplicação, agrupada por severidade e por dependência té
 
 ---
 
-Relacionado: [[Validação - Checklist]] · [[Validação - Bugs e Riscos Conhecidos]] · [[Home]]
+Relacionado: [[Validação - Checklist]] · [[Validação - Bugs e Riscos Conhecidos]] · [[FastSLR - Vault Técnico]]

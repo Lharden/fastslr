@@ -1,4 +1,8 @@
 ---
+projeto: FastSLR
+tipo: visao
+status: atual
+atualizado: 2026-08-28
 tags: [fastslr, visao, objetivo]
 ---
 
@@ -46,4 +50,4 @@ Pesquisadores de **qualquer área**, em sua maioria **não-programadores**. Daí
 
 ---
 
-Relacionado: [[Home]] · [[Arquitetura - Visão Geral]] · [[Glossário]]
+Relacionado: [[FastSLR - Vault Técnico]] · [[Arquitetura - Visão Geral]] · [[Glossário]]
